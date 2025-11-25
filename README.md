@@ -16,7 +16,7 @@ A simple, statically-typed programming language compiler built from scratch in C
 - **Smart Editor**: Auto-indentation, bracket matching, code folding
 
 ## Language Syntax
-````markdown
+
 # Axolotl (AXO)
 
 ![Axolotl Icon](lang-ext/assets/icon.png)
@@ -165,5 +165,4 @@ Open `examples/test.axo` and `examples/showcase.axo` to see language features.
 
 MIT
 
-````
 - Function call support with parameter passing

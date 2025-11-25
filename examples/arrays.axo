@@ -1,5 +1,5 @@
 // Array example - demonstrating array creation, indexing, and built-in functions
-
+use "examples/test.axo";
 var numbers: [int] = [1, 2, 3, 4, 5];
 
 // Print the array
