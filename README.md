@@ -58,6 +58,8 @@ for (var i: int = 0; i < 10; i = i + 1) {
 - `string`: Text string
 - `bool`: Boolean value (true/false)
 - `void`: No return value
+- `object`: No return value
+- `[type]`: [array of types]
 
 ### Operators
 
