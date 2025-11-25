@@ -1,5 +1,7 @@
 // Array example - demonstrating array creation, indexing, and built-in functions
 use "examples/test.axo";
+
+
 var numbers: [int|string] = [1, 2, 3, 4, "test",false];
 
 // Print the array

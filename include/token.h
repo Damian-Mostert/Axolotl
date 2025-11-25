@@ -17,6 +17,7 @@ enum class TokenType {
     KW_STRING,
     KW_BOOL,
     KW_VOID,
+    KW_ANY,
     KW_IF,
     KW_ELSE,
     KW_WHILE,

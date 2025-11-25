@@ -12,6 +12,7 @@ std::string Token::toString() const {
         case TokenType::KW_STRING: typeStr = "KW_STRING"; break;
         case TokenType::KW_BOOL: typeStr = "KW_BOOL"; break;
         case TokenType::KW_VOID: typeStr = "KW_VOID"; break;
+        case TokenType::KW_ANY: typeStr = "KW_ANY"; break;
         case TokenType::KW_IF: typeStr = "KW_IF"; break;
         case TokenType::KW_ELSE: typeStr = "KW_ELSE"; break;
         case TokenType::KW_WHILE: typeStr = "KW_WHILE"; break;

@@ -57,6 +57,9 @@ bool valueMatchesType(const Value &v, const std::string &typeSpec) {
         return false;
     }
 
+    // "any" type matches anything
+    if (t == "any") return true;
+
     // Base types
     if (t == "int") return std::holds_alternative<int>(v);
     if (t == "float") return std::holds_alternative<float>(v);

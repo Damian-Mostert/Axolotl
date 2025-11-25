@@ -138,6 +138,8 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
                     paramType = advance();
                 } else if (check(TokenType::KW_OBJECT)) {
                     paramType = advance();
+                } else if (check(TokenType::KW_ANY)) {
+                    paramType = advance();
                 } else {
                     paramType = consume(TokenType::IDENTIFIER, "Expected parameter type");
                 }
@@ -156,6 +158,8 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
                     } else if (check(TokenType::KW_VOID)) {
                         moreType = advance();
                     } else if (check(TokenType::KW_OBJECT)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_ANY)) {
                         moreType = advance();
                     } else {
                         moreType = consume(TokenType::IDENTIFIER, "Expected type after '|'");
@@ -181,6 +185,8 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
     } else if (check(TokenType::KW_BOOL)) {
         returnType = advance();
     } else if (check(TokenType::KW_VOID)) {
+        returnType = advance();
+    } else if (check(TokenType::KW_ANY)) {
         returnType = advance();
     } else {
         returnType = consume(TokenType::IDENTIFIER, "Expected return type");
@@ -361,6 +367,8 @@ std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
             baseType = advance();
         } else if (check(TokenType::KW_OBJECT)) {
             baseType = advance();
+        } else if (check(TokenType::KW_ANY)) {
+            baseType = advance();
         } else {
             baseType = consume(TokenType::IDENTIFIER, "Expected array element type");
         }
@@ -376,6 +384,8 @@ std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
             } else if (check(TokenType::KW_BOOL)) {
                 moreType = advance();
             } else if (check(TokenType::KW_OBJECT)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_ANY)) {
                 moreType = advance();
             } else {
                 moreType = consume(TokenType::IDENTIFIER, "Expected array element type after '|'");
@@ -398,6 +408,8 @@ std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
         } else if (check(TokenType::KW_VOID)) {
             type = advance();
         } else if (check(TokenType::KW_OBJECT)) {
+            type = advance();
+        } else if (check(TokenType::KW_ANY)) {
             type = advance();
         } else {
             type = consume(TokenType::IDENTIFIER, "Expected variable type");

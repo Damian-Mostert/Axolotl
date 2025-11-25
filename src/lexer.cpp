@@ -7,6 +7,7 @@ std::unordered_map<std::string, TokenType> Lexer::keywords = {
     {"string", TokenType::KW_STRING},
     {"bool", TokenType::KW_BOOL},
     {"void", TokenType::KW_VOID},
+    {"any", TokenType::KW_ANY},
     {"if", TokenType::KW_IF},
     {"else", TokenType::KW_ELSE},
     {"while", TokenType::KW_WHILE},

@@ -41,7 +41,7 @@
     },
     {
       "name": "storage.type.axo",
-      "match": "\\b(int|float|string|bool|void|object)\\b"
+      "match": "\\b(int|float|string|bool|void|object|any)\\b"
     },
     {
       "name": "keyword.operator.axo",
