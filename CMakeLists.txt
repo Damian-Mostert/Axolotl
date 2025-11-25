@@ -20,11 +20,16 @@ set(SOURCES
 # Create executable
 add_executable(compiler ${SOURCES})
 
-# Enable all warnings
+# Enable optimizations for Release builds
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Enable aggressive optimizations
 if(MSVC)
-    target_compile_options(compiler PRIVATE /W4)
+    target_compile_options(compiler PRIVATE /W4 /O2)
 else()
-    target_compile_options(compiler PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(compiler PRIVATE -Wall -Wextra -Wpedantic -O3 -march=native)
 endif()
 
 # Link stdc++fs for GNU < 9 and also for AppleClang for filesystem support
