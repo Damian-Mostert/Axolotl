@@ -4,8 +4,16 @@ project(CompilerEngine)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Find LLVM
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+
+list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+include(AddLLVM)
+
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${LLVM_INCLUDE_DIRS})
 
 # Source files
 set(SOURCES
@@ -15,6 +23,7 @@ set(SOURCES
     src/ast.cpp
     src/parser.cpp
     src/interpreter.cpp
+    src/jit.cpp
 )
 
 # Create executable
@@ -29,8 +38,13 @@ endif()
 if(MSVC)
     target_compile_options(compiler PRIVATE /W4 /O2)
 else()
-    target_compile_options(compiler PRIVATE -Wall -Wextra -Wpedantic -O3 -march=native)
+    target_compile_options(compiler PRIVATE -Wall -Wextra -Wpedantic -O3 -march=native -flto)
+    target_link_options(compiler PRIVATE -flto)
 endif()
+
+# Link LLVM libraries
+llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
+target_link_libraries(compiler ${llvm_libs})
 
 # Link stdc++fs for GNU < 9 and also for AppleClang for filesystem support
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

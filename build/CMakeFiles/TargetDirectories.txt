@@ -1,3 +1,8 @@
+/Users/damian/Axolotl/build/CMakeFiles/intrinsics_gen.dir
+/Users/damian/Axolotl/build/CMakeFiles/vt_gen.dir
+/Users/damian/Axolotl/build/CMakeFiles/omp_gen.dir
+/Users/damian/Axolotl/build/CMakeFiles/acc_gen.dir
+/Users/damian/Axolotl/build/CMakeFiles/target_parser_gen.dir
 /Users/damian/Axolotl/build/CMakeFiles/compiler.dir
 /Users/damian/Axolotl/build/CMakeFiles/test.dir
 /Users/damian/Axolotl/build/CMakeFiles/edit_cache.dir

@@ -156,6 +156,20 @@ CMakeFiles/compiler.dir/src/interpreter.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/compiler.dir/src/interpreter.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/Axolotl/src/interpreter.cpp -o CMakeFiles/compiler.dir/src/interpreter.cpp.s
 
+CMakeFiles/compiler.dir/src/jit.cpp.o: CMakeFiles/compiler.dir/flags.make
+CMakeFiles/compiler.dir/src/jit.cpp.o: /Users/damian/Axolotl/src/jit.cpp
+CMakeFiles/compiler.dir/src/jit.cpp.o: CMakeFiles/compiler.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/compiler.dir/src/jit.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/jit.cpp.o -MF CMakeFiles/compiler.dir/src/jit.cpp.o.d -o CMakeFiles/compiler.dir/src/jit.cpp.o -c /Users/damian/Axolotl/src/jit.cpp
+
+CMakeFiles/compiler.dir/src/jit.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/compiler.dir/src/jit.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/Axolotl/src/jit.cpp > CMakeFiles/compiler.dir/src/jit.cpp.i
+
+CMakeFiles/compiler.dir/src/jit.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/compiler.dir/src/jit.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/Axolotl/src/jit.cpp -o CMakeFiles/compiler.dir/src/jit.cpp.s
+
 # Object files for target compiler
 compiler_OBJECTS = \
 "CMakeFiles/compiler.dir/src/main.cpp.o" \
@@ -163,7 +177,8 @@ compiler_OBJECTS = \
 "CMakeFiles/compiler.dir/src/lexer.cpp.o" \
 "CMakeFiles/compiler.dir/src/ast.cpp.o" \
 "CMakeFiles/compiler.dir/src/parser.cpp.o" \
-"CMakeFiles/compiler.dir/src/interpreter.cpp.o"
+"CMakeFiles/compiler.dir/src/interpreter.cpp.o" \
+"CMakeFiles/compiler.dir/src/jit.cpp.o"
 
 # External object files for target compiler
 compiler_EXTERNAL_OBJECTS =
@@ -174,9 +189,71 @@ compiler: CMakeFiles/compiler.dir/src/lexer.cpp.o
 compiler: CMakeFiles/compiler.dir/src/ast.cpp.o
 compiler: CMakeFiles/compiler.dir/src/parser.cpp.o
 compiler: CMakeFiles/compiler.dir/src/interpreter.cpp.o
+compiler: CMakeFiles/compiler.dir/src/jit.cpp.o
 compiler: CMakeFiles/compiler.dir/build.make
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMCore.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMExecutionEngine.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMMCJIT.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMRuntimeDyld.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64CodeGen.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64AsmParser.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Desc.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Disassembler.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Info.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Utils.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMExecutionEngine.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMOrcTargetProcess.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMOrcShared.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMRuntimeDyld.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAsmPrinter.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMCFGuard.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMGlobalISel.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMSelectionDAG.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMCodeGen.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMTarget.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMScalarOpts.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAggressiveInstCombine.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMInstCombine.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMCGData.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMBitWriter.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMObjCARCOpts.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMVectorize.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMTransformUtils.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMSandboxIR.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAnalysis.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMProfileData.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMSymbolize.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMDebugInfoGSYM.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMDebugInfoDWARF.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMDebugInfoDWARFLowLevel.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMDebugInfoPDB.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMObject.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMIRReader.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMBitReader.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAsmParser.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMTextAPI.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMDebugInfoCodeView.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMDebugInfoMSF.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMDebugInfoBTF.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMMCParser.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Desc.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMCodeGenTypes.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Info.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Utils.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMCore.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMRemarks.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMBitstreamReader.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMMCDisassembler.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMMC.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMBinaryFormat.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMTargetParser.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMSupport.a
+compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMDemangle.a
+compiler: /opt/homebrew/lib/libz3.dylib
+compiler: /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib/libz.tbd
+compiler: /opt/homebrew/lib/libzstd.dylib
 compiler: CMakeFiles/compiler.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable compiler"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable compiler"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/compiler.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

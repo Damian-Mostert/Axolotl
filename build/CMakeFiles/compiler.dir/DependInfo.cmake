@@ -10,6 +10,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/damian/Axolotl/src/ast.cpp" "CMakeFiles/compiler.dir/src/ast.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/ast.cpp.o.d"
   "/Users/damian/Axolotl/src/interpreter.cpp" "CMakeFiles/compiler.dir/src/interpreter.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/interpreter.cpp.o.d"
+  "/Users/damian/Axolotl/src/jit.cpp" "CMakeFiles/compiler.dir/src/jit.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/jit.cpp.o.d"
   "/Users/damian/Axolotl/src/lexer.cpp" "CMakeFiles/compiler.dir/src/lexer.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/lexer.cpp.o.d"
   "/Users/damian/Axolotl/src/main.cpp" "CMakeFiles/compiler.dir/src/main.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/main.cpp.o.d"
   "/Users/damian/Axolotl/src/parser.cpp" "CMakeFiles/compiler.dir/src/parser.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/parser.cpp.o.d"

@@ -127,6 +127,71 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named intrinsics_gen
+
+# Build rule for target.
+intrinsics_gen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 intrinsics_gen
+.PHONY : intrinsics_gen
+
+# fast build rule for target.
+intrinsics_gen/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/intrinsics_gen.dir/build.make CMakeFiles/intrinsics_gen.dir/build
+.PHONY : intrinsics_gen/fast
+
+#=============================================================================
+# Target rules for targets named vt_gen
+
+# Build rule for target.
+vt_gen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 vt_gen
+.PHONY : vt_gen
+
+# fast build rule for target.
+vt_gen/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/vt_gen.dir/build.make CMakeFiles/vt_gen.dir/build
+.PHONY : vt_gen/fast
+
+#=============================================================================
+# Target rules for targets named omp_gen
+
+# Build rule for target.
+omp_gen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 omp_gen
+.PHONY : omp_gen
+
+# fast build rule for target.
+omp_gen/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/omp_gen.dir/build.make CMakeFiles/omp_gen.dir/build
+.PHONY : omp_gen/fast
+
+#=============================================================================
+# Target rules for targets named acc_gen
+
+# Build rule for target.
+acc_gen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 acc_gen
+.PHONY : acc_gen
+
+# fast build rule for target.
+acc_gen/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/acc_gen.dir/build.make CMakeFiles/acc_gen.dir/build
+.PHONY : acc_gen/fast
+
+#=============================================================================
+# Target rules for targets named target_parser_gen
+
+# Build rule for target.
+target_parser_gen: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 target_parser_gen
+.PHONY : target_parser_gen
+
+# fast build rule for target.
+target_parser_gen/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/target_parser_gen.dir/build.make CMakeFiles/target_parser_gen.dir/build
+.PHONY : target_parser_gen/fast
+
+#=============================================================================
 # Target rules for targets named compiler
 
 # Build rule for target.
@@ -186,6 +251,30 @@ src/interpreter.s: src/interpreter.cpp.s
 src/interpreter.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/interpreter.cpp.s
 .PHONY : src/interpreter.cpp.s
+
+src/jit.o: src/jit.cpp.o
+.PHONY : src/jit.o
+
+# target to build an object file
+src/jit.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/jit.cpp.o
+.PHONY : src/jit.cpp.o
+
+src/jit.i: src/jit.cpp.i
+.PHONY : src/jit.i
+
+# target to preprocess a source file
+src/jit.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/jit.cpp.i
+.PHONY : src/jit.cpp.i
+
+src/jit.s: src/jit.cpp.s
+.PHONY : src/jit.s
+
+# target to generate assembly for a file
+src/jit.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/jit.cpp.s
+.PHONY : src/jit.cpp.s
 
 src/lexer.o: src/lexer.cpp.o
 .PHONY : src/lexer.o
@@ -292,6 +381,11 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
+	@echo "... acc_gen"
+	@echo "... intrinsics_gen"
+	@echo "... omp_gen"
+	@echo "... target_parser_gen"
+	@echo "... vt_gen"
 	@echo "... compiler"
 	@echo "... src/ast.o"
 	@echo "... src/ast.i"
@@ -299,6 +393,9 @@ help:
 	@echo "... src/interpreter.o"
 	@echo "... src/interpreter.i"
 	@echo "... src/interpreter.s"
+	@echo "... src/jit.o"
+	@echo "... src/jit.i"
+	@echo "... src/jit.s"
 	@echo "... src/lexer.o"
 	@echo "... src/lexer.i"
 	@echo "... src/lexer.s"
