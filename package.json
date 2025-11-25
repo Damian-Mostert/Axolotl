@@ -1,0 +1,23 @@
+{
+    "name": "game-engine",
+    "version": "1.0.0",
+    "description": "Compiler engine with lexer, parser, and interpreter",
+    "main": "src/main.cpp",
+    "scripts": {
+        "build": "cmake -S . -B build && cmake --build build",
+        "test": "./run_tests.sh",
+        "clean": "rm -rf build"
+    },
+    "keywords": [
+        "compiler",
+        "lexer",
+        "parser",
+        "interpreter",
+        "language"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "vsce": "^2.15.0"
+    }
+}

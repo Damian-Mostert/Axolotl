@@ -1,0 +1,50 @@
+// Test the specific patterns user mentioned
+
+var arr: [object] = [
+    { test: "value at 0", nested: [10, 20, 30] },
+    { test: "value at 1" }
+];
+
+// Pattern 1: [0].test
+print("Pattern [0].test:");
+print(arr[0].test);
+
+// Pattern 2: [0].test['test'][0] (accessing nested)
+var obj: object = {
+    test: [
+        { inner: "data" },
+        { inner: "more" }
+    ]
+};
+print("Pattern obj.test[0].inner:");
+print(obj.test[0].inner);
+
+// Pattern 3: test.test[1].test
+var complex: object = {
+    test: {
+        test: [
+            { test: "first" },
+            { test: "second" }
+        ]
+    }
+};
+print("Pattern complex.test.test[1].test:");
+print(complex.test.test[1].test);
+
+// Mix of bracket and dot notation
+print("Pattern arr[0].nested[1]:");
+print(arr[0].nested[1]);
+
+// Access through multiple levels
+var deep: object = {
+    data: [
+        {
+            items: [
+                { value: "deep1" },
+                { value: "deep2" }
+            ]
+        }
+    ]
+};
+print("Pattern deep.data[0].items[1].value:");
+print(deep.data[0].items[1].value);

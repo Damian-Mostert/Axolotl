@@ -1,0 +1,38 @@
+// String helpers example - demonstrating built-in string functions
+
+var text: string = "Hello, World!";
+
+print("Original text:", text);
+
+// String length
+print("Text length:", len(text));
+
+// Substring
+var sub: string = substr(text, 0, 5);
+print("Substring (0,5):", sub);
+
+// Case conversion
+var upper: string = toUpper(text);
+print("Uppercase:", upper);
+
+var lower: string = toLower(text);
+print("Lowercase:", lower);
+
+// String search
+var idx: int = indexOf(text, "World");
+print("Index of 'World':", idx);
+
+var not_found: int = indexOf(text, "xyz");
+print("Index of 'xyz':", not_found);
+
+// String contains
+var has_hello: string = contains(text, "Hello");
+print("Contains 'Hello':", has_hello);
+
+var has_foo: string = contains(text, "foo");
+print("Contains 'foo':", has_foo);
+
+// Mix operations
+var greeting: string = "Hello";
+var name: string = "Alice";
+print("Greeting:", greeting, "Name:", name);

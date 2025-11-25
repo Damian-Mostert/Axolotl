@@ -1,0 +1,10 @@
+{
+    "iconDefinitions": {
+        "axo-icon": {
+            "iconPath": "./assets/axo-icon.svg"
+        }
+    },
+    "fileExtensions": {
+        "axo": "axo-icon"
+    }
+}

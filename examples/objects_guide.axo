@@ -1,0 +1,143 @@
+// ====================================================
+// OBJECT USAGE GUIDE FOR YOUR LANGUAGE
+// ====================================================
+// 
+// Current Status: The language has infrastructure for objects
+// (ObjectValue, FieldAccess, FieldAssignment) but needs
+// ObjectLiteral syntax support in the parser.
+//
+// This file demonstrates what SHOULD work once
+// ObjectLiteral parsing is implemented.
+// ====================================================
+
+// BASIC OBJECT LITERAL
+// var ob:object = { tst: "", test2: [], test3: [] }
+
+// ARRAY OF OBJECTS  
+// var obs: [object] = [{}, {}, {}]
+
+// MEMBER ACCESS
+// ob.tst          // dot notation (via FieldAccess)
+// ob["tst"]       // bracket notation (via IndexAccess)
+
+// MEMBER ASSIGNMENT
+// ob.tst = "hello"    // dot notation (via FieldAssignment)
+// ob["tst"] = "hello" // bracket notation (via IndexAssignment)
+
+// ====================================================
+// EXAMPLE 1: Basic Object (once ObjectLiteral is added)
+// ====================================================
+
+// var person:object = {
+//     name: "Alice",
+//     age: 30,
+//     email: "alice@example.com"
+// };
+
+// print(person.name);      // Output: Alice
+// print(person.age);       // Output: 30
+// person.age = 31;
+// print(person.age);       // Output: 31
+
+// ====================================================
+// EXAMPLE 2: Nested Objects (once ObjectLiteral is added)
+// ====================================================
+
+// var address:object = {
+//     street: "123 Main St",
+//     city: "New York",
+//     zip: "10001"
+// };
+
+// var company:object = {
+//     name: "TechCorp",
+//     address: address,
+//     employees: 100
+// };
+
+// print(company.name);              // Output: TechCorp
+// print(company.address.city);      // Output: New York
+// company.address.zip = "10002";
+// print(company.address.zip);       // Output: 10002
+
+// ====================================================
+// EXAMPLE 3: Array of Objects (once implemented)
+// ====================================================
+
+// var users: [object] = [
+//     { name: "Alice", age: 30 },
+//     { name: "Bob", age: 25 },
+//     { name: "Charlie", age: 35 }
+// ];
+
+// print(users[0].name);    // Output: Alice
+// print(users[1].age);     // Output: 25
+// users[2].age = 36;
+// print(users[2].age);     // Output: 36
+
+// ====================================================
+// EXAMPLE 4: Object with Mixed Types
+// ====================================================
+
+// var config:object = {
+//     appName: "MyApp",
+//     version: 1.0,
+//     debug: true,
+//     tags: ["web", "mobile", "desktop"]
+// };
+
+// print(config.appName);        // Output: MyApp
+// print(config.version);        // Output: 1.0
+// print(config.debug);          // Output: true
+// print(config.tags[0]);        // Output: web
+
+// ====================================================
+// EXAMPLE 5: Dynamic Field Access
+// ====================================================
+
+// var obj:object = { x: 10, y: 20 };
+
+// // Bracket notation allows dynamic keys
+// var fieldName: string = "x";
+// print(obj[fieldName]);        // Output: 10
+// obj[fieldName] = 15;
+// print(obj.x);                 // Output: 15
+
+// ====================================================
+// SUPPORTED ACCESS PATTERNS (from existing code)
+// ====================================================
+
+// 1. FieldAccess (dot notation):
+//    myObject.fieldName
+//
+// 2. IndexAccess (bracket notation):
+//    myObject["fieldName"]
+//    myObject[variableKey]
+//
+// 3. FieldAssignment (dot notation):
+//    myObject.fieldName = value
+//
+// 4. IndexAssignment (bracket notation):
+//    myObject["fieldName"] = value
+//    myObject[variableKey] = value
+
+// ====================================================
+// TODO: NEEDED IMPLEMENTATIONS
+// ====================================================
+//
+// 1. ObjectLiteral class in AST:
+//    - Store key-value pairs as vector<pair<string, Expression>>
+//
+// 2. Parser support for {} syntax:
+//    - Recognize LBRACE token in parsePrimary()
+//    - Parse key: value pairs separated by commas
+//    - Return ObjectLiteral node
+//
+// 3. Interpreter support:
+//    - Visit ObjectLiteral node
+//    - Create ObjectValue with evaluated field values
+//    - Support nested objects and arrays
+//
+// 4. Type parsing for "object" type:
+//    - Allow "object" as a valid type in declarations
+//    - Support "[object]" for arrays of objects

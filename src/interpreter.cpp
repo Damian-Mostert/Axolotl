@@ -1,0 +1,1240 @@
+#include "include/interpreter.h"
+#include "include/lexer.h"
+#include "include/parser.h"
+#include <variant>
+#include <sstream>
+#include <fstream>
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+// Environment
+void Environment::define(const std::string &name, const Variable &var)
+{
+    if (scopes.empty())
+    {
+        scopes.push_back({});
+    }
+    scopes.back()[name] = var;
+}
+
+Variable Environment::get(const std::string &name) const
+{
+    for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
+    {
+        auto found = it->find(name);
+        if (found != it->end())
+        {
+            return found->second;
+        }
+    }
+    throw std::runtime_error("Undefined variable: " + name);
+}
+
+void Environment::set(const std::string &name, const Value &value)
+{
+    for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
+    {
+        auto found = it->find(name);
+        if (found != it->end())
+        {
+            found->second.value = value;
+            return;
+        }
+    }
+    throw std::runtime_error("Undefined variable: " + name);
+}
+
+bool Environment::has(const std::string &name) const
+{
+    for (auto it = scopes.rbegin(); it != scopes.rend(); ++it)
+    {
+        if (it->find(name) != it->end())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Environment::pushScope()
+{
+    scopes.push_back({});
+}
+
+void Environment::popScope()
+{
+    if (!scopes.empty())
+    {
+        scopes.pop_back();
+    }
+}
+
+// Interpreter
+Interpreter::Interpreter()
+{
+    environment.pushScope();
+}
+
+void Interpreter::interpret(Program *program)
+{
+    program->accept(this);
+}
+
+std::string Interpreter::visit(IntegerLiteral *node)
+{
+    return std::to_string(node->value);
+}
+
+std::string Interpreter::visit(FloatLiteral *node)
+{
+    std::ostringstream oss;
+    oss << node->value;
+    return oss.str();
+}
+
+std::string Interpreter::visit(StringLiteral *node)
+{
+    return node->value;
+}
+
+std::string Interpreter::visit(BooleanLiteral *node)
+{
+    return node->value ? "true" : "false";
+}
+
+std::string Interpreter::visit(Identifier *node)
+{
+    Variable var = environment.get(node->name);
+    // Store array/object values in lastValue for later retrieval
+    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(var.value))
+    {
+        lastValue = var.value;
+        return "[array]";
+    }
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(var.value))
+    {
+        lastValue = var.value;
+        return "{object}";
+    }
+    // Handle function values
+    if (std::holds_alternative<FunctionDeclaration*>(var.value))
+    {
+        lastValue = var.value;
+        return "[function]";
+    }
+    if (std::holds_alternative<FunctionExpression*>(var.value))
+    {
+        lastValue = var.value;
+        return "[function]";
+    }
+    return valueToString(var.value);
+}
+
+std::string Interpreter::visit(BinaryOp *node)
+{
+    Value left = evaluate(node->left.get());
+    Value right = evaluate(node->right.get());
+    Value result = performBinaryOp(left, node->op, right);
+    return valueToString(result);
+}
+
+std::string Interpreter::visit(UnaryOp *node)
+{
+    Value operand = evaluate(node->operand.get());
+    Value result = performUnaryOp(node->op, operand);
+    return valueToString(result);
+}
+
+std::string Interpreter::visit(FunctionCall *node)
+{
+    // Determine function name (support callee identifiers)
+    std::string callName = node->name;
+    if (node->callee) {
+        if (auto id = dynamic_cast<Identifier*>(node->callee.get())) {
+            callName = id->name;
+        }
+    }
+
+    // Built-in: write(...)
+    if (callName == "write")
+    {
+        if (node->args.size() != 2)
+        {
+            throw std::runtime_error("write() expects exactly 2 arguments: write(filepath, content)");
+        }
+
+        // Evaluate arguments
+        Value fpVal = evaluate(node->args[0].get());
+        Value contentVal = evaluate(node->args[1].get());
+
+        std::string filepath = valueToString(fpVal);
+        std::string content = valueToString(contentVal);
+
+        // Write to file
+        std::ofstream file(filepath, std::ios::out);
+        if (!file.is_open())
+        {
+            throw std::runtime_error("Could not open file for writing: " + filepath);
+        }
+
+        file << content;
+        file.close();
+
+        return ""; // write returns empty string
+    }
+
+    // Built-in: read(...)
+    if (callName == "read")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("read() expects exactly 1 argument: read(filepath)");
+        }
+
+        // Evaluate filepath argument
+        Value fpVal = evaluate(node->args[0].get());
+        std::string filepath = valueToString(fpVal);
+
+        // Open file
+        std::ifstream file(filepath, std::ios::in);
+        if (!file.is_open())
+        {
+            throw std::runtime_error("Could not open file for reading: " + filepath);
+        }
+
+        // Read file content into string
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+
+        return buffer.str(); // return file content as std::string
+    }
+
+    // Built-in: copy(...)
+    if (callName == "copy")
+    {
+        if (node->args.size() != 2)
+        {
+            throw std::runtime_error("copy() expects exactly 2 arguments: copy(sourcePath, destPath)");
+        }
+
+        // Evaluate source and destination arguments
+        Value srcVal = evaluate(node->args[0].get());
+        Value dstVal = evaluate(node->args[1].get());
+        std::string sourcePath = valueToString(srcVal);
+        std::string destPath = valueToString(dstVal);
+
+        // Open source file
+        std::ifstream srcFile(sourcePath, std::ios::binary);
+        if (!srcFile.is_open())
+        {
+            throw std::runtime_error("Could not open source file for copying: " + sourcePath);
+        }
+
+        // Open destination file
+        std::ofstream dstFile(destPath, std::ios::binary);
+        if (!dstFile.is_open())
+        {
+            srcFile.close();
+            throw std::runtime_error("Could not open destination file for copying: " + destPath);
+        }
+
+        // Copy content
+        dstFile << srcFile.rdbuf();
+
+        // Close files
+        srcFile.close();
+        dstFile.close();
+
+        return nullptr; // or some Value representing success
+    }
+
+    // Built-in: print(...)
+    if (callName == "print")
+    {
+        bool first = true;
+        for (auto &a : node->args)
+        {
+            Value v = evaluate(a.get());
+            if (!first)
+                std::cout << " ";
+            std::cout << valueToString(v);
+            first = false;
+        }
+        std::cout << std::endl;
+        return "";
+    }
+
+    // Built-in: len(array or string)
+    if (callName == "len")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("len() expects 1 argument");
+        }
+        Value v = evaluate(node->args[0].get());
+        if (std::holds_alternative<std::shared_ptr<ArrayValue>>(v))
+        {
+            auto arr = std::get<std::shared_ptr<ArrayValue>>(v);
+            return std::to_string(arr->elements.size());
+        }
+        if (std::holds_alternative<std::string>(v))
+        {
+            auto s = std::get<std::string>(v);
+            return std::to_string(s.size());
+        }
+        throw std::runtime_error("len() requires array or string");
+    }
+
+    // Built-in: push(array, value)
+    if (callName == "push")
+    {
+        if (node->args.size() != 2)
+        {
+            throw std::runtime_error("push() expects 2 arguments");
+        }
+        // Try to get the array by identifier
+        Identifier *arrayId = dynamic_cast<Identifier *>(node->args[0].get());
+        if (arrayId)
+        {
+            Variable arrayVar = environment.get(arrayId->name);
+            Value arrVal = arrayVar.value;
+            if (std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal))
+            {
+                auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
+                Value val = evaluate(node->args[1].get());
+                arr->elements.push_back(val);
+                return "";
+            }
+        }
+        throw std::runtime_error("push() requires array variable as first argument");
+    }
+
+    // Built-in: pop(array)
+    if (callName == "pop")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("pop() expects 1 argument");
+        }
+        // Try to get the array by identifier
+        Identifier *arrayId = dynamic_cast<Identifier *>(node->args[0].get());
+        if (arrayId)
+        {
+            Variable arrayVar = environment.get(arrayId->name);
+            Value arrVal = arrayVar.value;
+            if (std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal))
+            {
+                auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
+                if (!arr->elements.empty())
+                {
+                    Value last = arr->elements.back();
+                    arr->elements.pop_back();
+                    return valueToString(last);
+                }
+                return "";
+            }
+        }
+        throw std::runtime_error("pop() requires array variable");
+    }
+
+    // Built-in: substr(string, start, length)
+    if (callName == "substr")
+    {
+        if (node->args.size() != 3)
+        {
+            throw std::runtime_error("substr() expects 3 arguments");
+        }
+        Value s = evaluate(node->args[0].get());
+        Value start = evaluate(node->args[1].get());
+        Value len = evaluate(node->args[2].get());
+        if (std::holds_alternative<std::string>(s) &&
+            std::holds_alternative<int>(start) &&
+            std::holds_alternative<int>(len))
+        {
+            std::string str = std::get<std::string>(s);
+            int st = std::get<int>(start);
+            int l = std::get<int>(len);
+            if (st < 0 || st >= (int)str.size())
+                return "";
+            return str.substr(st, l);
+        }
+        throw std::runtime_error("substr() requires (string, int, int)");
+    }
+
+    // Built-in: toUpper(string)
+    if (callName == "toUpper")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("toUpper() expects 1 argument");
+        }
+        Value s = evaluate(node->args[0].get());
+        if (std::holds_alternative<std::string>(s))
+        {
+            std::string str = std::get<std::string>(s);
+            for (char &c : str)
+            {
+                if (c >= 'a' && c <= 'z')
+                {
+                    c = c - 'a' + 'A';
+                }
+            }
+            return str;
+        }
+        throw std::runtime_error("toUpper() requires string");
+    }
+
+    // Built-in: toLower(string)
+    if (callName == "toLower")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("toLower() expects 1 argument");
+        }
+        Value s = evaluate(node->args[0].get());
+        if (std::holds_alternative<std::string>(s))
+        {
+            std::string str = std::get<std::string>(s);
+            for (char &c : str)
+            {
+                if (c >= 'A' && c <= 'Z')
+                {
+                    c = c - 'A' + 'a';
+                }
+            }
+            return str;
+        }
+        throw std::runtime_error("toLower() requires string");
+    }
+
+    // Built-in: indexOf(string, substring)
+    if (callName == "indexOf")
+    {
+        if (node->args.size() != 2)
+        {
+            throw std::runtime_error("indexOf() expects 2 arguments");
+        }
+        Value s = evaluate(node->args[0].get());
+        Value sub = evaluate(node->args[1].get());
+        if (std::holds_alternative<std::string>(s) && std::holds_alternative<std::string>(sub))
+        {
+            std::string str = std::get<std::string>(s);
+            std::string substring = std::get<std::string>(sub);
+            size_t pos = str.find(substring);
+            if (pos != std::string::npos)
+            {
+                return std::to_string(pos);
+            }
+            return "-1";
+        }
+        throw std::runtime_error("indexOf() requires (string, string)");
+    }
+
+    // Built-in: contains(string, substring)
+    if (callName == "contains")
+    {
+        if (node->args.size() != 2)
+        {
+            throw std::runtime_error("contains() expects 2 arguments");
+        }
+        Value s = evaluate(node->args[0].get());
+        Value sub = evaluate(node->args[1].get());
+        if (std::holds_alternative<std::string>(s) && std::holds_alternative<std::string>(sub))
+        {
+            std::string str = std::get<std::string>(s);
+            std::string substring = std::get<std::string>(sub);
+            return str.find(substring) != std::string::npos ? "true" : "false";
+        }
+        throw std::runtime_error("contains() requires (string, string)");
+    }
+
+    // Check if this is a call to a function variable (via callee)
+    if (node->callee)
+    {
+        // Special handling for Identifier callees - check functions map first
+        Identifier* idCallee = dynamic_cast<Identifier*>(node->callee.get());
+        if (idCallee)
+        {
+            // First check if it's a named function
+            auto funcIt = functions.find(idCallee->name);
+            if (funcIt != functions.end())
+            {
+                FunctionDeclaration *func = funcIt->second;
+                if (node->args.size() != func->params.size())
+                {
+                    throw std::runtime_error("Function argument count mismatch");
+                }
+
+                environment.pushScope();
+
+                for (size_t i = 0; i < node->args.size(); ++i)
+                {
+                    Value argVal = evaluate(node->args[i].get());
+                    Variable param(argVal, func->params[i].second, false);
+                    environment.define(func->params[i].first, param);
+                }
+
+                try
+                {
+                    executeBlock(func->body.get());
+                }
+                catch (const ReturnException &e)
+                {
+                    environment.popScope();
+                    return valueToString(e.value);
+                }
+
+                environment.popScope();
+                return "";
+            }
+            
+            // Otherwise try to get it from environment
+            if (environment.has(idCallee->name))
+            {
+                Value calleeVal = evaluate(node->callee.get());
+                
+                // Check if it's a FunctionDeclaration*
+                if (std::holds_alternative<FunctionDeclaration*>(calleeVal))
+                {
+                    FunctionDeclaration *func = std::get<FunctionDeclaration*>(calleeVal);
+                    if (node->args.size() != func->params.size())
+                    {
+                        throw std::runtime_error("Function argument count mismatch");
+                    }
+
+                    environment.pushScope();
+
+                    for (size_t i = 0; i < node->args.size(); ++i)
+                    {
+                        Value argVal = evaluate(node->args[i].get());
+                        Variable param(argVal, func->params[i].second, false);
+                        environment.define(func->params[i].first, param);
+                    }
+
+                    try
+                    {
+                        executeBlock(func->body.get());
+                    }
+                    catch (const ReturnException &e)
+                    {
+                        environment.popScope();
+                        return valueToString(e.value);
+                    }
+
+                    environment.popScope();
+                    return "";
+                }
+                
+                // Check if it's a FunctionExpression*
+                if (std::holds_alternative<FunctionExpression*>(calleeVal))
+                {
+                    FunctionExpression *func = std::get<FunctionExpression*>(calleeVal);
+                    if (node->args.size() != func->params.size())
+                    {
+                        throw std::runtime_error("Function argument count mismatch");
+                    }
+
+                    environment.pushScope();
+
+                    for (size_t i = 0; i < node->args.size(); ++i)
+                    {
+                        Value argVal = evaluate(node->args[i].get());
+                        Variable param(argVal, func->params[i].second, false);
+                        environment.define(func->params[i].first, param);
+                    }
+
+                    try
+                    {
+                        executeBlock(func->body.get());
+                    }
+                    catch (const ReturnException &e)
+                    {
+                        environment.popScope();
+                        return valueToString(e.value);
+                    }
+
+                    environment.popScope();
+                    return "";
+                }
+                
+                throw std::runtime_error("Callee must be a function");
+            }
+            
+            throw std::runtime_error("Undefined function: " + idCallee->name);
+        }
+        
+        // For non-identifier callees, evaluate and check the result
+        Value calleeVal = evaluate(node->callee.get());
+        
+        // Check if it's a FunctionDeclaration*
+        if (std::holds_alternative<FunctionDeclaration*>(calleeVal))
+        {
+            FunctionDeclaration *func = std::get<FunctionDeclaration*>(calleeVal);
+            if (node->args.size() != func->params.size())
+            {
+                throw std::runtime_error("Function argument count mismatch");
+            }
+
+            environment.pushScope();
+
+            for (size_t i = 0; i < node->args.size(); ++i)
+            {
+                Value argVal = evaluate(node->args[i].get());
+                Variable param(argVal, func->params[i].second, false);
+                environment.define(func->params[i].first, param);
+            }
+
+            try
+            {
+                executeBlock(func->body.get());
+            }
+            catch (const ReturnException &e)
+            {
+                environment.popScope();
+                return valueToString(e.value);
+            }
+
+            environment.popScope();
+            return "";
+        }
+        
+        // Check if it's a FunctionExpression*
+        if (std::holds_alternative<FunctionExpression*>(calleeVal))
+        {
+            FunctionExpression *func = std::get<FunctionExpression*>(calleeVal);
+            if (node->args.size() != func->params.size())
+            {
+                throw std::runtime_error("Function argument count mismatch");
+            }
+
+            environment.pushScope();
+
+            for (size_t i = 0; i < node->args.size(); ++i)
+            {
+                Value argVal = evaluate(node->args[i].get());
+                Variable param(argVal, func->params[i].second, false);
+                environment.define(func->params[i].first, param);
+            }
+
+            try
+            {
+                executeBlock(func->body.get());
+            }
+            catch (const ReturnException &e)
+            {
+                environment.popScope();
+                return valueToString(e.value);
+            }
+
+            environment.popScope();
+            return "";
+        }
+        
+        throw std::runtime_error("Callee must be a function");
+    }
+
+    // This should not be reached since all calls now go through callee path
+    throw std::runtime_error("Invalid function call");
+}
+
+std::string Interpreter::visit(Block *node)
+{
+    executeBlock(node);
+    return "";
+}
+
+std::string Interpreter::visit(VariableDeclaration *node)
+{
+    Value value;
+    if (node->initializer)
+    {
+        value = evaluate(node->initializer.get());
+    }
+    else
+    {
+        // If declared type is "object" and no initializer, create empty object
+        if (node->type == "object")
+        {
+            value = std::make_shared<ObjectValue>();
+        }
+        else
+        {
+            value = 0;
+        }
+    }
+    environment.define(node->name, Variable(value, node->type, false));
+    return "";
+}
+
+std::string Interpreter::visit(Assignment *node)
+{
+    Value value = evaluate(node->value.get());
+    environment.set(node->name, value);
+    return valueToString(value);
+}
+
+std::string Interpreter::visit(FieldAssignment *node)
+{
+    Value objVal = evaluate(node->object.get());
+    Value val = evaluate(node->value.get());
+
+    if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal))
+    {
+        throw std::runtime_error("Field assignment requires object on left side");
+    }
+
+    auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+    obj->fields[node->field] = val;
+
+    return "";
+}
+
+std::string Interpreter::visit(IndexAssignment *node)
+{
+    Value objVal = evaluate(node->object.get());
+    Value idx = evaluate(node->index.get());
+    Value val = evaluate(node->value.get());
+
+    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(objVal))
+    {
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(objVal);
+        if (!std::holds_alternative<int>(idx))
+        {
+            throw std::runtime_error("Array index must be integer");
+        }
+        int i = std::get<int>(idx);
+        if (i < 0 || i >= (int)arr->elements.size())
+        {
+            throw std::runtime_error("Array index out of bounds");
+        }
+        arr->elements[i] = val;
+        return "";
+    }
+
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal))
+    {
+        if (!std::holds_alternative<std::string>(idx))
+        {
+            throw std::runtime_error("Object index must be string");
+        }
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        std::string key = std::get<std::string>(idx);
+        obj->fields[key] = val;
+        return "";
+    }
+
+    throw std::runtime_error("Index assignment requires array or object on left side");
+}
+
+std::string Interpreter::visit(IfStatement *node)
+{
+    Value cond = evaluate(node->condition.get());
+    if (isTruthy(cond))
+    {
+        executeBlock(node->thenBlock.get());
+    }
+    else if (node->elseBlock)
+    {
+        executeBlock(node->elseBlock.get());
+    }
+    return "";
+}
+
+std::string Interpreter::visit(WhileStatement *node)
+{
+    while (isTruthy(evaluate(node->condition.get())))
+    {
+        executeBlock(node->body.get());
+    }
+    return "";
+}
+
+std::string Interpreter::visit(ForStatement *node)
+{
+    environment.pushScope();
+
+    if (node->init)
+    {
+        node->init->accept(this);
+    }
+
+    while (isTruthy(evaluate(node->condition.get())))
+    {
+        executeBlock(node->body.get());
+        evaluate(node->update.get());
+    }
+
+    environment.popScope();
+    return "";
+}
+
+std::string Interpreter::visit(ReturnStatement *node)
+{
+    Value value = 0;
+    if (node->value)
+    {
+        value = evaluate(node->value.get());
+    }
+    throw ReturnException(value);
+}
+
+std::string Interpreter::visit(FunctionDeclaration *node)
+{
+    functions[node->name] = node;
+    return "";
+}
+
+std::string Interpreter::visit(Program *node)
+{
+    for (auto &decl : node->declarations)
+    {
+        decl->accept(this);
+    }
+    return "";
+}
+
+std::string Interpreter::visit(ExpressionStatement *node)
+{
+    // Evaluate the expression and discard the result
+    evaluate(node->expression.get());
+    return "";
+}
+
+std::string Interpreter::visit(ImportDeclaration *node)
+{
+    try
+    {
+        fs::path requested(node->path);
+        fs::path absPath = fs::absolute(requested);
+        std::string absStr = absPath.string();
+
+        if (importedFiles.find(absStr) != importedFiles.end())
+        {
+            // Already imported, skip
+            return "";
+        }
+
+        // Mark as imported to prevent cycles
+        importedFiles.insert(absStr);
+
+        std::ifstream file(absStr);
+        if (!file.is_open())
+        {
+            throw std::runtime_error("Could not open import file: " + absStr);
+        }
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        std::string source = buffer.str();
+
+        // Tokenize
+        Lexer lexer(source);
+        auto tokens = lexer.tokenize();
+
+        // Parse
+        Parser parser(tokens);
+        auto ast = parser.parse();
+
+        // Interpret using the same interpreter (share environment/functions)
+        interpret(ast.get());
+
+        return "";
+    }
+    catch (const std::exception &e)
+    {
+        throw std::runtime_error(std::string("Import error (") + node->path + "): " + e.what());
+    }
+}
+
+Value Interpreter::evaluate(Expression *expr)
+{
+    std::string result = expr->accept(this);
+    // Check if a complex value was stored
+    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]"))
+    {
+        return lastValue;
+    }
+    // Convert result string back to Value if needed
+    if (result.empty())
+        return 0;
+    if (result == "true")
+        return true;
+    if (result == "false")
+        return false;
+    try
+    {
+        if (result.find('.') != std::string::npos)
+        {
+            return std::stof(result);
+        }
+        return std::stoi(result);
+    }
+    catch (...)
+    {
+        return result;
+    }
+}
+
+void Interpreter::execute(Statement *stmt)
+{
+    stmt->accept(this);
+}
+
+void Interpreter::executeBlock(Block *block)
+{
+    environment.pushScope();
+    for (auto &stmt : block->statements)
+    {
+        stmt->accept(this);
+    }
+    environment.popScope();
+}
+
+Value Interpreter::performBinaryOp(const Value &left, const std::string &op, const Value &right)
+{
+    if (op == "+")
+    {
+        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right))
+        {
+            return std::get<int>(left) + std::get<int>(right);
+        }
+        if (std::holds_alternative<float>(left) && std::holds_alternative<float>(right))
+        {
+            return std::get<float>(left) + std::get<float>(right);
+        }
+        // String concatenation
+        return valueToString(left) + valueToString(right);
+    }
+    else if (op == "-")
+    {
+        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right))
+        {
+            return std::get<int>(left) - std::get<int>(right);
+        }
+        return std::get<float>(left) - std::get<float>(right);
+    }
+    else if (op == "*")
+    {
+        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right))
+        {
+            return std::get<int>(left) * std::get<int>(right);
+        }
+        return std::get<float>(left) * std::get<float>(right);
+    }
+    else if (op == "/")
+    {
+        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right))
+        {
+            return std::get<int>(left) / std::get<int>(right);
+        }
+        return std::get<float>(left) / std::get<float>(right);
+    }
+    else if (op == "%")
+    {
+        return std::get<int>(left) % std::get<int>(right);
+    }
+    else if (op == "==")
+    {
+        return valueToString(left) == valueToString(right);
+    }
+    else if (op == "!=")
+    {
+        return valueToString(left) != valueToString(right);
+    }
+    else if (op == "<")
+    {
+        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right))
+        {
+            return std::get<int>(left) < std::get<int>(right);
+        }
+        return std::get<float>(left) < std::get<float>(right);
+    }
+    else if (op == ">")
+    {
+        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right))
+        {
+            return std::get<int>(left) > std::get<int>(right);
+        }
+        return std::get<float>(left) > std::get<float>(right);
+    }
+    else if (op == "<=")
+    {
+        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right))
+        {
+            return std::get<int>(left) <= std::get<int>(right);
+        }
+        return std::get<float>(left) <= std::get<float>(right);
+    }
+    else if (op == ">=")
+    {
+        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right))
+        {
+            return std::get<int>(left) >= std::get<int>(right);
+        }
+        return std::get<float>(left) >= std::get<float>(right);
+    }
+    else if (op == "&&")
+    {
+        return isTruthy(left) && isTruthy(right);
+    }
+    else if (op == "||")
+    {
+        return isTruthy(left) || isTruthy(right);
+    }
+    else if (op == "=")
+    {
+        return right;
+    }
+
+    throw std::runtime_error("Unknown operator: " + op);
+}
+
+Value Interpreter::performUnaryOp(const std::string &op, const Value &operand)
+{
+    if (op == "-")
+    {
+        if (std::holds_alternative<int>(operand))
+        {
+            return -std::get<int>(operand);
+        }
+        return -std::get<float>(operand);
+    }
+    else if (op == "!")
+    {
+        return !isTruthy(operand);
+    }
+    throw std::runtime_error("Unknown unary operator: " + op);
+}
+
+bool Interpreter::isTruthy(const Value &v)
+{
+    if (std::holds_alternative<bool>(v))
+    {
+        return std::get<bool>(v);
+    }
+    if (std::holds_alternative<int>(v))
+    {
+        return std::get<int>(v) != 0;
+    }
+    if (std::holds_alternative<float>(v))
+    {
+        return std::get<float>(v) != 0.0f;
+    }
+    if (std::holds_alternative<std::string>(v))
+    {
+        return !std::get<std::string>(v).empty();
+    }
+    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(v))
+    {
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(v);
+        return !arr->elements.empty();
+    }
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(v))
+    {
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(v);
+        return !obj->fields.empty();
+    }
+    return false;
+}
+
+std::string Interpreter::valueToString(const Value &v)
+{
+    if (std::holds_alternative<int>(v))
+    {
+        return std::to_string(std::get<int>(v));
+    }
+    if (std::holds_alternative<float>(v))
+    {
+        std::ostringstream oss;
+        oss << std::get<float>(v);
+        return oss.str();
+    }
+    if (std::holds_alternative<std::string>(v))
+    {
+        return std::get<std::string>(v);
+    }
+    if (std::holds_alternative<bool>(v))
+    {
+        return std::get<bool>(v) ? "true" : "false";
+    }
+    if (std::holds_alternative<FunctionDeclaration*>(v))
+    {
+        return "[function]";
+    }
+    if (std::holds_alternative<FunctionExpression*>(v))
+    {
+        return "[function]";
+    }
+    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(v))
+    {
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(v);
+        std::string result = "[";
+        for (size_t i = 0; i < arr->elements.size(); ++i)
+        {
+            if (i > 0)
+                result += ", ";
+            result += valueToString(arr->elements[i]);
+        }
+        result += "]";
+        return result;
+    }
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(v))
+    {
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(v);
+        std::string result = "{";
+        bool first = true;
+        for (auto &[key, val] : obj->fields)
+        {
+            if (!first)
+                result += ", ";
+            result += key + ": " + valueToString(val);
+            first = false;
+        }
+        result += "}";
+        return result;
+    }
+    return "";
+}
+
+std::string Interpreter::visit(ArrayLiteral *node)
+{
+    auto arr = std::make_shared<ArrayValue>();
+    for (auto &elem : node->elements)
+    {
+        arr->elements.push_back(evaluate(elem.get()));
+    }
+    lastValue = arr;
+    return "[array]";
+}
+
+std::string Interpreter::visit(ObjectLiteral *node)
+{
+    auto obj = std::make_shared<ObjectValue>();
+    for (auto &field : node->fields)
+    {
+        obj->fields[field.first] = evaluate(field.second.get());
+    }
+    lastValue = obj;
+    return "{object}";
+}
+
+std::string Interpreter::visit(IndexAccess *node)
+{
+    Value obj = evaluate(node->object.get());
+    Value idx = evaluate(node->index.get());
+
+    // Array indexing
+    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(obj))
+    {
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(obj);
+        if (std::holds_alternative<int>(idx))
+        {
+            int i = std::get<int>(idx);
+            if (i >= 0 && i < (int)arr->elements.size())
+            {
+                Value elem = arr->elements[i];
+                // Store complex values for chaining
+                if (std::holds_alternative<std::shared_ptr<ArrayValue>>(elem) ||
+                    std::holds_alternative<std::shared_ptr<ObjectValue>>(elem))
+                {
+                    lastValue = elem;
+                    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(elem))
+                    {
+                        return "[array]";
+                    }
+                    else
+                    {
+                        return "{object}";
+                    }
+                }
+                return valueToString(elem);
+            }
+        }
+        throw std::runtime_error("Array index out of bounds");
+    }
+
+    // Object field access via [] with string key
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(obj))
+    {
+        auto obj_val = std::get<std::shared_ptr<ObjectValue>>(obj);
+        std::string key = valueToString(idx);
+        if (obj_val->fields.find(key) != obj_val->fields.end())
+        {
+            Value field = obj_val->fields[key];
+            // Store complex values for chaining
+            if (std::holds_alternative<std::shared_ptr<ArrayValue>>(field) ||
+                std::holds_alternative<std::shared_ptr<ObjectValue>>(field))
+            {
+                lastValue = field;
+                if (std::holds_alternative<std::shared_ptr<ArrayValue>>(field))
+                {
+                    return "[array]";
+                }
+                else
+                {
+                    return "{object}";
+                }
+            }
+            return valueToString(field);
+        }
+        return "";
+    }
+
+    // String indexing
+    if (std::holds_alternative<std::string>(obj))
+    {
+        auto str = std::get<std::string>(obj);
+        if (std::holds_alternative<int>(idx))
+        {
+            int i = std::get<int>(idx);
+            if (i >= 0 && i < (int)str.size())
+            {
+                return std::string(1, str[i]);
+            }
+        }
+        throw std::runtime_error("String index out of bounds");
+    }
+
+    throw std::runtime_error("Index access requires array, object, or string");
+}
+
+std::string Interpreter::visit(FieldAccess *node)
+{
+    Value obj = evaluate(node->object.get());
+
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(obj))
+    {
+        auto obj_val = std::get<std::shared_ptr<ObjectValue>>(obj);
+        if (obj_val->fields.find(node->field) != obj_val->fields.end())
+        {
+            Value field = obj_val->fields[node->field];
+            // Store complex values for chaining
+            if (std::holds_alternative<std::shared_ptr<ArrayValue>>(field) ||
+                std::holds_alternative<std::shared_ptr<ObjectValue>>(field))
+            {
+                lastValue = field;
+                if (std::holds_alternative<std::shared_ptr<ArrayValue>>(field))
+                {
+                    return "[array]";
+                }
+                else
+                {
+                    return "{object}";
+                }
+            }
+            return valueToString(field);
+        }
+        return "";
+    }
+
+    throw std::runtime_error("Field access requires object");
+}
+
+std::string Interpreter::visit(FunctionExpression* node)
+{
+    // Store the function expression pointer in lastValue so it can be retrieved
+    lastValue = node;
+    return "[function]";
+}

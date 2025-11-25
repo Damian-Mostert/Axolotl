@@ -1,0 +1,18 @@
+// Logical operations
+
+func checkNumber(n: int) -> bool {
+    if (n > 0 && n < 100) {
+        return true;
+    }
+    return false;
+}
+
+func isPositiveOrZero(n: int) -> bool {
+    return n >= 0;
+}
+
+func main() -> void {
+    var check1: bool = true && false;
+    var check2: bool = true || false;
+    var check3: bool = !false;
+}

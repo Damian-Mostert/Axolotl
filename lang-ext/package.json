@@ -1,0 +1,51 @@
+{
+    "name": "lang-syntax",
+    "displayName": "Compiler Engine Language",
+    "description": "Syntax highlighting for .axo files",
+    "version": "1.0.0",
+    "publisher": "damian",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "scripts": {
+        "build": "vsce package"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/game-engine"
+    },
+    "contributes": {
+        "languages": [
+            {
+                "id": "axo",
+                "aliases": [
+                    "Axolotl",
+                    "axo"
+                ],
+                "extensions": [
+                    ".axo",
+                    ".axolotl"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "axo",
+                "scopeName": "source.axo",
+                "path": "./syntaxes/axo.tmLanguage.json"
+            }
+        ],
+        "iconThemes": [
+            {
+                "id": "axo-icons",
+                "label": "Axolotl Icons",
+                "path": "./file-icons.json"
+            }
+        ]
+    }
+}

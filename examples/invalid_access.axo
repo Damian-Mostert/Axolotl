@@ -1,0 +1,3 @@
+// Test: accessing field on a number should fail
+var n: object = { count: 5 };
+print(n.count.test);

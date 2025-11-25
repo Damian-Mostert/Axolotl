@@ -1,0 +1,55 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Axolotl Script",
+  "scopeName": "source.axo",
+  "fileTypes": ["axo"],
+  "patterns": [
+    {
+      "name": "comment.line.double-slash.axo",
+      "match": "//.*$"
+    },
+    {
+      "name": "string.quoted.double.axo",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.axo",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "name": "constant.numeric.float.axo",
+      "match": "\\b\\d+\\.\\d+\\b"
+    },
+    {
+      "name": "constant.numeric.integer.axo",
+      "match": "\\b\\d+\\b"
+    },
+    {
+      "name": "keyword.control.axo",
+      "match": "\\b(if|else|while|for|return|func|var|const|import|use)\\b"
+    },
+    {
+      "name": "support.function.builtin.axo",
+      "match": "\\b(len|push|pop|substr|toUpper|toLower|indexOf|contains|read|write|copy|print)\\b"
+    },
+    {
+      "name": "keyword.other.axo",
+      "match": "\\b(true|false)\\b"
+    },
+    {
+      "name": "storage.type.axo",
+      "match": "\\b(int|float|string|bool|void|object)\\b"
+    },
+    {
+      "name": "keyword.operator.axo",
+      "match": "(->|==|!=|<=|>=|&&|\\|\\||[+\\-*/%=<>!])"
+    },
+    {
+      "name": "punctuation.separator.axo",
+      "match": "[{}\\[\\]();:,.]"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+/Users/damian/game-engine/build/CMakeFiles/compiler.dir
+/Users/damian/game-engine/build/CMakeFiles/test.dir
+/Users/damian/game-engine/build/CMakeFiles/edit_cache.dir
+/Users/damian/game-engine/build/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,28 @@
+// Array example - demonstrating array creation, indexing, and built-in functions
+
+var numbers: [int] = [1, 2, 3, 4, 5];
+
+// Print the array
+print("Original array:", numbers);
+
+// Print array length
+print("Array length:", len(numbers));
+
+// Print individual elements
+print("First element:", numbers[0]);
+print("Last element:", numbers[4]);
+
+// Push new element
+push(numbers, 6);
+print("After push:", numbers);
+
+// Pop element
+var popped: int = pop(numbers);
+print("Popped:", popped);
+print("After pop:", numbers);
+
+// Array of strings
+var colors: [string] = ["red", "green", "blue"];
+print("Colors:", colors);
+print("Color at index 1:", colors[1]);
+

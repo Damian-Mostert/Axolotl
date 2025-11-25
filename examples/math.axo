@@ -1,0 +1,3 @@
+print("Math module loaded");
+
+var pi: float = 3.14159;

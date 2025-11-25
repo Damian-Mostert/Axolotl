@@ -1,0 +1,79 @@
+// ==========================================
+// Comprehensive Language Feature Showcase
+// ==========================================
+
+// Recursive factorial function
+func factorial(n: int) -> int {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+// Function with multiple parameters
+func multiply(a: int, b: int) -> int {
+    return a * b;
+}
+
+// Function returning boolean
+func isEven(n: int) -> bool {
+    return n % 2 == 0;
+}
+
+// Variable declarations with different types
+var globalInt: int = 42;
+var globalFloat: float = 3.14;
+var globalString: string = "Hello";
+var globalBool: bool = true;
+
+// Main program execution
+func main() -> void {
+    // Integer operations
+    var x: int = 10;
+    var y: int = 20;
+    var sum: int = x + y;
+    var product: int = multiply(x, y);
+    var difference: int = x - y;
+    var quotient: int = y / x;
+    var remainder: int = y % x;
+    
+    // String concatenation
+    var greeting: string = "Result: ";
+    
+    // Floating point arithmetic
+    var fVal: float = 2.5;
+    var fResult: float = fVal * 2.0;
+    
+    // Boolean logic
+    var bVal1: bool = true;
+    var bVal2: bool = false;
+    var andResult: bool = bVal1 && bVal2;
+    var orResult: bool = bVal1 || bVal2;
+    var notResult: bool = !bVal2;
+    
+    // Comparison operations
+    var isGreater: bool = x > y;
+    var isEqual: bool = x == y;
+    var isLess: bool = x < y;
+    
+    // If/else conditional
+    if (x < y) {
+        var msg1: string = "x is less than y";
+    } else {
+        var msg2: string = "x is not less than y";
+    }
+    
+    // Nested conditionals
+    if (x > 5) {
+        if (y > 15) {
+            var nested: int = x + y;
+        }
+    }
+    
+    // Function calls with recursion
+    var fact5: int = factorial(5);
+    var fact3: int = factorial(3);
+    
+    // Boolean function call
+    var checkEven: bool = isEven(10);
+}

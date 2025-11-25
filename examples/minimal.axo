@@ -1,0 +1,35 @@
+var x: int = 10;
+
+//use "examples/math.lang";
+var s: [object] = [
+    {
+        message:"Hello world"
+    },
+    {
+
+    },
+    {
+
+    },
+    {
+
+    },
+    {
+
+    }
+];
+
+
+var obj: object = {
+    field1: 42,
+    field2: "Test",
+    field3: true
+};
+
+var test: object = {
+    message: "This is a test message"
+};
+
+s[1].message="test";
+
+print("X is", x,obj.field2,test.message,s[1].message);
