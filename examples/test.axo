@@ -1,8 +1,8 @@
-const x:int = 5;
+const x:int = "5";
 
 print(x * 2);
 
-const test:[int] = ["Hey", 2, 3, 4, 5];
+const test:[int] = [ 2, 3, 4, 5];
 
 for(var i:int = 0; i < len(test); i = i + 1) {
     print("Element", i, "is", test[i]);

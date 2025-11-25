@@ -142,6 +142,26 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
                     paramType = consume(TokenType::IDENTIFIER, "Expected parameter type");
                 }
                 paramTypeStr = paramType.value;
+                // support union types in parameter types
+                while (match({TokenType::PIPE})) {
+                    Token moreType;
+                    if (check(TokenType::KW_INT)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_FLOAT)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_STRING)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_BOOL)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_VOID)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_OBJECT)) {
+                        moreType = advance();
+                    } else {
+                        moreType = consume(TokenType::IDENTIFIER, "Expected type after '|'");
+                    }
+                    paramTypeStr += "|" + moreType.value;
+                }
             }
             params.push_back({paramName.value, paramTypeStr});
         } while (match({TokenType::COMMA}));
@@ -521,6 +541,7 @@ std::unique_ptr<Expression> Parser::parsePostfix() {
     return expr;
 }
 
+                
 std::unique_ptr<Expression> Parser::parsePrimary() {
     if (match({TokenType::KW_TRUE})) {
         return std::make_unique<BooleanLiteral>(true);
@@ -565,18 +586,21 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
     if (match({TokenType::KW_FUNC})) {
         // Inline function expression: func() -> returnType { body }
         consume(TokenType::LPAREN, "Expected '(' after 'func'");
-        
+
         // Parse parameters
         std::vector<std::pair<std::string, std::string>> params;
         if (!check(TokenType::RPAREN)) {
             do {
                 Token paramName = consume(TokenType::IDENTIFIER, "Expected parameter name");
                 consume(TokenType::COLON, "Expected ':' after parameter name");
-                
+
+                // Type can be keyword, identifier, function type, or array type
                 std::string paramTypeStr;
                 if (check(TokenType::LPAREN)) {
+                    // Function type
                     paramTypeStr = parseFunctionType();
                 } else if (check(TokenType::LBRACKET)) {
+                    // Array type
                     advance();
                     Token baseType;
                     if (check(TokenType::KW_INT)) {
@@ -592,9 +616,28 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
                     } else {
                         baseType = consume(TokenType::IDENTIFIER, "Expected array type");
                     }
+                    // Support union types inside arrays: [string|int]
+                    while (match({TokenType::PIPE})) {
+                        Token moreType;
+                        if (check(TokenType::KW_INT)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_FLOAT)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_STRING)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_BOOL)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_OBJECT)) {
+                            moreType = advance();
+                        } else {
+                            moreType = consume(TokenType::IDENTIFIER, "Expected array element type after '|'");
+                        }
+                        baseType.value += "|" + moreType.value;
+                    }
                     consume(TokenType::RBRACKET, "Expected ']'");
                     paramTypeStr = "[" + baseType.value + "]";
                 } else {
+                    // Regular type
                     Token paramType;
                     if (check(TokenType::KW_INT)) {
                         paramType = advance();
@@ -612,14 +655,34 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
                         paramType = consume(TokenType::IDENTIFIER, "Expected parameter type");
                     }
                     paramTypeStr = paramType.value;
+                    // support union types in parameter types
+                    while (match({TokenType::PIPE})) {
+                        Token moreType;
+                        if (check(TokenType::KW_INT)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_FLOAT)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_STRING)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_BOOL)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_VOID)) {
+                            moreType = advance();
+                        } else if (check(TokenType::KW_OBJECT)) {
+                            moreType = advance();
+                        } else {
+                            moreType = consume(TokenType::IDENTIFIER, "Expected type after '|'");
+                        }
+                        paramTypeStr += "|" + moreType.value;
+                    }
                 }
                 params.push_back({paramName.value, paramTypeStr});
             } while (match({TokenType::COMMA}));
         }
-        
+
         consume(TokenType::RPAREN, "Expected ')' after parameters");
         consume(TokenType::ARROW, "Expected '->'");
-        
+
         // Return type
         Token returnType;
         if (check(TokenType::KW_INT)) {
@@ -637,9 +700,9 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
         } else {
             returnType = consume(TokenType::IDENTIFIER, "Expected return type");
         }
-        
+
         auto body = parseBlock();
-        
+
         // Create a FunctionExpression
         auto funcExpr = std::make_unique<FunctionExpression>(returnType.value, std::move(body));
         funcExpr->params = params;
@@ -693,6 +756,24 @@ std::string Parser::parseFunctionType() {
                     baseType = advance();
                 } else {
                     baseType = consume(TokenType::IDENTIFIER, "Expected array type");
+                }
+                // Support union types inside arrays in function signatures: [string|int]
+                while (match({TokenType::PIPE})) {
+                    Token moreType;
+                    if (check(TokenType::KW_INT)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_FLOAT)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_STRING)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_BOOL)) {
+                        moreType = advance();
+                    } else if (check(TokenType::KW_OBJECT)) {
+                        moreType = advance();
+                    } else {
+                        moreType = consume(TokenType::IDENTIFIER, "Expected array element type after '|'");
+                    }
+                    baseType.value += "|" + moreType.value;
                 }
                 consume(TokenType::RBRACKET, "Expected ']'");
                 paramTypes += "[" + baseType.value + "]";

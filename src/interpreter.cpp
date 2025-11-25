@@ -8,6 +8,70 @@
 
 namespace fs = std::filesystem;
 
+// Helper: trim whitespace
+static inline std::string trim(const std::string &s) {
+    size_t a = s.find_first_not_of(" \t\n\r");
+    if (a == std::string::npos) return "";
+    size_t b = s.find_last_not_of(" \t\n\r");
+    return s.substr(a, b - a + 1);
+}
+
+// Split a string by '|' into parts (no advanced parsing required here)
+static std::vector<std::string> splitUnion(const std::string &s) {
+    std::vector<std::string> out;
+    size_t start = 0;
+    for (size_t i = 0; i <= s.size(); ++i) {
+        if (i == s.size() || s[i] == '|') {
+            out.push_back(trim(s.substr(start, i - start)));
+            start = i + 1;
+        }
+    }
+    return out;
+}
+
+// Forward declaration
+bool valueMatchesType(const Value &v, const std::string &typeSpec);
+
+// Check whether a Value matches a declared type specification. Supports unions ("a|b") and array types ("[T]").
+bool valueMatchesType(const Value &v, const std::string &typeSpec) {
+    std::string t = trim(typeSpec);
+    if (t.empty()) return false;
+
+    // Union: split and check any
+    if (t.find('|') != std::string::npos) {
+        auto parts = splitUnion(t);
+        for (auto &p : parts) {
+            if (valueMatchesType(v, p)) return true;
+        }
+        return false;
+    }
+
+    // Array type: [inner]
+    if (t.size() >= 2 && t.front() == '[' && t.back() == ']') {
+        std::string inner = t.substr(1, t.size() - 2);
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(v)) return false;
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(v);
+        for (auto &elem : arr->elements) {
+            if (!valueMatchesType(elem, inner)) return false;
+        }
+        return true;
+    }
+
+    // Base types
+    if (t == "int") return std::holds_alternative<int>(v);
+    if (t == "float") return std::holds_alternative<float>(v);
+    if (t == "string") return std::holds_alternative<std::string>(v);
+    if (t == "bool") return std::holds_alternative<bool>(v);
+    if (t == "object") return std::holds_alternative<std::shared_ptr<ObjectValue>>(v);
+    // function types - accept function pointers
+    if (t.rfind("(", 0) == 0) {
+        return std::holds_alternative<FunctionDeclaration*>(v) || std::holds_alternative<FunctionExpression*>(v);
+    }
+
+    // Fallback: if declared type is unknown, be permissive
+    return false;
+}
+
 // Environment
 void Environment::define(const std::string &name, const Variable &var)
 {
@@ -38,6 +102,12 @@ void Environment::set(const std::string &name, const Value &value)
         auto found = it->find(name);
         if (found != it->end())
         {
+            // Enforce declared type
+            if (!found->second.type.empty()) {
+                if (!valueMatchesType(value, found->second.type)) {
+                    throw std::runtime_error("Type error: cannot assign value to variable '" + name + "' of type '" + found->second.type + "'");
+                }
+            }
             found->second.value = value;
             return;
         }
@@ -304,6 +374,13 @@ std::string Interpreter::visit(FunctionCall *node)
             {
                 auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
                 Value val = evaluate(node->args[1].get());
+                // Enforce array element typing based on variable's declared type
+                if (!arrayVar.type.empty() && arrayVar.type.size() >= 2 && arrayVar.type.front() == '[' && arrayVar.type.back() == ']') {
+                    std::string inner = arrayVar.type.substr(1, arrayVar.type.size() - 2);
+                    if (!valueMatchesType(val, inner)) {
+                        throw std::runtime_error("Type error: cannot push value to array '" + arrayId->name + "' of element type '" + inner + "'");
+                    }
+                }
                 arr->elements.push_back(val);
                 return "";
             }
@@ -664,6 +741,12 @@ std::string Interpreter::visit(VariableDeclaration *node)
             value = 0;
         }
     }
+    // Enforce declared type if initializer exists
+    if (node->initializer) {
+        if (!valueMatchesType(value, node->type)) {
+            throw std::runtime_error("Type error: initializer for '" + node->name + "' does not match declared type '" + node->type + "'");
+        }
+    }
     environment.define(node->name, Variable(value, node->type, false));
     return "";
 }
@@ -708,6 +791,18 @@ std::string Interpreter::visit(IndexAssignment *node)
         if (i < 0 || i >= (int)arr->elements.size())
         {
             throw std::runtime_error("Array index out of bounds");
+        }
+        // If we can, enforce element type from the variable declaration (if object expression is identifier)
+        if (auto id = dynamic_cast<Identifier*>(node->object.get())) {
+            if (environment.has(id->name)) {
+                Variable arrayVar = environment.get(id->name);
+                if (!arrayVar.type.empty() && arrayVar.type.size() >= 2 && arrayVar.type.front() == '[' && arrayVar.type.back() == ']') {
+                    std::string inner = arrayVar.type.substr(1, arrayVar.type.size() - 2);
+                    if (!valueMatchesType(val, inner)) {
+                        throw std::runtime_error("Type error: cannot assign element to array '" + id->name + "' of element type '" + inner + "'");
+                    }
+                }
+            }
         }
         arr->elements[i] = val;
         return "";

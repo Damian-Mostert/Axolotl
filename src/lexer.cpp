@@ -240,6 +240,7 @@ Token Lexer::readOperator() {
                 advance();
                 return Token(TokenType::LOGICAL_OR, "||", startLine, startCol);
             }
+            return Token(TokenType::PIPE, "|", startLine, startCol);
             break;
         case '(': advance(); return Token(TokenType::LPAREN, "(", startLine, startCol);
         case ')': advance(); return Token(TokenType::RPAREN, ")", startLine, startCol);

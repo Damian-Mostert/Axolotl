@@ -45,6 +45,7 @@ enum class TokenType {
     GREATER_EQUAL,
     LOGICAL_AND,
     LOGICAL_OR,
+    PIPE,
     LOGICAL_NOT,
     
     // Delimiters
