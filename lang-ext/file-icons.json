@@ -1,10 +1,13 @@
 {
     "iconDefinitions": {
         "axo-icon": {
-            "iconPath": "./assets/axo-icon.svg"
+            "iconPath": "./assets/icon.png"
         }
     },
     "fileExtensions": {
+        "axo": "axo-icon"
+    }
+    ,"languageIds": {
         "axo": "axo-icon"
     }
 }

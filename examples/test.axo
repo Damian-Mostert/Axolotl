@@ -2,6 +2,12 @@ const x:int = 5;
 
 print(x * 2);
 
+const test:[int] = ["Hey", 2, 3, 4, 5];
+
+for(var i:int = 0; i < len(test); i = i + 1) {
+    print("Element", i, "is", test[i]);
+}
+
 func main(v:()->void,test:string) -> void {
     v();
     print("Test message:", test);
