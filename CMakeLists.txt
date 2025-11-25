@@ -25,6 +25,7 @@ set(SOURCES
     src/interpreter.cpp
     src/operators.cpp
     src/jit.cpp
+    src/error_handler.cpp
 )
 
 # Create executable

@@ -3,6 +3,7 @@
 #include "include/parser.h"
 #include "include/operators.h"
 #include "include/jit.h"
+#include "include/error_handler.h"
 #include <variant>
 #include <sstream>
 #include <fstream>
@@ -1288,8 +1289,7 @@ std::string Interpreter::visit(TryStatement *node)
     }
     catch (const std::runtime_error &e) {
         // Normal errors (like undefined variables) should kill the program
-        std::cerr << "[debug] caught exception type: " << typeid(e).name() << std::endl;
-        std::cerr << "Fatal error: " << e.what() << std::endl;
+        ErrorHandler::showFatalError(e.what());
         std::exit(1);
     }
     catch (...) {
