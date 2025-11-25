@@ -1,9 +1,9 @@
 {
-    "name": "lang-syntax",
-    "displayName": "Compiler Engine Language",
+    "name": "axo-syntax",
+    "displayName": "Axolotl Language",
     "description": "Syntax highlighting for .axo files",
     "version": "1.0.0",
-    "publisher": "damian",
+    "publisher": "DamianMostert",
     "license": "MIT",
     "engines": {
         "vscode": "^1.60.0"
