@@ -1,0 +1,12 @@
+// Test the 'any' type - should accept anything
+const mixed:any = 42;
+const mixedStr:any = "hello";
+const mixedBool:any = true;
+
+const mixedArray:[any] = [1, "two", 3.0, true, false, "six"];
+
+print(mixed);
+print(mixedStr);
+print(mixedBool);
+print(mixedArray);
+print(len(mixedArray));
