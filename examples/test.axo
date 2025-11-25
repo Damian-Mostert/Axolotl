@@ -2,6 +2,7 @@ use "examples/minimal.axo";
 use "examples/strings.axo";
 use "examples/arrays.axo";
 use "examples/enum_test.axo";
+use "examples/any_test.axo";
 
 const x:int = "5";
 
@@ -21,3 +22,11 @@ func main(v:()->void,test:string) -> void {
 main(func() -> void {
     print("Callback executed!");
 }, "Hello from main!");
+
+
+program backgroundTask(){
+    print("Background program running!");
+}
+
+backgroundTask();
+await backgroundTask();

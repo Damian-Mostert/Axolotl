@@ -7,6 +7,8 @@
 #include <sstream>
 #include <fstream>
 #include <filesystem>
+#include <chrono>
+#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -155,9 +157,20 @@ Interpreter::Interpreter()
 {
     environment.pushScope();
     jitCompiler = std::make_unique<LLVMJITCompiler>();
+    
+
 }
 
-Interpreter::~Interpreter() = default;
+Interpreter::~Interpreter() {
+    // Wait for all running programs to complete before destroying
+    std::lock_guard<std::mutex> lock(programsMutex);
+    for (auto& [name, future] : runningPrograms) {
+        if (future.valid()) {
+            future.wait();
+        }
+    }
+    runningPrograms.clear();
+}
 
 void Interpreter::interpret(Program *program)
 {
@@ -535,9 +548,41 @@ std::string Interpreter::visit(FunctionCall *node)
         {
             std::string str = std::get<std::string>(s);
             std::string substring = std::get<std::string>(sub);
-            return str.find(substring) != std::string::npos ? "true" : "false";
+            bool result = str.find(substring) != std::string::npos;
+            lastValue = result;
+            return "[bool]";
         }
         throw std::runtime_error("contains() requires (string, string)");
+    }
+
+    // Built-in: millis() - returns current time in milliseconds
+    if (callName == "millis")
+    {
+        if (node->args.size() != 0)
+        {
+            throw std::runtime_error("millis() expects no arguments");
+        }
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = now.time_since_epoch();
+        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        return std::to_string(millis);
+    }
+
+    // Built-in: sleep(milliseconds) - sleep for specified milliseconds
+    if (callName == "sleep")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("sleep() expects 1 argument");
+        }
+        Value ms = evaluate(node->args[0].get());
+        if (std::holds_alternative<int>(ms))
+        {
+            int milliseconds = std::get<int>(ms);
+            std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+            return "";
+        }
+        throw std::runtime_error("sleep() requires int argument");
     }
 
     // Check if this is a call to a function variable (via callee)
@@ -547,7 +592,48 @@ std::string Interpreter::visit(FunctionCall *node)
         Identifier* idCallee = dynamic_cast<Identifier*>(node->callee.get());
         if (idCallee)
         {
-            // First check if it's a named function
+            // First check if it's a program
+            auto progIt = programs.find(idCallee->name);
+            if (progIt != programs.end())
+            {
+                // Handle user-defined programs - run synchronously
+                ProgramDeclaration *prog = progIt->second;
+                if (prog == nullptr)
+                {
+                    // Skip unknown built-in programs (like removed counter)
+                    return "";
+                }
+                
+                if (node->args.size() != prog->params.size())
+                {
+                    throw std::runtime_error("Program argument count mismatch");
+                }
+
+                // Run program synchronously
+                environment.pushScope();
+
+                for (size_t i = 0; i < node->args.size(); ++i)
+                {
+                    Value argVal = evaluate(node->args[i].get());
+                    Variable param(argVal, prog->params[i].second, false);
+                    environment.define(prog->params[i].first, param);
+                }
+
+                try
+                {
+                    executeBlock(prog->body.get());
+                }
+                catch (const ReturnException &e)
+                {
+                    environment.popScope();
+                    return valueToString(e.value);
+                }
+
+                environment.popScope();
+                return "";
+            }
+            
+            // Then check if it's a named function
             auto funcIt = functions.find(idCallee->name);
             if (funcIt != functions.end())
             {
@@ -1003,11 +1089,83 @@ std::string Interpreter::visit(ImportDeclaration *node)
     }
 }
 
+std::string Interpreter::visit(ProgramDeclaration *node)
+{
+    programs[node->name] = node;
+    return "";
+}
+
+std::string Interpreter::visit(AwaitExpression *node)
+{
+    // Handle await with function call - run the program asynchronously and wait for it
+    if (auto funcCall = dynamic_cast<FunctionCall*>(node->expression.get())) {
+        std::string programName;
+        if (funcCall->callee) {
+            if (auto id = dynamic_cast<Identifier*>(funcCall->callee.get())) {
+                programName = id->name;
+            }
+        } else {
+            programName = funcCall->name;
+        }
+        
+        // Check if it's a program
+        auto progIt = programs.find(programName);
+        if (progIt != programs.end()) {
+            ProgramDeclaration *prog = progIt->second;
+            if (prog == nullptr) {
+                return "";
+            }
+            
+            if (funcCall->args.size() != prog->params.size()) {
+                throw std::runtime_error("Program argument count mismatch");
+            }
+
+            // Evaluate arguments in the main thread first
+            std::vector<Value> argValues;
+            for (size_t i = 0; i < funcCall->args.size(); ++i) {
+                argValues.push_back(evaluate(funcCall->args[i].get()));
+            }
+            
+            // Create a lambda to run the program in background
+            auto programRunner = [this, prog, argValues]() {
+                Environment localEnv = this->environment; // Copy current environment
+                localEnv.pushScope();
+
+                for (size_t i = 0; i < argValues.size(); ++i) {
+                    Variable param(argValues[i], prog->params[i].second, false);
+                    localEnv.define(prog->params[i].first, param);
+                }
+
+                // Execute program body with local environment
+                Environment savedEnv = this->environment;
+                this->environment = localEnv;
+                try {
+                    executeBlock(prog->body.get());
+                } catch (...) {
+                    // Restore environment on exception
+                    this->environment = savedEnv;
+                    throw;
+                }
+                this->environment = savedEnv;
+            };
+
+            // Start program in background thread and wait for it
+            auto future = std::async(std::launch::async, programRunner);
+            future.wait();
+            return "";
+        }
+    }
+    
+    // For non-program expressions, just evaluate normally
+    evaluate(node->expression.get());
+    return "";
+}
+
 Value Interpreter::evaluate(Expression *expr)
 {
     std::string result = expr->accept(this);
     // Check if a complex value was stored
-    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]"))
+    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]" || result == "[bool]"))
     {
         return lastValue;
     }

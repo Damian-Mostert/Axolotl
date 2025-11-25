@@ -11,6 +11,9 @@
 #include <variant>
 #include <unordered_set>
 #include <vector>
+#include <thread>
+#include <future>
+#include <mutex>
 
 // Forward declaration for JIT
 class LLVMJITCompiler;
@@ -99,6 +102,8 @@ public:
     std::string visit(ForStatement* node) override;
     std::string visit(ReturnStatement* node) override;
     std::string visit(FunctionDeclaration* node) override;
+    std::string visit(ProgramDeclaration* node) override;
+    std::string visit(AwaitExpression* node) override;
     std::string visit(ExpressionStatement* node) override;
     std::string visit(Program* node) override;
     std::string visit(ImportDeclaration* node) override;
@@ -106,6 +111,9 @@ public:
 private:
     Environment environment;
     std::unordered_map<std::string, FunctionDeclaration*> functions;
+    std::unordered_map<std::string, ProgramDeclaration*> programs;
+    std::unordered_map<std::string, std::future<void>> runningPrograms;
+    std::mutex programsMutex;
     std::unordered_set<std::string> importedFiles;
     Value lastValue;  // Store last evaluated complex value (array, object)
     std::unique_ptr<LLVMJITCompiler> jitCompiler;  // JIT compiler for loop optimization

@@ -1,5 +1,4 @@
 // Array example - demonstrating array creation, indexing, and built-in functions
-use "examples/test.axo";
 
 //type test = {
 //    name: string,

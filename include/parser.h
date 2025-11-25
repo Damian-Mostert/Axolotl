@@ -29,6 +29,7 @@ private:
     std::unique_ptr<ASTNode> parseDeclaration();
     std::unique_ptr<ASTNode> parseImportDeclaration();
     std::unique_ptr<FunctionDeclaration> parseFunctionDeclaration();
+    std::unique_ptr<ProgramDeclaration> parseProgramDeclaration();
     std::unique_ptr<Statement> parseStatement();
     std::unique_ptr<Block> parseBlock();
     std::unique_ptr<Statement> parseIfStatement();

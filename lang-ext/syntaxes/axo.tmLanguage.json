@@ -29,11 +29,11 @@
     },
     {
       "name": "keyword.control.axo",
-      "match": "\\b(if|else|while|for|return|func|var|const|import|use)\\b"
+      "match": "\\b(if|else|while|for|return|func|var|const|import|use|program|await)\\b"
     },
     {
       "name": "support.function.builtin.axo",
-      "match": "\\b(len|push|pop|substr|toUpper|toLower|indexOf|contains|read|write|copy|print)\\b"
+      "match": "\\b(len|push|pop|substr|toUpper|toLower|indexOf|contains|read|write|copy|print|millis|sleep)\\b"
     },
     {
       "name": "keyword.other.axo",

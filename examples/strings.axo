@@ -26,10 +26,10 @@ var not_found: int = indexOf(text, "xyz");
 print("Index of 'xyz':", not_found);
 
 // String contains
-var has_hello: string = contains(text, "Hello");
+var has_hello: bool = contains(text, "Hello");
 print("Contains 'Hello':", has_hello);
 
-var has_foo: string = contains(text, "foo");
+var has_foo: bool = contains(text, "foo");
 print("Contains 'foo':", has_foo);
 
 // Mix operations

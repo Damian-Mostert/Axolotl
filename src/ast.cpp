@@ -129,3 +129,13 @@ std::string Program::accept(ASTVisitor* visitor) {
 std::string ImportDeclaration::accept(ASTVisitor* visitor) {
     return visitor->visit(this);
 }
+
+// ProgramDeclaration
+std::string ProgramDeclaration::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
+// AwaitExpression
+std::string AwaitExpression::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}

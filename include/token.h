@@ -30,6 +30,8 @@ enum class TokenType {
     KW_OBJECT,
     KW_TRUE,
     KW_FALSE,
+    KW_PROGRAM,
+    KW_AWAIT,
     
     // Operators
     PLUS,

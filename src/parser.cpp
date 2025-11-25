@@ -74,6 +74,9 @@ std::unique_ptr<ASTNode> Parser::parseDeclaration() {
     if (check(TokenType::KW_FUNC)) {
         return parseFunctionDeclaration();
     }
+    if (check(TokenType::KW_PROGRAM)) {
+        return parseProgramDeclaration();
+    }
     if (check(TokenType::KW_VAR) || check(TokenType::KW_CONST)) {
         return parseVariableDeclaration();
     }
@@ -197,6 +200,44 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
     auto func = std::make_unique<FunctionDeclaration>(name.value, returnType.value, std::move(body));
     func->params = params;
     return func;
+}
+
+std::unique_ptr<ProgramDeclaration> Parser::parseProgramDeclaration() {
+    consume(TokenType::KW_PROGRAM, "Expected 'program'");
+    Token name = consume(TokenType::IDENTIFIER, "Expected program name");
+    consume(TokenType::LPAREN, "Expected '(' after program name");
+    
+    // Parse parameters (optional)
+    std::vector<std::pair<std::string, std::string>> params;
+    if (!check(TokenType::RPAREN)) {
+        do {
+            Token paramName = consume(TokenType::IDENTIFIER, "Expected parameter name");
+            consume(TokenType::COLON, "Expected ':' after parameter name");
+            
+            Token paramType;
+            if (check(TokenType::KW_INT)) {
+                paramType = advance();
+            } else if (check(TokenType::KW_FLOAT)) {
+                paramType = advance();
+            } else if (check(TokenType::KW_STRING)) {
+                paramType = advance();
+            } else if (check(TokenType::KW_BOOL)) {
+                paramType = advance();
+            } else if (check(TokenType::KW_ANY)) {
+                paramType = advance();
+            } else {
+                paramType = consume(TokenType::IDENTIFIER, "Expected parameter type");
+            }
+            params.push_back({paramName.value, paramType.value});
+        } while (match({TokenType::COMMA}));
+    }
+    
+    consume(TokenType::RPAREN, "Expected ')' after parameters");
+    auto body = parseBlock();
+    
+    auto program = std::make_unique<ProgramDeclaration>(name.value, std::move(body));
+    program->params = params;
+    return program;
 }
 
 std::unique_ptr<Statement> Parser::parseStatement() {
@@ -549,6 +590,11 @@ std::unique_ptr<Expression> Parser::parseUnary() {
         UnaryOperator op = (opType == TokenType::LOGICAL_NOT) ? UnaryOperator::LOGICAL_NOT : UnaryOperator::NEGATE;
         auto operand = parseUnary();
         return std::make_unique<UnaryOp>(op, std::move(operand));
+    }
+    
+    if (match({TokenType::KW_AWAIT})) {
+        auto expr = parseUnary();
+        return std::make_unique<AwaitExpression>(std::move(expr));
     }
     
     return parsePostfix();

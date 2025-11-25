@@ -264,6 +264,28 @@ public:
     std::string accept(class ASTVisitor* visitor) override;
 };
 
+class ProgramDeclaration : public ASTNode {
+public:
+    std::string name;
+    std::vector<std::pair<std::string, std::string>> params; // name, type
+    std::unique_ptr<Block> body;
+    
+    ProgramDeclaration(const std::string& n, std::unique_ptr<Block> b)
+        : name(n), body(std::move(b)) {}
+    
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
+class AwaitExpression : public Expression {
+public:
+    std::unique_ptr<Expression> expression;
+    
+    AwaitExpression(std::unique_ptr<Expression> expr)
+        : expression(std::move(expr)) {}
+    
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
 class ImportDeclaration : public ASTNode {
 public:
     std::string path;
@@ -308,6 +330,8 @@ public:
     virtual std::string visit(ForStatement* node) = 0;
     virtual std::string visit(ReturnStatement* node) = 0;
     virtual std::string visit(FunctionDeclaration* node) = 0;
+    virtual std::string visit(ProgramDeclaration* node) = 0;
+    virtual std::string visit(AwaitExpression* node) = 0;
     virtual std::string visit(ExpressionStatement* node) = 0;
     virtual std::string visit(ImportDeclaration* node) = 0;
     virtual std::string visit(Program* node) = 0;
