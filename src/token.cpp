@@ -36,6 +36,7 @@ std::string Token::toString() const {
         case TokenType::GREATER_EQUAL: typeStr = "GREATER_EQUAL"; break;
         case TokenType::LOGICAL_AND: typeStr = "LOGICAL_AND"; break;
         case TokenType::LOGICAL_OR: typeStr = "LOGICAL_OR"; break;
+        case TokenType::PIPE: typeStr = "PIPE"; break;
         case TokenType::LOGICAL_NOT: typeStr = "LOGICAL_NOT"; break;
         case TokenType::LPAREN: typeStr = "LPAREN"; break;
         case TokenType::RPAREN: typeStr = "RPAREN"; break;

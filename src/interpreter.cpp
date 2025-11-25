@@ -37,15 +37,6 @@ bool valueMatchesType(const Value &v, const std::string &typeSpec) {
     std::string t = trim(typeSpec);
     if (t.empty()) return false;
 
-    // Union: split and check any
-    if (t.find('|') != std::string::npos) {
-        auto parts = splitUnion(t);
-        for (auto &p : parts) {
-            if (valueMatchesType(v, p)) return true;
-        }
-        return false;
-    }
-
     // Array type: [inner]
     if (t.size() >= 2 && t.front() == '[' && t.back() == ']') {
         std::string inner = t.substr(1, t.size() - 2);
@@ -55,6 +46,15 @@ bool valueMatchesType(const Value &v, const std::string &typeSpec) {
             if (!valueMatchesType(elem, inner)) return false;
         }
         return true;
+    }
+
+    // Union: split and check any (only applies to non-array top-level types)
+    if (t.find('|') != std::string::npos) {
+        auto parts = splitUnion(t);
+        for (auto &p : parts) {
+            if (valueMatchesType(v, p)) return true;
+        }
+        return false;
     }
 
     // Base types
@@ -744,6 +744,31 @@ std::string Interpreter::visit(VariableDeclaration *node)
     // Enforce declared type if initializer exists
     if (node->initializer) {
         if (!valueMatchesType(value, node->type)) {
+            // Diagnostic output: show declared type and initializer element/value types
+            try {
+                std::cerr << "[type-check] variable '" << node->name << "' declared as '" << node->type << "' but initializer = ";
+                if (std::holds_alternative<std::shared_ptr<ArrayValue>>(value)) {
+                    auto arr = std::get<std::shared_ptr<ArrayValue>>(value);
+                    std::cerr << "[";
+                    for (size_t i = 0; i < arr->elements.size(); ++i) {
+                        if (i) std::cerr << ", ";
+                        const Value &ev = arr->elements[i];
+                        if (std::holds_alternative<int>(ev)) std::cerr << "int(" << std::get<int>(ev) << ")";
+                        else if (std::holds_alternative<float>(ev)) std::cerr << "float(" << std::get<float>(ev) << ")";
+                        else if (std::holds_alternative<std::string>(ev)) std::cerr << "string(\"" << std::get<std::string>(ev) << "\")";
+                        else if (std::holds_alternative<bool>(ev)) std::cerr << "bool(" << (std::get<bool>(ev) ? "true" : "false") << ")";
+                        else std::cerr << "<complex>";
+                    }
+                    std::cerr << "]\n";
+                } else {
+                    if (std::holds_alternative<int>(value)) std::cerr << "int(" << std::get<int>(value) << ")\n";
+                    else if (std::holds_alternative<float>(value)) std::cerr << "float(" << std::get<float>(value) << ")\n";
+                    else if (std::holds_alternative<std::string>(value)) std::cerr << "string(\"" << std::get<std::string>(value) << "\")\n";
+                    else if (std::holds_alternative<bool>(value)) std::cerr << "bool(" << (std::get<bool>(value) ? "true" : "false") << ")\n";
+                    else std::cerr << "<complex>\n";
+                }
+            } catch (...) {}
+
             throw std::runtime_error("Type error: initializer for '" + node->name + "' does not match declared type '" + node->type + "'");
         }
     }

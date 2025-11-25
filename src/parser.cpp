@@ -364,6 +364,24 @@ std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
         } else {
             baseType = consume(TokenType::IDENTIFIER, "Expected array element type");
         }
+        // Support union types inside arrays: [string|int]
+        while (match({TokenType::PIPE})) {
+            Token moreType;
+            if (check(TokenType::KW_INT)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_FLOAT)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_STRING)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_BOOL)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_OBJECT)) {
+                moreType = advance();
+            } else {
+                moreType = consume(TokenType::IDENTIFIER, "Expected array element type after '|'");
+            }
+            baseType.value += "|" + moreType.value;
+        }
         consume(TokenType::RBRACKET, "Expected ']' after array type");
         typeStr = "[" + baseType.value + "]";
     } else {
