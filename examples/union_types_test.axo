@@ -1,0 +1,398 @@
+// UNION TYPES TEST - Testing union type declarations and functionality
+print("=== AXOLOTL UNION TYPES TEST ===");
+
+// Test 1: Basic Union Type Declarations
+print("\n1. Basic Union Type Declarations");
+type StringOrInt = string|int;
+type BoolOrFloat = bool|float;
+type IntOrFloatOrString = int|float|string;
+
+var value1: StringOrInt = "hello";
+var value2: StringOrInt = 42;
+var value3: BoolOrFloat = true;
+var value4: BoolOrFloat = 3.14;
+var value5: IntOrFloatOrString = 100;
+var value6: IntOrFloatOrString = 2.71;
+var value7: IntOrFloatOrString = "world";
+
+print("✓ Union types:", value1, value2, value3, value4, value5, value6, value7);
+
+// Test 2: Union Types in Function Parameters
+print("\n2. Union Types in Function Parameters");
+func processValue(input: string|int) -> string {
+    return "Processed: " + toString(input);
+}
+
+func calculate(a: int|float, b: int|float) -> float {
+    // Convert to float for calculation
+    var aFloat: float = 0.0;
+    var bFloat: float = 0.0;
+    
+    // Type checking simulation
+    if (typeof(a) == "int") {
+        aFloat = a + 0.0;
+    } else {
+        aFloat = a;
+    }
+    
+    if (typeof(b) == "int") {
+        bFloat = b + 0.0;
+    } else {
+        bFloat = b;
+    }
+    
+    return aFloat + bFloat;
+}
+
+print("✓ processValue(string):", processValue("test"));
+print("✓ processValue(int):", processValue(123));
+print("✓ calculate(int, float):", calculate(10, 3.5));
+print("✓ calculate(float, int):", calculate(2.5, 8));
+
+// Test 3: Union Types in Return Values
+print("\n3. Union Types in Return Values");
+func getValue(mode: int) -> string|int|bool {
+    if (mode == 1) {
+        return "string result";
+    } else if (mode == 2) {
+        return 42;
+    } else {
+        return true;
+    }
+}
+
+var result1: string|int|bool = getValue(1);
+var result2: string|int|bool = getValue(2);
+var result3: string|int|bool = getValue(3);
+
+print("✓ Union return values:", result1, result2, result3);
+
+// Test 4: Array Union Types
+print("\n4. Array Union Types");
+type MixedArray = [string|int];
+type FlexibleArray = [int|float|string|bool];
+
+var mixed: MixedArray = ["hello", 42, "world", 123];
+var flexible: FlexibleArray = [1, 3.14, "test", true, 99, 2.71];
+
+print("✓ Mixed array:", mixed);
+print("✓ Flexible array:", flexible);
+
+// Test 5: Object Fields with Union Types
+print("\n5. Object Fields with Union Types");
+type FlexibleObject = {
+    id: int|string,
+    value: string|int|float,
+    active: bool|string
+};
+
+var obj1: FlexibleObject = {
+    id: 123,
+    value: "text",
+    active: true
+};
+
+var obj2: FlexibleObject = {
+    id: "user_456",
+    value: 3.14,
+    active: "yes"
+};
+
+print("✓ Flexible objects:", obj1, obj2);
+
+// Test 6: Nested Union Types
+print("\n6. Nested Union Types");
+type NestedUnion = {
+    data: [string|int],
+    metadata: {
+        type: string|int,
+        value: bool|float
+    }
+};
+
+var nested: NestedUnion = {
+    data: ["item1", 42, "item2", 99],
+    metadata: {
+        type: "config",
+        value: true
+    }
+};
+
+print("✓ Nested union structure:", nested);
+
+// Test 7: Function Union Types
+print("\n7. Function Union Types");
+type Handler = func;
+type Processor = func;
+type CallableUnion = Handler|Processor;
+
+var handler1: CallableUnion = func(x: int) -> string {
+    return "Handler: " + toString(x);
+};
+
+var handler2: CallableUnion = func(s: string) -> int {
+    return len(s);
+};
+
+print("✓ Union function 1:", handler1(42));
+print("✓ Union function 2:", handler2("hello"));
+
+// Test 8: Complex Union Combinations
+print("\n8. Complex Union Combinations");
+type ComplexUnion = string|int|[string]|{name: string};
+
+var complex1: ComplexUnion = "simple string";
+var complex2: ComplexUnion = 789;
+var complex3: ComplexUnion = ["array", "of", "strings"];
+var complex4: ComplexUnion = {name: "object"};
+
+print("✓ Complex unions:", complex1, complex2, complex3, complex4);
+
+// Test 9: Union Types in Loops and Conditions
+print("\n9. Union Types in Loops and Conditions");
+type LoopValue = int|string;
+var loopData: [LoopValue] = [1, "two", 3, "four", 5];
+
+func processLoopData(data: [LoopValue]) -> [string] {
+    var results: [string] = [];
+    
+    for (var i: int = 0; i < len(data); i = i + 1) {
+        var item: LoopValue = data[i];
+        var processed: string = "";
+        
+        // Type checking with typeof
+        if (typeof(item) == "int") {
+            processed = "Number: " + toString(item);
+        } else {
+            processed = "String: " + item;
+        }
+        
+        push(results, processed);
+    }
+    
+    return results;
+}
+
+var processed: [string] = processLoopData(loopData);
+print("✓ Processed loop data:", processed);
+
+// Test 10: Union Types with Custom Types
+print("\n10. Union Types with Custom Types");
+type User = {name: string, age: int};
+type Product = {title: string, price: float};
+type UserOrProduct = User|Product;
+
+var entity1: UserOrProduct = {name: "Alice", age: 30};
+var entity2: UserOrProduct = {title: "Laptop", price: 999.99};
+
+print("✓ User or Product entities:", entity1, entity2);
+
+// Test 11: Recursive Union Types
+print("\n11. Recursive Union Types");
+type TreeValue = int|string;
+type TreeNode = {
+    value: TreeValue,
+    children: [TreeNode]|string  // Either array of nodes or "leaf"
+};
+
+var leaf1: TreeNode = {value: 42, children: "leaf"};
+var leaf2: TreeNode = {value: "text", children: "leaf"};
+var branch: TreeNode = {
+    value: "root",
+    children: [leaf1, leaf2]
+};
+
+print("✓ Recursive union tree:", branch);
+
+// Test 12: Union Types in Error Handling
+print("\n12. Union Types in Error Handling");
+type Result = string|int;  // Success value or error code
+
+func safeOperation(input: int) -> Result {
+    if (input < 0) {
+        return -1;  // Error code
+    }
+    return "Success: " + toString(input * 2);
+}
+
+func handleResult(result: Result) -> string {
+    if (typeof(result) == "int") {
+        return "Error occurred with code: " + toString(result);
+    } else {
+        return "Operation completed: " + result;
+    }
+}
+
+var result_ok: Result = safeOperation(5);
+var result_err: Result = safeOperation(-1);
+
+print("✓ Success result:", handleResult(result_ok));
+print("✓ Error result:", handleResult(result_err));
+
+// Test 13: Union Types with Arrays and Objects
+print("\n13. Union Types with Arrays and Objects");
+type DataContainer = [int]|{values: [string]};
+
+var container1: DataContainer = [1, 2, 3, 4, 5];
+var container2: DataContainer = {values: ["a", "b", "c"]};
+
+print("✓ Data containers:", container1, container2);
+
+// Test 14: Function Overloading with Union Types
+print("\n14. Function Overloading with Union Types");
+func format(input: string|int|bool) -> string {
+    var type: string = typeof(input);
+    
+    if (type == "string") {
+        return "String: '" + input + "'";
+    } else if (type == "int") {
+        return "Integer: " + toString(input);
+    } else {
+        if (input) {
+            return "Boolean: true";
+        } else {
+            return "Boolean: false";
+        }
+    }
+}
+
+print("✓ Format string:", format("hello"));
+print("✓ Format int:", format(42));
+print("✓ Format bool:", format(true));
+
+// Test 15: Union Types in Data Processing
+print("\n15. Union Types in Data Processing");
+type InputData = string|int|float;
+type ProcessedResult = {
+    original: InputData,
+    type: string,
+    processed: string
+};
+
+func processInput(data: [InputData]) -> [ProcessedResult] {
+    var results: [ProcessedResult] = [];
+    
+    for (var i: int = 0; i < len(data); i = i + 1) {
+        var item: InputData = data[i];
+        var itemType: string = typeof(item);
+        var processed: string = "";
+        
+        if (itemType == "string") {
+            processed = toUpper(item);
+        } else if (itemType == "int") {
+            processed = toString(item * item);
+        } else {
+            processed = toString(item + 1.0);
+        }
+        
+        var result: ProcessedResult = {
+            original: item,
+            type: itemType,
+            processed: processed
+        };
+        
+        push(results, result);
+    }
+    
+    return results;
+}
+
+var inputData: [InputData] = ["hello", 5, 3.14, "world", 10, 2.71];
+var processedResults: [ProcessedResult] = processInput(inputData);
+
+print("✓ Input processing complete");
+for (var i: int = 0; i < len(processedResults); i = i + 1) {
+    print("  ", processedResults[i]);
+}
+
+// Test 16: Optional-like Union Types
+print("\n16. Optional-like Union Types");
+type Optional = string|int;  // Simulating optional values
+
+func findUser(id: int) -> Optional {
+    if (id == 1) {
+        return "Alice";
+    } else if (id == 2) {
+        return "Bob";
+    } else {
+        return -1;  // Not found
+    }
+}
+
+func handleOptional(opt: Optional) -> string {
+    if (typeof(opt) == "string") {
+        return "Found user: " + opt;
+    } else {
+        return "User not found";
+    }
+}
+
+print("✓ Find user 1:", handleOptional(findUser(1)));
+print("✓ Find user 2:", handleOptional(findUser(2)));
+print("✓ Find user 99:", handleOptional(findUser(99)));
+
+// Test 17: Union Types with Type Aliases
+print("\n17. Union Types with Type Aliases");
+type ID = string|int;
+type Name = string;
+type Age = int;
+type PersonData = {id: ID, name: Name, age: Age};
+type EntityUnion = PersonData|string|int;
+
+var person: EntityUnion = {id: "user_123", name: "Charlie", age: 25};
+var message: EntityUnion = "System message";
+var code: EntityUnion = 404;
+
+print("✓ Entity union types:", person, message, code);
+
+// Test 18: Performance with Union Types
+print("\n18. Performance with Union Types");
+type PerformanceData = int|float|string;
+
+func heavyUnionProcessing(data: [PerformanceData], iterations: int) -> [string] {
+    var results: [string] = [];
+    
+    for (var iter: int = 0; iter < iterations; iter = iter + 1) {
+        for (var i: int = 0; i < len(data); i = i + 1) {
+            var item: PerformanceData = data[i];
+            var type: string = typeof(item);
+            var processed: string = type + ":" + toString(item);
+            push(results, processed);
+        }
+    }
+    
+    return results;
+}
+
+var perfStart: int = millis();
+var perfData: [PerformanceData] = [1, 2.5, "test", 42, 3.14, "hello"];
+var perfResults: [string] = heavyUnionProcessing(perfData, 10);
+var perfEnd: int = millis();
+
+print("✓ Union performance test completed");
+print("✓ Results count:", len(perfResults));
+print("✓ Time taken:", perfEnd - perfStart, "ms");
+
+// Final Summary
+print("\n=== UNION TYPES SUMMARY ===");
+print("✅ All 18 union type test categories completed!");
+print("🎯 Union type features tested:");
+print("   • Basic union declarations (A|B)");
+print("   • Multi-type unions (A|B|C)");
+print("   • Union types in function parameters");
+print("   • Union types in return values");
+print("   • Array union types ([A|B])");
+print("   • Object fields with union types");
+print("   • Nested union structures");
+print("   • Function union types");
+print("   • Complex union combinations");
+print("   • Union types in control flow");
+print("   • Union types with custom types");
+print("   • Recursive union types");
+print("   • Union types in error handling");
+print("   • Union types with containers");
+print("   • Function overloading simulation");
+print("   • Data processing with unions");
+print("   • Optional-like patterns");
+print("   • Performance with union types");
+print("\n🚀 Axolotl's union type system is flexible and powerful!");

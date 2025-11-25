@@ -13,9 +13,9 @@ std::string ErrorHandler::colorize(const std::string& text, const std::string& c
 }
 
 std::string ErrorHandler::formatErrorBox(const std::string& title, const std::string& message) {
-    std::string box = "╭─ " + colorize(title, "red") + " ─╮\n";
-    box += "│ " + message + " │\n";
-    box += "╰" + std::string(title.length() + message.length() + 2, '─') + "╯";
+    std::string box = "+- " + colorize(title, "red") + " -+\n";
+    box += "| " + message + " |\n";
+    box += "+" + std::string(title.length() + message.length() + 2, '-') + "+";
     return box;
 }
 
@@ -48,12 +48,12 @@ std::vector<std::string> ErrorHandler::getSuggestions(const std::string& error) 
 
 void ErrorHandler::showRuntimeError(const std::string& error, const std::string& context) {
     std::cerr << "\n" << colorize("💥 Runtime Error", "red") << "\n";
-    std::cerr << "┌─ " << colorize("Error Details", "yellow") << " ─┐\n";
-    std::cerr << "│ " << error << "\n";
+    std::cerr << "+- " << colorize("Error Details", "yellow") << " -+\n";
+    std::cerr << "| " << error << "\n";
     if (!context.empty()) {
-        std::cerr << "│ Context: " << colorize(context, "cyan") << "\n";
+        std::cerr << "| Context: " << colorize(context, "cyan") << "\n";
     }
-    std::cerr << "└" << std::string(50, '─') << "┘\n";
+    std::cerr << "+" << std::string(50, '-') << "+\n";
     
     auto suggestions = getSuggestions(error);
     if (!suggestions.empty()) {
@@ -67,14 +67,14 @@ void ErrorHandler::showRuntimeError(const std::string& error, const std::string&
 
 void ErrorHandler::showFatalError(const std::string& error, const std::string& file, int line, int col) {
     std::cerr << "\n" << colorize("💀 Fatal Error", "red") << "\n";
-    std::cerr << "╭─ " << colorize("Critical Failure", "red") << " ─╮\n";
-    std::cerr << "│ " << error << "\n";
+    std::cerr << "+- " << colorize("Critical Failure", "red") << " -+\n";
+    std::cerr << "| " << error << "\n";
     
     if (!file.empty() && line > 0) {
-        std::cerr << "│ Location: " << colorize(file + ":" + std::to_string(line) + ":" + std::to_string(col), "yellow") << "\n";
+        std::cerr << "| Location: " << colorize(file + ":" + std::to_string(line) + ":" + std::to_string(col), "yellow") << "\n";
     }
     
-    std::cerr << "╰" << std::string(50, '─') << "╯\n";
+    std::cerr << "+" << std::string(50, '-') << "+\n";
     
     auto suggestions = getSuggestions(error);
     if (!suggestions.empty()) {

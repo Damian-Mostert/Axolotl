@@ -71,7 +71,7 @@ std::unique_ptr<ASTNode> Parser::parseDeclaration() {
     if (check(TokenType::KW_IMPORT)) {
         return parseImportDeclaration();
     }
-    if (check(TokenType::KW_TYPE)) {
+    if (check(TokenType::IDENTIFIER) && peek().value == "type") {
         return parseTypeDeclaration();
     }
     if (check(TokenType::KW_FUNC)) {
@@ -94,7 +94,7 @@ std::unique_ptr<ASTNode> Parser::parseImportDeclaration() {
 }
 
 std::unique_ptr<TypeDeclaration> Parser::parseTypeDeclaration() {
-    consume(TokenType::KW_TYPE, "Expected 'type'");
+    consume(TokenType::IDENTIFIER, "Expected 'type'"); // Should be 'type' identifier
     Token name = consume(TokenType::IDENTIFIER, "Expected type name");
     consume(TokenType::ASSIGN, "Expected '=' after type name");
     
@@ -119,7 +119,26 @@ std::string Parser::parseComplexTypeSpec() {
                 Token fieldName = consume(TokenType::IDENTIFIER, "Expected field name");
                 consume(TokenType::COLON, "Expected ':' after field name");
                 
-                std::string fieldType = parseSimpleTypeSpec();
+                // Parse field type - could be simple type, array type, object type, or union type
+                std::string fieldType;
+                if (check(TokenType::LBRACKET)) {
+                    // Array type in object field: {field: [string|int]}
+                    fieldType = parseComplexTypeSpec();
+                } else if (check(TokenType::LBRACE)) {
+                    // Nested object type in object field: {field: {nested: type}}
+                    fieldType = parseComplexTypeSpec();
+                } else {
+                    // Simple type or union type
+                    fieldType = parseSimpleTypeSpec();
+                    
+                    // Handle union types in object fields: {field: type1|type2}
+                    while (match({TokenType::PIPE})) {
+                        fieldType += "|";
+                        std::string nextType = parseSimpleTypeSpec();
+                        fieldType += nextType;
+                    }
+                }
+                
                 result += fieldName.value + ":" + fieldType;
                 
                 if (check(TokenType::COMMA)) {
@@ -150,11 +169,25 @@ std::string Parser::parseComplexTypeSpec() {
             std::string firstType = parseSimpleTypeSpec();
             result += firstType;
             
+            // Handle union types inside arrays: [string|int]
+            while (match({TokenType::PIPE})) {
+                result += "|";
+                std::string nextType = parseSimpleTypeSpec();
+                result += nextType;
+            }
+            
             // Check if there are more comma-separated types (specific array elements)
             while (match({TokenType::COMMA})) {
                 result += ",";
                 std::string nextType = parseSimpleTypeSpec();
                 result += nextType;
+                
+                // Handle union types for each comma-separated element
+                while (match({TokenType::PIPE})) {
+                    result += "|";
+                    std::string moreType = parseSimpleTypeSpec();
+                    result += moreType;
+                }
             }
         }
         
@@ -209,6 +242,9 @@ std::string Parser::parseSimpleTypeSpec() {
     } else if (check(TokenType::KW_ANY)) {
         advance();
         return "any";
+    } else if (check(TokenType::KW_VOID)) {
+        advance();
+        return "void";
     } else if (check(TokenType::IDENTIFIER)) {
         // Custom type reference
         Token type = advance();

@@ -9,6 +9,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/Users/damian/Axolotl/src/ast.cpp" "CMakeFiles/compiler.dir/src/ast.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/ast.cpp.o.d"
+  "/Users/damian/Axolotl/src/error_handler.cpp" "CMakeFiles/compiler.dir/src/error_handler.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/error_handler.cpp.o.d"
   "/Users/damian/Axolotl/src/interpreter.cpp" "CMakeFiles/compiler.dir/src/interpreter.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/interpreter.cpp.o.d"
   "/Users/damian/Axolotl/src/jit.cpp" "CMakeFiles/compiler.dir/src/jit.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/jit.cpp.o.d"
   "/Users/damian/Axolotl/src/lexer.cpp" "CMakeFiles/compiler.dir/src/lexer.cpp.o" "gcc" "CMakeFiles/compiler.dir/src/lexer.cpp.o.d"

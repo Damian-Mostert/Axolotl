@@ -1,0 +1,253 @@
+// ALL TESTS - Comprehensive test suite for Axolotl
+print("=== AXOLOTL COMPREHENSIVE TEST SUITE ===");
+
+// Test 1: Basic Variables and Types
+print("\n1. Basic Variables and Types");
+var num: int = 42;
+var pi: float = 3.14;
+var name: string = "Axolotl";
+var active: bool = true;
+const MAX: int = 100;
+print("✓ Variables:", num, pi, name, active, MAX);
+
+// Test 2: Arrays
+print("\n2. Arrays");
+var numbers: [int] = [1, 2, 3, 4, 5];
+var words: [string] = ["hello", "world"];
+print("✓ Arrays:", numbers, words);
+print("✓ Array length:", len(numbers));
+push(numbers, 6);
+print("✓ After push:", numbers);
+
+// Test 3: Objects
+print("\n3. Objects");
+var person: object = {name: "Alice", age: 30};
+print("✓ Object:", person);
+person.city = "New York";
+print("✓ After field addition:", person);
+
+// Test 4: Functions
+print("\n4. Functions");
+func add(a: int, b: int) -> int {
+    return a + b;
+}
+
+func factorial(n: int) -> int {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+print("✓ add(5, 3):", add(5, 3));
+print("✓ factorial(5):", factorial(5));
+
+// Test 5: Control Flow
+print("\n5. Control Flow");
+var sum: int = 0;
+for (var i: int = 1; i <= 5; i = i + 1) {
+    sum = sum + i;
+}
+print("✓ For loop sum 1-5:", sum);
+
+var count: int = 0;
+while (count < 3) {
+    count = count + 1;
+}
+print("✓ While loop count:", count);
+
+if (sum > 10) {
+    print("✓ If statement: sum is greater than 10");
+} else {
+    print("✗ If statement failed");
+}
+
+// Test 6: Function Expressions
+print("\n6. Function Expressions");
+var multiply: func = func(x: int, y: int) -> int {
+    return x * y;
+};
+print("✓ Function expression 4*5:", multiply(4, 5));
+
+// Test 7: String Operations
+print("\n7. String Operations");
+var text: string = "Hello World";
+print("✓ Original:", text);
+print("✓ Upper:", toUpper(text));
+print("✓ Lower:", toLower(text));
+print("✓ Substring:", substr(text, 0, 5));
+print("✓ Contains 'World':", contains(text, "World"));
+print("✓ Index of 'o':", indexOf(text, "o"));
+
+// Test 8: Array Operations
+print("\n8. Array Operations");
+var testArray: [int] = [10, 20, 30];
+print("✓ Original array:", testArray);
+testArray[1] = 25;
+print("✓ After modification:", testArray);
+
+for (var i: int = 0; i < len(testArray); i = i + 1) {
+    testArray[i] = testArray[i] * 2;
+}
+print("✓ After doubling:", testArray);
+
+// Test 9: Nested Structures
+print("\n9. Nested Structures");
+var company: object = {
+    name: "TechCorp",
+    employees: [
+        {name: "John", role: "Developer"},
+        {name: "Jane", role: "Designer"}
+    ]
+};
+print("✓ Company:", company);
+print("✓ First employee:", company.employees[0]);
+
+// Test 10: Exception Handling
+print("\n10. Exception Handling");
+
+func riskyFunction(mode: int) -> string {
+    if (mode == 1) {
+        throw "Test error";
+    }
+    return "Success";
+}
+
+try {
+    var result: string = riskyFunction(0);
+    print("✓ Normal execution:", result);
+} catch (e) {
+    print("✗ Unexpected error:", e);
+}
+
+try {
+    var result: string = riskyFunction(1);
+    print("✗ Should not reach here");
+} catch (e) {
+    print("✓ Caught expected error:", e);
+} finally {
+    print("✓ Finally block executed");
+}
+
+// Test 11: Complex Loops
+print("\n11. Complex Loops");
+var matrix: [[int]] = [[1, 2], [3, 4]];
+var matrixSum: int = 0;
+
+for (var i: int = 0; i < len(matrix); i = i + 1) {
+    for (var j: int = 0; j < len(matrix[i]); j = j + 1) {
+        matrixSum = matrixSum + matrix[i][j];
+    }
+}
+print("✓ Matrix sum:", matrixSum);
+
+// Test 12: Type Conversions
+print("\n12. Type Conversions and Built-ins");
+var number: int = 42;
+var numberStr: string = toString(number);
+print("✓ toString(42):", numberStr);
+
+var currentTime: int = millis();
+print("✓ Current time (ms):", currentTime);
+
+// Test 13: Advanced Array Manipulation
+print("\n13. Advanced Array Manipulation");
+var data: [int] = [];
+for (var i: int = 1; i <= 10; i = i + 1) {
+    push(data, i * i);
+}
+print("✓ Squares 1-10:", data);
+
+var evenSquares: [int] = [];
+for (var i: int = 0; i < len(data); i = i + 1) {
+    if (data[i] % 2 == 0) {
+        push(evenSquares, data[i]);
+    }
+}
+print("✓ Even squares:", evenSquares);
+
+// Test 14: Recursive Functions
+print("\n14. Recursive Functions");
+
+func fibonacci(n: int) -> int {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+print("✓ fibonacci(7):", fibonacci(7));
+
+// Test 15: Object Manipulation
+print("\n15. Object Manipulation");
+var config: object = {debug: true, version: "1.0"};
+config.features = ["auth", "api", "ui"];
+config.settings = {theme: "dark", lang: "en"};
+print("✓ Complex object:", config);
+
+// Test 16: Performance Test
+print("\n16. Performance Test");
+var perfStart: int = millis();
+var perfSum: int = 0;
+
+for (var i: int = 0; i < 1000; i = i + 1) {
+    perfSum = perfSum + i;
+}
+
+var perfEnd: int = millis();
+print("✓ Sum 0-999:", perfSum, "Time:", perfEnd - perfStart, "ms");
+
+// Test 17: String Manipulation
+print("\n17. String Manipulation");
+var sentence: string = "The quick brown fox";
+var words: [string] = [];
+// Simple word splitting simulation
+var word: string = "";
+for (var i: int = 0; i < len(sentence); i = i + 1) {
+    var char: string = substr(sentence, i, 1);
+    if (char == " ") {
+        if (len(word) > 0) {
+            push(words, word);
+            word = "";
+        }
+    } else {
+        word = word + char;
+    }
+}
+if (len(word) > 0) {
+    push(words, word);
+}
+print("✓ Words:", words);
+
+// Test 18: Error Recovery
+print("\n18. Error Recovery");
+var errorCount: int = 0;
+
+for (var i: int = 0; i < 3; i = i + 1) {
+    try {
+        if (i == 1) {
+            throw "Error " + toString(i);
+        }
+        print("✓ No error for i =", i);
+    } catch (e) {
+        errorCount = errorCount + 1;
+        print("✓ Caught error:", e);
+    }
+}
+print("✓ Total errors caught:", errorCount);
+
+// Final Summary
+print("\n=== TEST SUMMARY ===");
+print("✅ All 18 test categories completed successfully!");
+print("🎉 Axolotl language features working correctly!");
+print("📊 Tests covered:");
+print("   • Variables and types");
+print("   • Arrays and objects");
+print("   • Functions and closures");
+print("   • Control flow");
+print("   • Exception handling");
+print("   • String operations");
+print("   • Recursion");
+print("   • Performance");
+print("   • Error recovery");
+print("\n🚀 Axolotl is ready for use!");

@@ -96,26 +96,44 @@ bool valueMatchesType(const Value &v, const std::string &typeSpec) {
         std::string inner = t.substr(1, t.size() - 2);
         if (inner.empty()) return true; // Empty object type matches any object
         
-        // Parse field specifications
+        // Parse field specifications with proper brace matching
         size_t pos = 0;
         while (pos < inner.size()) {
+            // Skip whitespace
+            while (pos < inner.size() && (inner[pos] == ' ' || inner[pos] == '\t' || inner[pos] == '\n')) pos++;
+            if (pos >= inner.size()) break;
+            
             // Find field name
             size_t colonPos = inner.find(':', pos);
             if (colonPos == std::string::npos) break;
             
             std::string fieldName = trim(inner.substr(pos, colonPos - pos));
             
-            // Find field type (until comma or end)
-            size_t commaPos = inner.find(',', colonPos + 1);
-            if (commaPos == std::string::npos) commaPos = inner.size();
+            // Find field type with proper brace matching
+            size_t typeStart = colonPos + 1;
+            size_t typeEnd = typeStart;
+            int braceCount = 0;
+            int bracketCount = 0;
             
-            std::string fieldType = trim(inner.substr(colonPos + 1, commaPos - colonPos - 1));
+            while (typeEnd < inner.size()) {
+                char c = inner[typeEnd];
+                if (c == '{') braceCount++;
+                else if (c == '}') braceCount--;
+                else if (c == '[') bracketCount++;
+                else if (c == ']') bracketCount--;
+                else if (c == ',' && braceCount == 0 && bracketCount == 0) {
+                    break; // Found end of this field type
+                }
+                typeEnd++;
+            }
+            
+            std::string fieldType = trim(inner.substr(typeStart, typeEnd - typeStart));
             
             // Check if object has this field and it matches the type
             if (obj->fields.find(fieldName) == obj->fields.end()) return false;
             if (!valueMatchesType(obj->fields[fieldName], fieldType)) return false;
             
-            pos = commaPos + 1;
+            pos = typeEnd + 1; // Skip the comma
         }
         return true;
     }
@@ -692,7 +710,9 @@ std::string Interpreter::visit(FunctionCall *node)
             throw std::runtime_error("toString() expects 1 argument");
         }
         Value v = evaluate(node->args[0].get());
-        return valueToString(v);
+        std::string result = valueToString(v);
+        lastValue = Value(result);
+        return "[string]";
     }
 
     // Check if this is a call to a function variable (via callee)
@@ -969,6 +989,10 @@ std::string Interpreter::visit(VariableDeclaration *node)
         {
             value = std::make_shared<ObjectValue>();
         }
+        else if (node->type == "string")
+        {
+            value = std::string("");
+        }
         else
         {
             value = 0;
@@ -1002,6 +1026,7 @@ std::string Interpreter::visit(VariableDeclaration *node)
                 }
             } catch (...) {}
 
+            std::cerr << "[debug] caught exception type: " << typeid(std::runtime_error).name() << std::endl;
             throw std::runtime_error("Type error: initializer for '" + node->name + "' does not match declared type '" + node->type + "'");
         }
     }
@@ -1392,13 +1417,13 @@ Value Interpreter::evaluate(Expression *expr)
 {
     std::string result = expr->accept(this);
     // Check if a complex value was stored
-    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]" || result == "[bool]" || result == "[int]"))
+    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]" || result == "[bool]" || result == "[int]" || result == "[string]"))
     {
         return lastValue;
     }
     // Convert result string back to Value if needed
     if (result.empty())
-        return 0;
+        return std::string("");
     if (result == "true")
         return true;
     if (result == "false")

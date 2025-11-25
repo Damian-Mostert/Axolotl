@@ -817,6 +817,7 @@ CMakeFiles/compiler.dir/src/interpreter.cpp.o: \
   /Users/damian/Axolotl/include/token.h \
   /Users/damian/Axolotl/include/parser.h \
   /Users/damian/Axolotl/include/jit.h \
+  /Users/damian/Axolotl/include/error_handler.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/fstream \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/filesystem \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__filesystem/copy_options.h \

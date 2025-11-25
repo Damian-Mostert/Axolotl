@@ -228,6 +228,30 @@ src/ast.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/ast.cpp.s
 .PHONY : src/ast.cpp.s
 
+src/error_handler.o: src/error_handler.cpp.o
+.PHONY : src/error_handler.o
+
+# target to build an object file
+src/error_handler.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/error_handler.cpp.o
+.PHONY : src/error_handler.cpp.o
+
+src/error_handler.i: src/error_handler.cpp.i
+.PHONY : src/error_handler.i
+
+# target to preprocess a source file
+src/error_handler.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/error_handler.cpp.i
+.PHONY : src/error_handler.cpp.i
+
+src/error_handler.s: src/error_handler.cpp.s
+.PHONY : src/error_handler.s
+
+# target to generate assembly for a file
+src/error_handler.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/error_handler.cpp.s
+.PHONY : src/error_handler.cpp.s
+
 src/interpreter.o: src/interpreter.cpp.o
 .PHONY : src/interpreter.o
 
@@ -414,6 +438,9 @@ help:
 	@echo "... src/ast.o"
 	@echo "... src/ast.i"
 	@echo "... src/ast.s"
+	@echo "... src/error_handler.o"
+	@echo "... src/error_handler.i"
+	@echo "... src/error_handler.s"
 	@echo "... src/interpreter.o"
 	@echo "... src/interpreter.i"
 	@echo "... src/interpreter.s"

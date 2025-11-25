@@ -1,6 +1,8 @@
 file(REMOVE_RECURSE
   "CMakeFiles/compiler.dir/src/ast.cpp.o"
   "CMakeFiles/compiler.dir/src/ast.cpp.o.d"
+  "CMakeFiles/compiler.dir/src/error_handler.cpp.o"
+  "CMakeFiles/compiler.dir/src/error_handler.cpp.o.d"
   "CMakeFiles/compiler.dir/src/interpreter.cpp.o"
   "CMakeFiles/compiler.dir/src/interpreter.cpp.o.d"
   "CMakeFiles/compiler.dir/src/jit.cpp.o"
