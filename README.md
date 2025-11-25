@@ -16,211 +16,154 @@ A simple, statically-typed programming language compiler built from scratch in C
 - **Smart Editor**: Auto-indentation, bracket matching, code folding
 
 ## Language Syntax
+````markdown
+# Axolotl (AXO)
 
-### Variable Declaration
+![Axolotl Icon](lang-ext/assets/icon.png)
 
-```lang
+Axolotl is a small, statically-typed language and compiler implemented in modern C++. This repository contains the compiler, a tree-walking interpreter, and a VS Code language extension (syntax, grammar, and file icons).
+
+**Status:** active development — builds and runs sample programs in `examples/`.
+
+**Highlights:** lexer, parser (recursive-descent), interpreter, VS Code syntax & icons, and pretty diagnostics.
+
+## **Features**
+- **Lexer**: tokenizes source with line/column tracking
+- **Parser**: recursive descent parser producing an AST
+- **Interpreter**: tree-walking execution with scoped environments
+- **Types**: `int`, `float`, `string`, `bool`, `void`, `object`, array types (`[type]`)
+- **Control flow**: `if/else`, `while`, `for` (use `var` in `for` initializers)
+- **Functions**: named and inline `func` values with typed parameters/returns
+- **VS Code integration**: syntax highlighting, grammar, and an icon theme
+- **Pretty errors**: parse errors include file, line, column and a caret pointer to the offending token
+
+## **Language Quick Reference**
+
+Variable declarations
+
+```
 var name: type = value;
 const name: type = value;
 ```
 
-### Functions
+Functions
 
-```lang
+```
 func functionName(param1: type1, param2: type2) -> returnType {
-    // function body
-    return value;
+    // body
 }
 ```
 
-### Control Flow
+For loops (note: the parser expects `var` or an expression for the initializer):
 
-```lang
-if (condition) {
-    // true block
-} else {
-    // false block
-}
-
-while (condition) {
-    // loop body
-}
-
-for (var i: int = 0; i < 10; i = i + 1) {
-    // loop body
+```
+for (var i: int = 0; i < len(arr); i = i + 1) {
+    // ...
 }
 ```
 
-### Types
+Array type
 
-- `int`: 32-bit integer
-- `float`: Single precision floating point
-- `string`: Text string
-- `bool`: Boolean value (true/false)
-- `void`: No return value
-- `object`: No return value
-- `[type]`: [array of types]
+```
+const a: [int] = [1, 2, 3];
+```
 
-### Operators
+Operators: arithmetic `+ - * / %`, comparison `== != < > <= >=`, logical `&& || !`.
 
-#### Arithmetic
-- `+` Addition
-- `-` Subtraction
-- `*` Multiplication
-- `/` Division
-- `%` Modulo
+## **Repository Layout**
+- `src/` — C++ sources: lexer, parser, interpreter, main, etc.
+- `include/` — public headers
+- `examples/` — example `.axo` programs
+- `lang-ext/` — VS Code extension (language, grammar, icon theme)
+- `build/` — CMake build outputs
 
-#### Comparison
-- `==` Equality
-- `!=` Inequality
-- `<` Less than
-- `>` Greater than
-- `<=` Less than or equal
-- `>=` Greater than or equal
+## **Build & Run**
 
-#### Logical
-- `&&` Logical AND
-- `||` Logical OR
-- `!` Logical NOT
+Prerequisites
+- C++17 toolchain (Apple Clang or GCC/Clang)
+- CMake 3.10+
 
-## VS Code Setup
-
-Your project includes complete VS Code syntax highlighting! ✨
-
-### Features
-- 🎨 **Syntax Highlighting** - Keywords, types, strings, numbers, comments
-- 🎯 **Color Themes** - Light and Dark themes optimized for readability
-- ⚙️ **Smart Formatting** - Auto-indentation, bracket closing, code folding
-- 🔧 **Language Configuration** - Comment syntax, bracket matching
-
-### Quick Start in VS Code
-
-1. Open this project in VS Code
-2. Open any `.lang` file - highlighting works automatically
-3. Optional: Change theme
-   - Cmd+Shift+P → "Color Theme"
-   - Select "Compiler Engine Light" or "Compiler Engine Dark"
-
-### Configuration Files
-
-All in `.vscode/`:
-- `language-configuration.json` - Editor behavior (comments, brackets)
-- `settings.json` - Editor preferences
-- `syntaxes/lang.tmLanguage.json` - Tokenization/grammar rules
-- `themes/` - Light and Dark color themes
-
-### Customize Colors
-
-Edit `.vscode/themes/compiler-engine-{light,dark}.json` to change colors. VS Code reloads changes automatically (Cmd+R).
-
-For details, see [VSCODE_SETUP.md](./VSCODE_SETUP.md) and [SYNTAX_HIGHLIGHTING.md](./SYNTAX_HIGHLIGHTING.md).
-
-## Building
-
-### Prerequisites
-- C++17 compatible compiler
-- CMake 3.10 or higher
-
-### Build Steps
+From the repository root (recommended):
 
 ```bash
-cd /Users/damian/game-engine
-mkdir -p build
-cd build
-cmake -S .. -B .
-cmake --build .
+# configure + build (out-of-source)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
+
+# run an example
+./build/compiler examples/test.axo
+
+# interactive REPL mode
+./build/compiler
 ```
 
-### Running
+If you previously built in a different folder, remove `build/` and re-run `cmake -S . -B build` to avoid stale cache issues.
 
-Execute a script file:
+## **VS Code Extension (language + icons)**
+
+The `lang-ext/` folder contains a small VS Code extension providing syntax highlighting and an icon theme.
+
+Quick steps to test the extension locally (dev host):
+
 ```bash
-./compiler examples/test.lang
+# open VS Code to the extension folder and press F5
+code --extensionDevelopmentPath=/path/to/Axolotl/lang-ext
 ```
 
-Interactive mode:
+Package and install the VSIX (to test in regular VS Code):
+
 ```bash
-./compiler
+cd lang-ext
+npm install -g vsce   # if you don't have it
+npm run build          # uses `vsce package` (see package.json)
+# installs lang-syntax-<version>.vsix
+code --install-extension ./lang-syntax-1.0.0.vsix
 ```
 
-## Architecture
+After installing or running the dev host:
+- In Command Palette → `Preferences: File Icon Theme` → choose `Axolotl Icons` to enable file icons for `.axo` files.
+- If icons don't appear: `Developer: Reload Window`, ensure the extension is enabled, and that `.axo` is selected as the language for your file.
 
-### Lexer (`lexer.h`, `lexer.cpp`)
-- Tokenizes source code
-- Handles keywords, operators, literals, and identifiers
-- Skips comments and whitespace
-- Tracks line and column information
+## **Error Reporting / Diagnostics**
 
-### Parser (`parser.h`, `parser.cpp`)
-- Builds Abstract Syntax Tree from tokens
-- Implements recursive descent parsing
-- Follows operator precedence and associativity
-- Error handling with meaningful messages
+The compiler now produces improved diagnostics for parse errors. Example:
 
-### AST (`ast.h`, `ast.cpp`)
-- Node classes for all language constructs
-- Visitor pattern implementation
-- Supports expressions, statements, and declarations
+```
+Fatal error: Expected ']' after array type (line 1, col 14)
+  File: examples/bad_array.axo:1:14
+const a:[int = 5;
+             ^
+```
 
-### Interpreter (`interpreter.h`, `interpreter.cpp`)
-- Tree-walking interpreter
-- Environment-based variable scoping
-- Type coercion and value operations
+Notes:
+- Parse errors carry token line/column and show the source line with a caret marker.
+- This formatting is produced when running `./build/compiler <file>`; interactive mode prints similar errors when a complete expression/block is entered.
+
+## **Examples**
+
+Run the example suite to try small programs in `examples/`:
+
+```bash
+./build/compiler examples/test.axo
+```
+
+Open `examples/test.axo` and `examples/showcase.axo` to see language features.
+
+## **Development Notes**
+
+- `Token` objects track `line` and `column` in `include/token.h`.
+- `ParseError` (in `include/parser.h`) now stores token location and value — the `main` runner formats these into the caret-style diagnostic.
+- If you change parsing/lexing behavior, update tests and examples accordingly.
+
+## **Contributing / Roadmap**
+
+- Improve type checking and error recovery
+- Add more standard library functions
+- Add bytecode backend and JIT
+
+## **License**
+
+MIT
+
+````
 - Function call support with parameter passing
-
-## Example Programs
-
-### Variables and Arithmetic
-```lang
-var x: int = 10;
-var y: int = 20;
-var result: int = x + y;
-```
-
-### Functions
-```lang
-func add(a: int, b: int) -> int {
-    return a + b;
-}
-
-func main() -> void {
-    var sum: int = add(5, 3);
-}
-```
-
-### Loops and Conditionals
-```lang
-func countToTen() -> void {
-    var i: int = 0;
-    while (i < 10) {
-        i = i + 1;
-    }
-
-    if (i == 10) {
-        // Success
-    }
-}
-```
-
-## Error Handling
-
-The compiler provides detailed error messages for:
-- Syntax errors with line and column information
-- Undefined variables or functions
-- Type mismatches (basic)
-- Parse errors with context
-
-## Future Enhancements
-
-- [ ] Arrays and pointers
-- [ ] Structs and classes
-- [ ] Standard library functions
-- [ ] Type inference
-- [ ] Error recovery
-- [ ] Optimization passes
-- [ ] Code generation to bytecode
-- [ ] JIT compilation
-
-## License
-
-MIT License
