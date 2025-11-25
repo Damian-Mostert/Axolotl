@@ -1,24 +1,5 @@
 # Axolotl (AXO)
 
-![Image](assets/icon.png)    
-
-A simple, statically-typed programming language compiler built from scratch in C++ with **full VS Code syntax highlighting support**.
-
-## ✨ Features
-
-- **Lexical Analysis**: Complete tokenizer supporting all language constructs
-- **Parser**: Recursive descent parser building Abstract Syntax Trees (AST)
-- **Interpreter**: Tree-walking interpreter with scoped environments
-- **Type System**: Support for int, float, string, and bool types
-- **Control Flow**: if/else, while, and for loops
-- **Functions**: First-class function declarations with parameters and return types
-- **VS Code Integration**: Syntax highlighting, color themes, auto-formatting
-- **Smart Editor**: Auto-indentation, bracket matching, code folding
-
-## Language Syntax
-
-# Axolotl (AXO)
-
 ![Axolotl Icon](lang-ext/assets/icon.png)
 
 Axolotl is a small, statically-typed language and compiler implemented in modern C++. This repository contains the compiler, a tree-walking interpreter, and a VS Code language extension (syntax, grammar, and file icons).
