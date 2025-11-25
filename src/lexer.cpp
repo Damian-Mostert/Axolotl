@@ -23,6 +23,14 @@ std::unordered_map<std::string, TokenType> Lexer::keywords = {
     {"false", TokenType::KW_FALSE},
     {"program", TokenType::KW_PROGRAM},
     {"await", TokenType::KW_AWAIT},
+    {"type", TokenType::KW_TYPE},
+    {"typeof", TokenType::KW_TYPEOF},
+    {"try", TokenType::KW_TRY},
+    {"catch", TokenType::KW_CATCH},
+    {"finally", TokenType::KW_FINALLY},
+    {"throw", TokenType::KW_THROW},
+    {"break", TokenType::KW_BREAK},
+    {"continue", TokenType::KW_CONTINUE},
 };
 
 Lexer::Lexer(const std::string& source)

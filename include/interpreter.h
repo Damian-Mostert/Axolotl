@@ -72,8 +72,26 @@ public:
     ReturnException(const Value& v) : value(v) {}
 };
 
+class ThrowException : public std::exception {
+public:
+    Value value;
+    ThrowException(const Value& v) : value(v) {}
+};
+
+class BreakException : public std::exception {
+public:
+    BreakException() = default;
+};
+
+class ContinueException : public std::exception {
+public:
+    ContinueException() = default;
+};
+
 class Interpreter : public ASTVisitor {
 public:
+    std::unordered_map<std::string, std::string> typeRegistry;  // Store custom type definitions
+    
     Interpreter();
     ~Interpreter();
     
@@ -107,6 +125,11 @@ public:
     std::string visit(ExpressionStatement* node) override;
     std::string visit(Program* node) override;
     std::string visit(ImportDeclaration* node) override;
+    std::string visit(TypeDeclaration* node) override;
+    std::string visit(ThrowStatement* node) override;
+    std::string visit(TryStatement* node) override;
+    std::string visit(BreakStatement* node) override;
+    std::string visit(ContinueStatement* node) override;
     
 private:
     Environment environment;
@@ -116,6 +139,8 @@ private:
     std::mutex programsMutex;
     std::unordered_set<std::string> importedFiles;
     Value lastValue;  // Store last evaluated complex value (array, object)
+    Variable lastVariable;  // Store last accessed variable for typeof operations
+    std::string lastVariableName;  // Store last accessed variable name
     std::unique_ptr<LLVMJITCompiler> jitCompiler;  // JIT compiler for loop optimization
     
     Value evaluate(Expression* expr);
@@ -126,6 +151,7 @@ private:
     Value performUnaryOp(UnaryOperator op, const Value& operand);
     bool isTruthy(const Value& v);
     std::string valueToString(const Value& v);
+    std::string getTypeOfValue(const Value& v);
 };
 
 #endif // INTERPRETER_H

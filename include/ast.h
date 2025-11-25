@@ -293,6 +293,55 @@ public:
     std::string accept(class ASTVisitor* visitor) override;
 };
 
+class TypeDeclaration : public ASTNode {
+public:
+    std::string name;
+    std::string typeSpec;
+    
+    TypeDeclaration(const std::string& n, const std::string& spec)
+        : name(n), typeSpec(spec) {}
+    
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
+class ThrowStatement : public Statement {
+public:
+    std::unique_ptr<Expression> expression;
+    
+    ThrowStatement(std::unique_ptr<Expression> expr)
+        : expression(std::move(expr)) {}
+    
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
+class TryStatement : public Statement {
+public:
+    std::unique_ptr<Block> tryBlock;
+    std::string catchVariable;
+    std::unique_ptr<Block> catchBlock;
+    std::unique_ptr<Block> finallyBlock;
+    
+    TryStatement(std::unique_ptr<Block> tryBlk, const std::string& catchVar = "",
+                 std::unique_ptr<Block> catchBlk = nullptr, 
+                 std::unique_ptr<Block> finallyBlk = nullptr)
+        : tryBlock(std::move(tryBlk)), catchVariable(catchVar),
+          catchBlock(std::move(catchBlk)), finallyBlock(std::move(finallyBlk)) {}
+    
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
+class BreakStatement : public Statement {
+public:
+    BreakStatement() = default;
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
+class ContinueStatement : public Statement {
+public:
+    ContinueStatement() = default;
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
 
 
 class Program : public ASTNode {
@@ -334,6 +383,11 @@ public:
     virtual std::string visit(AwaitExpression* node) = 0;
     virtual std::string visit(ExpressionStatement* node) = 0;
     virtual std::string visit(ImportDeclaration* node) = 0;
+    virtual std::string visit(TypeDeclaration* node) = 0;
+    virtual std::string visit(ThrowStatement* node) = 0;
+    virtual std::string visit(TryStatement* node) = 0;
+    virtual std::string visit(BreakStatement* node) = 0;
+    virtual std::string visit(ContinueStatement* node) = 0;
     virtual std::string visit(Program* node) = 0;
 };
 

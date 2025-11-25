@@ -55,6 +55,14 @@ std::string FunctionExpression::accept(ASTVisitor* visitor) {
     return visitor->visit(this);
 }
 
+std::string ThrowStatement::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
+std::string TryStatement::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
 // IndexAccess
 std::string IndexAccess::accept(ASTVisitor* visitor) {
     return visitor->visit(this);
@@ -137,5 +145,20 @@ std::string ProgramDeclaration::accept(ASTVisitor* visitor) {
 
 // AwaitExpression
 std::string AwaitExpression::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
+// TypeDeclaration
+std::string TypeDeclaration::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
+// BreakStatement
+std::string BreakStatement::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
+// ContinueStatement
+std::string ContinueStatement::accept(ASTVisitor* visitor) {
     return visitor->visit(this);
 }

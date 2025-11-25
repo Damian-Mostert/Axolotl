@@ -1,0 +1,86 @@
+// Test try-catch-finally functionality
+
+print("=== Try-Catch-Finally Test ===");
+
+// Test 1: Basic try-catch
+print("Test 1: Basic try-catch");
+try {
+    print("In try block");
+    throw "Something went wrong!";
+    print("This should not print");
+} catch (error) {
+    print("Caught error:", error);
+}
+
+// Test 2: Try-catch-finally
+print("\nTest 2: Try-catch-finally");
+try {
+    print("In try block");
+    throw "Another error";
+} catch (e) {
+    print("Caught:", e);
+} finally {
+    print("Finally block executed");
+}
+
+// Test 3: Try-finally (no catch)
+print("\nTest 3: Try-finally without catch");
+try {
+    try {
+        print("Inner try");
+        throw "Inner error";
+    } finally {
+        print("Inner finally");
+    }
+} catch (err) {
+    print("Outer catch:", err);
+}
+
+// Test 4: No exception thrown
+print("\nTest 4: No exception thrown");
+try {
+    print("Normal execution");
+    var x: int = 42;
+    print("x =", x);
+} catch (e) {
+    print("This should not execute");
+} finally {
+    print("Finally always executes");
+}
+
+// Test 5: Nested try-catch
+print("\nTest 5: Nested try-catch");
+try {
+    print("Outer try");
+    try {
+        print("Inner try");
+        throw "Inner exception";
+    } catch (inner) {
+        print("Inner catch:", inner);
+        throw "Re-thrown from inner";
+    }
+} catch (outer) {
+    print("Outer catch:", outer);
+}
+
+// Test 6: Function with try-catch
+func riskyFunction(shouldFail: bool) -> string {
+    try {
+        if (shouldFail) {
+            throw "Function failed!";
+        }
+        return "Success";
+    } catch (e) {
+        print("Function caught:", e);
+        return "Handled";
+    }
+}
+
+print("\nTest 6: Function with try-catch");
+var result1: string = riskyFunction(false);
+print("Result 1:", result1);
+
+var result2: string = riskyFunction(true);
+print("Result 2:", result2);
+
+print("\n=== All try-catch tests completed ===");

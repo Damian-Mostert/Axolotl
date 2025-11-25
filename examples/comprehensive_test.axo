@@ -1,0 +1,257 @@
+// Comprehensive test of all Axolotl features
+print("=== Comprehensive Axolotl Test ===");
+
+// Variables and types
+var counter: int = 0;
+var pi: float = 3.14159;
+var name: string = "Axolotl";
+var active: bool = true;
+const MAX: int = 100;
+
+print("Basic variables:", counter, pi, name, active, MAX);
+
+// Arrays
+var numbers: [int] = [1, 2, 3, 4, 5];
+var words: [string] = ["hello", "world", "test"];
+print("Arrays:", numbers, words);
+print("Array length:", len(numbers));
+
+// Objects
+var person: object = {name: "Alice", age: 30};
+print("Object:", person);
+
+// Functions
+func factorial(n: int) -> int {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+func fibonacci(n: int) -> int {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+print("\nMath functions:");
+print("factorial(5):", factorial(5));
+print("fibonacci(8):", fibonacci(8));
+
+// Deep nested loops
+print("\nDeep nested loops:");
+var sum: int = 0;
+
+for (var i: int = 0; i < 10; i = i + 1) {
+    for (var j: int = 0; j < 10; j = j + 1) {
+        for (var k: int = 0; k < 5; k = k + 1) {
+            sum = sum + (i * j + k);
+            counter = counter + 1;
+            
+            // Nested conditions in loops
+            if (i % 2 == 0) {
+                if (j % 3 == 0) {
+                    sum = sum + 10;
+                }
+            }
+        }
+    }
+}
+print("Deep loop sum:", sum, "Counter:", counter);
+
+// Array processing with loops
+func processArray(data: [int]) -> int {
+    var result: int = 0;
+    
+    for (var i: int = 0; i < len(data); i = i + 1) {
+        var val: int = data[i];
+        
+        if (val % 2 == 0) {
+            result = result + val * val;
+        } else {
+            result = result + val + 10;
+        }
+        
+        // Nested while in for loop
+        var temp: int = val;
+        while (temp > 0) {
+            temp = temp - 2;
+            if (temp == 1) {
+                break;
+            }
+            result = result + 1;
+        }
+    }
+    
+    return result;
+}
+
+var testData: [int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+var processed: int = processArray(testData);
+print("Processed result:", processed);
+
+// Try-catch with user exceptions
+print("\nTry-catch tests:");
+
+func riskyOperation(mode: int) -> string {
+    if (mode == 1) {
+        throw "User error: mode 1 failed";
+    }
+    if (mode == 2) {
+        throw "User error: mode 2 failed";
+    }
+    return "Success";
+}
+
+// Test 1: Successful operation
+try {
+    var result: string = riskyOperation(0);
+    print("Operation result:", result);
+} catch (e) {
+    print("Caught:", e);
+}
+
+// Test 2: User exception handling
+try {
+    var result: string = riskyOperation(1);
+    print("This should not print");
+} catch (e) {
+    print("Caught user exception:", e);
+} finally {
+    print("Finally block executed");
+}
+
+// Test 3: Nested try-catch with loops
+var errorCount: int = 0;
+for (var mode: int = 0; mode < 5; mode = mode + 1) {
+    try {
+        try {
+            var result: string = riskyOperation(mode);
+            print("Mode", mode, "succeeded:", result);
+        } catch (inner) {
+            errorCount = errorCount + 1;
+            print("Inner catch for mode", mode, ":", inner);
+            
+            if (mode == 2) {
+                throw "Re-throwing from mode 2";
+            }
+        }
+    } catch (outer) {
+        print("Outer catch:", outer);
+    } finally {
+        print("Finally for mode", mode);
+    }
+}
+print("Total errors caught:", errorCount);
+
+// Complex object manipulation
+var player1: object = {name: "Alice", score: 100};
+var player2: object = {name: "Bob", score: 85};
+print("\nPlayers:", player1, player2);
+
+// Modify objects in loops
+for (var i: int = 0; i < 3; i = i + 1) {
+    player1.score = player1.score + 10;
+    player2.score = player2.score + 5;
+}
+print("Updated players:", player1, player2);
+
+// Function expressions
+var multiplier: func = func(x: int, factor: int) -> int {
+    return x * factor;
+};
+
+var result1: int = multiplier(5, 3);
+print("Function expression result:", result1);
+
+// String operations
+var text: string = "Hello World";
+print("\nString operations:");
+print("Original:", text);
+print("Upper:", toUpper(text));
+print("Lower:", toLower(text));
+print("Substring:", substr(text, 0, 5));
+print("Contains 'World':", contains(text, "World"));
+print("Index of 'o':", indexOf(text, "o"));
+
+// Performance test with deep loops
+print("\nPerformance test:");
+var start: int = millis();
+var total: int = 0;
+
+for (var i: int = 0; i < 500; i = i + 1) {
+    for (var j: int = 0; j < 200; j = j + 1) {
+        total = total + (i * j) % 7;
+        
+        // Add some computation
+        if (total > 1000) {
+            total = total / 2;
+        }
+    }
+}
+
+var end: int = millis();
+print("Deep loop result:", total, "Time:", end - start, "ms");
+
+// Recursive function with try-catch
+func processNestedData(depth: int, value: int) -> int {
+    if (depth <= 0) {
+        return value;
+    }
+    
+    var result: int = 0;
+    for (var i: int = 0; i < 3; i = i + 1) {
+        try {
+            if (i == 2 && depth > 2) {
+                throw "Simulated error";
+            }
+            result = result + processNestedData(depth - 1, value + i);
+        } catch (e) {
+            print("Caught at depth", depth, ":", e);
+            result = result + value;
+        }
+    }
+    
+    return result;
+}
+
+var finalResult: int = processNestedData(4, 10);
+print("Final recursive result:", finalResult);
+
+// Array manipulation stress test
+var bigArray: [int] = [];
+for (var i: int = 0; i < 50; i = i + 1) {
+    push(bigArray, i * 2);
+}
+
+var arraySum: int = 0;
+for (var i: int = 0; i < len(bigArray); i = i + 1) {
+    arraySum = arraySum + bigArray[i];
+}
+print("Big array sum:", arraySum);
+
+// Complex control flow
+var complexResult: int = 0;
+for (var outer: int = 0; outer < 10; outer = outer + 1) {
+    var innerSum: int = 0;
+    
+    for (var inner: int = 0; inner < 5; inner = inner + 1) {
+        if (inner % 2 == 0) {
+            innerSum = innerSum + inner;
+        } else {
+            var temp: int = inner;
+            while (temp > 0) {
+                innerSum = innerSum + 1;
+                temp = temp - 1;
+            }
+        }
+    }
+    
+    if (innerSum > 10) {
+        complexResult = complexResult + innerSum;
+    }
+}
+print("Complex control flow result:", complexResult);
+
+print("\n=== All comprehensive tests completed successfully ===");

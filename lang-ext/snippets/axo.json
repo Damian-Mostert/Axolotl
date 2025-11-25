@@ -1,0 +1,289 @@
+{
+    "Function Declaration": {
+        "prefix": "func",
+        "body": [
+            "func ${1:functionName}(${2:param}: ${3:type}) -> ${4:returnType} {",
+            "\t${5:// function body}",
+            "\treturn ${6:value};",
+            "}"
+        ],
+        "description": "Create a function declaration"
+    },
+    "Variable Declaration": {
+        "prefix": "var",
+        "body": [
+            "var ${1:name}: ${2:type} = ${3:value};"
+        ],
+        "description": "Create a variable declaration"
+    },
+    "Constant Declaration": {
+        "prefix": "const",
+        "body": [
+            "const ${1:name}: ${2:type} = ${3:value};"
+        ],
+        "description": "Create a constant declaration"
+    },
+    "Type Declaration": {
+        "prefix": "type",
+        "body": [
+            "type ${1:TypeName} = ${2:typeDefinition};"
+        ],
+        "description": "Create a custom type declaration"
+    },
+    "Union Type": {
+        "prefix": "union",
+        "body": [
+            "type ${1:TypeName} = ${2:\"option1\"} | ${3:\"option2\"} | ${4:\"option3\"};"
+        ],
+        "description": "Create a union type with string literals"
+    },
+    "Object Type": {
+        "prefix": "objtype",
+        "body": [
+            "type ${1:TypeName} = {",
+            "\t${2:field1}: ${3:type1},",
+            "\t${4:field2}: ${5:type2}",
+            "};"
+        ],
+        "description": "Create an object type definition"
+    },
+    "Array Type": {
+        "prefix": "arrtype",
+        "body": [
+            "type ${1:TypeName} = [${2:elementType}];"
+        ],
+        "description": "Create an array type definition"
+    },
+    "Tuple Type": {
+        "prefix": "tuple",
+        "body": [
+            "type ${1:TypeName} = [${2:type1}, ${3:type2}];"
+        ],
+        "description": "Create a tuple type definition"
+    },
+    "If Statement": {
+        "prefix": "if",
+        "body": [
+            "if (${1:condition}) {",
+            "\t${2:// if body}",
+            "}"
+        ],
+        "description": "Create an if statement"
+    },
+    "If-Else Statement": {
+        "prefix": "ifelse",
+        "body": [
+            "if (${1:condition}) {",
+            "\t${2:// if body}",
+            "} else {",
+            "\t${3:// else body}",
+            "}"
+        ],
+        "description": "Create an if-else statement"
+    },
+    "While Loop": {
+        "prefix": "while",
+        "body": [
+            "while (${1:condition}) {",
+            "\t${2:// loop body}",
+            "}"
+        ],
+        "description": "Create a while loop"
+    },
+    "For Loop": {
+        "prefix": "for",
+        "body": [
+            "for (var ${1:i}: int = ${2:0}; ${1:i} < ${3:limit}; ${1:i} = ${1:i} + 1) {",
+            "\t${4:// loop body}",
+            "}"
+        ],
+        "description": "Create a for loop"
+    },
+    "Array Declaration": {
+        "prefix": "array",
+        "body": [
+            "var ${1:name}: [${2:type}] = [${3:elements}];"
+        ],
+        "description": "Create an array declaration"
+    },
+    "Mixed Array": {
+        "prefix": "mixarray",
+        "body": [
+            "var ${1:name}: [${2:type1}|${3:type2}] = [${4:elements}];"
+        ],
+        "description": "Create a mixed type array"
+    },
+    "Object Declaration": {
+        "prefix": "object",
+        "body": [
+            "var ${1:name}: object = {",
+            "\t${2:field1}: ${3:value1},",
+            "\t${4:field2}: ${5:value2}",
+            "};"
+        ],
+        "description": "Create an object declaration"
+    },
+    "Object Array": {
+        "prefix": "objarr",
+        "body": [
+            "var ${1:name}: [object] = [",
+            "\t{${2:field}: ${3:value}},",
+            "\t{${2:field}: ${4:value}}",
+            "];"
+        ],
+        "description": "Create an array of objects"
+    },
+    "Program Declaration": {
+        "prefix": "program",
+        "body": [
+            "program ${1:programName}(${2:param}: ${3:type}) {",
+            "\t${4:// program body}",
+            "}"
+        ],
+        "description": "Create a program declaration"
+    },
+    "Function Expression": {
+        "prefix": "funcexpr",
+        "body": [
+            "func(${1:param}: ${2:type}) -> ${3:returnType} {",
+            "\t${4:// function body}",
+            "\treturn ${5:value};",
+            "}"
+        ],
+        "description": "Create an inline function expression"
+    },
+    "Print Statement": {
+        "prefix": "print",
+        "body": [
+            "print(${1:message});"
+        ],
+        "description": "Create a print statement"
+    },
+    "Import Statement": {
+        "prefix": "import",
+        "body": [
+            "import \"${1:path}\";"
+        ],
+        "description": "Create an import statement"
+    },
+    "Use Statement": {
+        "prefix": "use",
+        "body": [
+            "use \"${1:path}\";"
+        ],
+        "description": "Create a use statement"
+    },
+    "Typeof Expression": {
+        "prefix": "typeof",
+        "body": [
+            "typeof ${1:variable}"
+        ],
+        "description": "Create a typeof expression"
+    },
+    "Await Expression": {
+        "prefix": "await",
+        "body": [
+            "await ${1:expression};"
+        ],
+        "description": "Create an await expression"
+    },
+    "Main Function": {
+        "prefix": "main",
+        "body": [
+            "func main() -> void {",
+            "\t${1:// main function body}",
+            "}"
+        ],
+        "description": "Create a main function"
+    },
+    "Recursive Function": {
+        "prefix": "recursive",
+        "body": [
+            "func ${1:functionName}(${2:n}: int) -> int {",
+            "\tif (${2:n} <= ${3:1}) {",
+            "\t\treturn ${4:1};",
+            "\t}",
+            "\treturn ${2:n} * ${1:functionName}(${2:n} - 1);",
+            "}"
+        ],
+        "description": "Create a recursive function template"
+    },
+    "String Operations": {
+        "prefix": "strops",
+        "body": [
+            "var ${1:text}: string = \"${2:Hello, World!}\";",
+            "var ${3:length}: int = len(${1:text});",
+            "var ${4:upper}: string = toUpper(${1:text});",
+            "var ${5:lower}: string = toLower(${1:text});",
+            "var ${6:substring}: string = substr(${1:text}, ${7:0}, ${8:5});"
+        ],
+        "description": "Common string operations"
+    },
+    "Array Operations": {
+        "prefix": "arrops",
+        "body": [
+            "var ${1:arr}: [${2:int}] = [${3:1, 2, 3}];",
+            "var ${4:length}: int = len(${1:arr});",
+            "push(${1:arr}, ${5:newValue});",
+            "var ${6:popped}: ${2:int} = pop(${1:arr});"
+        ],
+        "description": "Common array operations"
+    },
+    "Complex Object Access": {
+        "prefix": "objaccess",
+        "body": [
+            "var ${1:obj}: object = {",
+            "\t${2:data}: [",
+            "\t\t{${3:name}: \"${4:value}\", ${5:items}: [${6:1, 2, 3}]},",
+            "\t\t{${3:name}: \"${7:value2}\", ${5:items}: [${8:4, 5, 6}]}",
+            "\t]",
+            "};",
+            "print(${1:obj}.${2:data}[0].${3:name});",
+            "print(${1:obj}.${2:data}[0].${5:items}[1]);"
+        ],
+        "description": "Complex nested object access pattern"
+    },
+    "Try-Catch Statement": {
+        "prefix": "try",
+        "body": [
+            "try {",
+            "\t${1:// try block}",
+            "} catch (${2:error}) {",
+            "\t${3:// catch block}",
+            "}"
+        ],
+        "description": "Create a try-catch statement"
+    },
+    "Try-Catch-Finally Statement": {
+        "prefix": "tryfinally",
+        "body": [
+            "try {",
+            "\t${1:// try block}",
+            "} catch (${2:error}) {",
+            "\t${3:// catch block}",
+            "} finally {",
+            "\t${4:// finally block}",
+            "}"
+        ],
+        "description": "Create a try-catch-finally statement"
+    },
+    "Throw Statement": {
+        "prefix": "throw",
+        "body": [
+            "throw ${1:\"error message\"};"
+        ],
+        "description": "Create a throw statement"
+    },
+    "File Header": {
+        "prefix": "header",
+        "body": [
+            "// ==========================================",
+            "// ${1:File Description}",
+            "// ==========================================",
+            "",
+            "${2:// Additional comments}",
+            ""
+        ],
+        "description": "Create a file header comment"
+    }
+}

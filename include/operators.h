@@ -22,7 +22,8 @@ enum class BinaryOperator {
 
 enum class UnaryOperator {
     NEGATE,     // -
-    LOGICAL_NOT // !
+    LOGICAL_NOT, // !
+    TYPEOF      // typeof
 };
 
 // Convert string operators to enums for fast comparison

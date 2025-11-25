@@ -1,0 +1,87 @@
+// Enhanced typeof test with custom types
+
+print("=== Enhanced Typeof Test ===");
+
+// Define custom types
+type Status = "active" | "inactive" | "pending";
+type User = {
+    name: string,
+    age: int,
+    status: Status
+};
+type Coordinates = [int, int];
+type Priority = 1 | 2 | 3 | 4 | 5;
+
+// Test basic types
+var x: int = 42;
+var y: float = 3.14;
+var z: string = "hello";
+var b: bool = true;
+
+print("typeof x (int):", typeof x);
+print("typeof y (float):", typeof y);
+print("typeof z (string):", typeof z);
+print("typeof b (bool):", typeof b);
+
+// Test array and object types
+var arr: [int] = [1, 2, 3];
+var obj: object = {name: "test", value: 123};
+
+print("typeof arr (array):", typeof arr);
+print("typeof obj (object):", typeof obj);
+
+// Test custom types
+var userStatus: Status = "active";
+var user: User = {
+    name: "Alice",
+    age: 30,
+    status: "active"
+};
+var position: Coordinates = [10, 20];
+var taskPriority: Priority = 1;
+
+print("typeof userStatus (Status):", typeof userStatus);
+print("typeof user (User):", typeof user);
+print("typeof position (Coordinates):", typeof position);
+print("typeof taskPriority (Priority):", typeof taskPriority);
+
+// Test typeof in conditionals
+if (typeof x == "int") {
+    print("x is indeed an integer!");
+}
+
+if (typeof z == "string") {
+    print("z is indeed a string!");
+}
+
+if (typeof arr == "array") {
+    print("arr is indeed an array!");
+}
+
+if (typeof user == "object") {
+    print("user is an object type!");
+}
+
+if (typeof userStatus == "string") {
+    print("userStatus is a string (literal type)!");
+}
+
+if (typeof position == "array") {
+    print("position is an array (tuple type)!");
+}
+
+// Test with function
+func testFunc() -> int {
+    return 42;
+}
+
+print("typeof testFunc (function):", typeof testFunc);
+
+// Test with function expression
+var funcExpr: (int) -> string = func(n: int) -> string {
+    return "Number: " + n;
+};
+
+print("typeof funcExpr (function):", typeof funcExpr);
+
+print("=== All enhanced typeof tests completed ===");

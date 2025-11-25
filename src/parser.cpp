@@ -71,6 +71,9 @@ std::unique_ptr<ASTNode> Parser::parseDeclaration() {
     if (check(TokenType::KW_IMPORT)) {
         return parseImportDeclaration();
     }
+    if (check(TokenType::KW_TYPE)) {
+        return parseTypeDeclaration();
+    }
     if (check(TokenType::KW_FUNC)) {
         return parseFunctionDeclaration();
     }
@@ -88,6 +91,131 @@ std::unique_ptr<ASTNode> Parser::parseImportDeclaration() {
     Token pathTok = consume(TokenType::STRING, "Expected string path in import");
     consume(TokenType::SEMICOLON, "Expected ';' after import");
     return std::make_unique<ImportDeclaration>(pathTok.value);
+}
+
+std::unique_ptr<TypeDeclaration> Parser::parseTypeDeclaration() {
+    consume(TokenType::KW_TYPE, "Expected 'type'");
+    Token name = consume(TokenType::IDENTIFIER, "Expected type name");
+    consume(TokenType::ASSIGN, "Expected '=' after type name");
+    
+    // Parse the type specification - this can be complex
+    std::string typeSpec = parseComplexTypeSpec();
+    
+    consume(TokenType::SEMICOLON, "Expected ';' after type declaration");
+    return std::make_unique<TypeDeclaration>(name.value, typeSpec);
+}
+
+std::string Parser::parseComplexTypeSpec() {
+    std::string result;
+    
+    // Handle different type specifications
+    if (check(TokenType::LBRACE)) {
+        // Object type: { field1: type1, field2: type2 }
+        advance(); // consume {
+        result += "{";
+        
+        if (!check(TokenType::RBRACE)) {
+            do {
+                Token fieldName = consume(TokenType::IDENTIFIER, "Expected field name");
+                consume(TokenType::COLON, "Expected ':' after field name");
+                
+                std::string fieldType = parseSimpleTypeSpec();
+                result += fieldName.value + ":" + fieldType;
+                
+                if (check(TokenType::COMMA)) {
+                    result += ",";
+                }
+            } while (match({TokenType::COMMA}));
+        }
+        
+        consume(TokenType::RBRACE, "Expected '}' after object type");
+        result += "}";
+    } else if (check(TokenType::LBRACKET)) {
+        // Array type: [elementType] or specific array: [type1, type2, ...] or [{field:type}, {field:type}]
+        advance(); // consume [
+        result += "[";
+        
+        if (check(TokenType::LBRACE)) {
+            // Specific array elements with object types
+            do {
+                std::string elementType = parseComplexTypeSpec();
+                result += elementType;
+                
+                if (check(TokenType::COMMA)) {
+                    result += ",";
+                }
+            } while (match({TokenType::COMMA}));
+        } else {
+            // Could be regular array type [elementType] or specific elements [type1, type2, ...]
+            std::string firstType = parseSimpleTypeSpec();
+            result += firstType;
+            
+            // Check if there are more comma-separated types (specific array elements)
+            while (match({TokenType::COMMA})) {
+                result += ",";
+                std::string nextType = parseSimpleTypeSpec();
+                result += nextType;
+            }
+        }
+        
+        consume(TokenType::RBRACKET, "Expected ']' after array type");
+        result += "]";
+    } else {
+        // Simple type or union type
+        result = parseSimpleTypeSpec();
+    }
+    
+    // Handle union types with |
+    while (match({TokenType::PIPE})) {
+        result += "|";
+        if (check(TokenType::LBRACE) || check(TokenType::LBRACKET)) {
+            result += parseComplexTypeSpec();
+        } else {
+            result += parseSimpleTypeSpec();
+        }
+    }
+    
+    return result;
+}
+
+std::string Parser::parseSimpleTypeSpec() {
+    if (check(TokenType::STRING)) {
+        // String literal type
+        Token str = advance();
+        return "\"" + str.value + "\"";
+    } else if (check(TokenType::INTEGER)) {
+        // Integer literal type
+        Token num = advance();
+        return num.value;
+    } else if (check(TokenType::KW_TRUE) || check(TokenType::KW_FALSE)) {
+        // Boolean literal type
+        Token bool_val = advance();
+        return bool_val.value;
+    } else if (check(TokenType::KW_INT)) {
+        advance();
+        return "int";
+    } else if (check(TokenType::KW_FLOAT)) {
+        advance();
+        return "float";
+    } else if (check(TokenType::KW_STRING)) {
+        advance();
+        return "string";
+    } else if (check(TokenType::KW_BOOL)) {
+        advance();
+        return "bool";
+    } else if (check(TokenType::KW_OBJECT)) {
+        advance();
+        return "object";
+    } else if (check(TokenType::KW_ANY)) {
+        advance();
+        return "any";
+    } else if (check(TokenType::IDENTIFIER)) {
+        // Custom type reference
+        Token type = advance();
+        return type.value;
+    } else {
+        throw ParseError("Expected type specification", peek());
+    }
 }
 
 std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
@@ -109,23 +237,7 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
                 paramTypeStr = parseFunctionType();
             } else if (check(TokenType::LBRACKET)) {
                 // Array type
-                advance();
-                Token baseType;
-                if (check(TokenType::KW_INT)) {
-                    baseType = advance();
-                } else if (check(TokenType::KW_FLOAT)) {
-                    baseType = advance();
-                } else if (check(TokenType::KW_STRING)) {
-                    baseType = advance();
-                } else if (check(TokenType::KW_BOOL)) {
-                    baseType = advance();
-                } else if (check(TokenType::KW_OBJECT)) {
-                    baseType = advance();
-                } else {
-                    baseType = consume(TokenType::IDENTIFIER, "Expected array type");
-                }
-                consume(TokenType::RBRACKET, "Expected ']'");
-                paramTypeStr = "[" + baseType.value + "]";
+                paramTypeStr = parseArrayType();
             } else {
                 // Regular type
                 Token paramType;
@@ -177,27 +289,36 @@ std::unique_ptr<FunctionDeclaration> Parser::parseFunctionDeclaration() {
     consume(TokenType::RPAREN, "Expected ')' after parameters");
     consume(TokenType::ARROW, "Expected '->'");
     
-    // Return type can be a keyword or identifier
-    Token returnType;
-    if (check(TokenType::KW_INT)) {
-        returnType = advance();
-    } else if (check(TokenType::KW_FLOAT)) {
-        returnType = advance();
-    } else if (check(TokenType::KW_STRING)) {
-        returnType = advance();
-    } else if (check(TokenType::KW_BOOL)) {
-        returnType = advance();
-    } else if (check(TokenType::KW_VOID)) {
-        returnType = advance();
-    } else if (check(TokenType::KW_ANY)) {
-        returnType = advance();
+    // Return type can be a keyword, identifier, or array type
+    std::string returnTypeStr;
+    if (check(TokenType::LBRACKET)) {
+        // Array return type: [int], [string], etc.
+        returnTypeStr = parseArrayType();
     } else {
-        returnType = consume(TokenType::IDENTIFIER, "Expected return type");
+        Token returnType;
+        if (check(TokenType::KW_INT)) {
+            returnType = advance();
+        } else if (check(TokenType::KW_FLOAT)) {
+            returnType = advance();
+        } else if (check(TokenType::KW_STRING)) {
+            returnType = advance();
+        } else if (check(TokenType::KW_BOOL)) {
+            returnType = advance();
+        } else if (check(TokenType::KW_VOID)) {
+            returnType = advance();
+        } else if (check(TokenType::KW_ANY)) {
+            returnType = advance();
+        } else if (check(TokenType::KW_OBJECT)) {
+            returnType = advance();
+        } else {
+            returnType = consume(TokenType::IDENTIFIER, "Expected return type");
+        }
+        returnTypeStr = returnType.value;
     }
     
     auto body = parseBlock();
     
-    auto func = std::make_unique<FunctionDeclaration>(name.value, returnType.value, std::move(body));
+    auto func = std::make_unique<FunctionDeclaration>(name.value, returnTypeStr, std::move(body));
     func->params = params;
     return func;
 }
@@ -245,6 +366,10 @@ std::unique_ptr<Statement> Parser::parseStatement() {
     if (check(TokenType::KW_WHILE)) return parseWhileStatement();
     if (check(TokenType::KW_FOR)) return parseForStatement();
     if (check(TokenType::KW_RETURN)) return parseReturnStatement();
+    if (check(TokenType::KW_TRY)) return parseTryStatement();
+    if (check(TokenType::KW_THROW)) return parseThrowStatement();
+    if (check(TokenType::KW_BREAK)) return parseBreakStatement();
+    if (check(TokenType::KW_CONTINUE)) return parseContinueStatement();
     if (check(TokenType::LBRACE)) {
         auto block = parseBlock();
         return block;
@@ -367,6 +492,49 @@ std::unique_ptr<Statement> Parser::parseReturnStatement() {
     return std::make_unique<ReturnStatement>(std::move(value));
 }
 
+std::unique_ptr<Statement> Parser::parseThrowStatement() {
+    consume(TokenType::KW_THROW, "Expected 'throw'");
+    auto expression = parseExpression();
+    consume(TokenType::SEMICOLON, "Expected ';' after throw");
+    return std::make_unique<ThrowStatement>(std::move(expression));
+}
+
+std::unique_ptr<Statement> Parser::parseBreakStatement() {
+    consume(TokenType::KW_BREAK, "Expected 'break'");
+    consume(TokenType::SEMICOLON, "Expected ';' after break");
+    return std::make_unique<BreakStatement>();
+}
+
+std::unique_ptr<Statement> Parser::parseContinueStatement() {
+    consume(TokenType::KW_CONTINUE, "Expected 'continue'");
+    consume(TokenType::SEMICOLON, "Expected ';' after continue");
+    return std::make_unique<ContinueStatement>();
+}
+
+std::unique_ptr<Statement> Parser::parseTryStatement() {
+    consume(TokenType::KW_TRY, "Expected 'try'");
+    auto tryBlock = parseBlock();
+    
+    std::string catchVariable;
+    std::unique_ptr<Block> catchBlock = nullptr;
+    std::unique_ptr<Block> finallyBlock = nullptr;
+    
+    if (match({TokenType::KW_CATCH})) {
+        consume(TokenType::LPAREN, "Expected '(' after 'catch'");
+        Token varToken = consume(TokenType::IDENTIFIER, "Expected variable name in catch");
+        catchVariable = varToken.value;
+        consume(TokenType::RPAREN, "Expected ')' after catch variable");
+        catchBlock = parseBlock();
+    }
+    
+    if (match({TokenType::KW_FINALLY})) {
+        finallyBlock = parseBlock();
+    }
+    
+    return std::make_unique<TryStatement>(std::move(tryBlock), catchVariable, 
+                                          std::move(catchBlock), std::move(finallyBlock));
+}
+
 std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
     bool isConst = match({TokenType::KW_CONST});
     if (!isConst) {
@@ -395,46 +563,8 @@ std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
             typeStr = type.value;
         }
     } else if (check(TokenType::LBRACKET)) {
-        // Array type: [int], [string], etc.
-        advance(); // consume [
-        Token baseType;
-        if (check(TokenType::KW_INT)) {
-            baseType = advance();
-        } else if (check(TokenType::KW_FLOAT)) {
-            baseType = advance();
-        } else if (check(TokenType::KW_STRING)) {
-            baseType = advance();
-        } else if (check(TokenType::KW_BOOL)) {
-            baseType = advance();
-        } else if (check(TokenType::KW_OBJECT)) {
-            baseType = advance();
-        } else if (check(TokenType::KW_ANY)) {
-            baseType = advance();
-        } else {
-            baseType = consume(TokenType::IDENTIFIER, "Expected array element type");
-        }
-        // Support union types inside arrays: [string|int]
-        while (match({TokenType::PIPE})) {
-            Token moreType;
-            if (check(TokenType::KW_INT)) {
-                moreType = advance();
-            } else if (check(TokenType::KW_FLOAT)) {
-                moreType = advance();
-            } else if (check(TokenType::KW_STRING)) {
-                moreType = advance();
-            } else if (check(TokenType::KW_BOOL)) {
-                moreType = advance();
-            } else if (check(TokenType::KW_OBJECT)) {
-                moreType = advance();
-            } else if (check(TokenType::KW_ANY)) {
-                moreType = advance();
-            } else {
-                moreType = consume(TokenType::IDENTIFIER, "Expected array element type after '|'");
-            }
-            baseType.value += "|" + moreType.value;
-        }
-        consume(TokenType::RBRACKET, "Expected ']' after array type");
-        typeStr = "[" + baseType.value + "]";
+        // Array type: [int], [string], [[int]], etc.
+        typeStr = parseArrayType();
     } else {
         // Regular type
         Token type;
@@ -451,6 +581,8 @@ std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
         } else if (check(TokenType::KW_OBJECT)) {
             type = advance();
         } else if (check(TokenType::KW_ANY)) {
+            type = advance();
+        } else if (check(TokenType::KW_FUNC)) {
             type = advance();
         } else {
             type = consume(TokenType::IDENTIFIER, "Expected variable type");
@@ -585,9 +717,16 @@ std::unique_ptr<Expression> Parser::parseFactor() {
 }
 
 std::unique_ptr<Expression> Parser::parseUnary() {
-    if (match({TokenType::LOGICAL_NOT, TokenType::MINUS})) {
+    if (match({TokenType::LOGICAL_NOT, TokenType::MINUS, TokenType::KW_TYPEOF})) {
         TokenType opType = previous().type;
-        UnaryOperator op = (opType == TokenType::LOGICAL_NOT) ? UnaryOperator::LOGICAL_NOT : UnaryOperator::NEGATE;
+        UnaryOperator op;
+        if (opType == TokenType::LOGICAL_NOT) {
+            op = UnaryOperator::LOGICAL_NOT;
+        } else if (opType == TokenType::MINUS) {
+            op = UnaryOperator::NEGATE;
+        } else if (opType == TokenType::KW_TYPEOF) {
+            op = UnaryOperator::TYPEOF;
+        }
         auto operand = parseUnary();
         return std::make_unique<UnaryOp>(op, std::move(operand));
     }
@@ -775,28 +914,34 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
         consume(TokenType::RPAREN, "Expected ')' after parameters");
         consume(TokenType::ARROW, "Expected '->'");
 
-        // Return type
-        Token returnType;
-        if (check(TokenType::KW_INT)) {
-            returnType = advance();
-        } else if (check(TokenType::KW_FLOAT)) {
-            returnType = advance();
-        } else if (check(TokenType::KW_STRING)) {
-            returnType = advance();
-        } else if (check(TokenType::KW_BOOL)) {
-            returnType = advance();
-        } else if (check(TokenType::KW_VOID)) {
-            returnType = advance();
-        } else if (check(TokenType::KW_OBJECT)) {
-            returnType = advance();
+        // Return type can be array type or simple type
+        std::string returnTypeStr;
+        if (check(TokenType::LBRACKET)) {
+            returnTypeStr = parseArrayType();
         } else {
-            returnType = consume(TokenType::IDENTIFIER, "Expected return type");
+            Token returnType;
+            if (check(TokenType::KW_INT)) {
+                returnType = advance();
+            } else if (check(TokenType::KW_FLOAT)) {
+                returnType = advance();
+            } else if (check(TokenType::KW_STRING)) {
+                returnType = advance();
+            } else if (check(TokenType::KW_BOOL)) {
+                returnType = advance();
+            } else if (check(TokenType::KW_VOID)) {
+                returnType = advance();
+            } else if (check(TokenType::KW_OBJECT)) {
+                returnType = advance();
+            } else {
+                returnType = consume(TokenType::IDENTIFIER, "Expected return type");
+            }
+            returnTypeStr = returnType.value;
         }
 
         auto body = parseBlock();
 
         // Create a FunctionExpression
-        auto funcExpr = std::make_unique<FunctionExpression>(returnType.value, std::move(body));
+        auto funcExpr = std::make_unique<FunctionExpression>(returnTypeStr, std::move(body));
         funcExpr->params = params;
         return funcExpr;
     }
@@ -900,4 +1045,57 @@ std::string Parser::parseFunctionType() {
     }
     
     return "(" + paramTypes + ")->" + returnType.value;
+}
+
+std::string Parser::parseArrayType() {
+    consume(TokenType::LBRACKET, "Expected '['");
+    
+    std::string elementType;
+    if (check(TokenType::LBRACKET)) {
+        // Nested array: [[int]], [[[string]]], etc.
+        elementType = parseArrayType();
+    } else {
+        // Base type
+        Token baseType;
+        if (check(TokenType::KW_INT)) {
+            baseType = advance();
+        } else if (check(TokenType::KW_FLOAT)) {
+            baseType = advance();
+        } else if (check(TokenType::KW_STRING)) {
+            baseType = advance();
+        } else if (check(TokenType::KW_BOOL)) {
+            baseType = advance();
+        } else if (check(TokenType::KW_OBJECT)) {
+            baseType = advance();
+        } else if (check(TokenType::KW_ANY)) {
+            baseType = advance();
+        } else {
+            baseType = consume(TokenType::IDENTIFIER, "Expected array element type");
+        }
+        elementType = baseType.value;
+        
+        // Support union types inside arrays: [string|int]
+        while (match({TokenType::PIPE})) {
+            Token moreType;
+            if (check(TokenType::KW_INT)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_FLOAT)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_STRING)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_BOOL)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_OBJECT)) {
+                moreType = advance();
+            } else if (check(TokenType::KW_ANY)) {
+                moreType = advance();
+            } else {
+                moreType = consume(TokenType::IDENTIFIER, "Expected array element type after '|'");
+            }
+            elementType += "|" + moreType.value;
+        }
+    }
+    
+    consume(TokenType::RBRACKET, "Expected ']' after array type");
+    return "[" + elementType + "]"; 
 }

@@ -1,0 +1,52 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Axolotl File",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/compiler",
+            "args": ["${file}"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "Build Axolotl"
+        },
+        {
+            "name": "Debug Axolotl Compiler",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/compiler",
+            "args": ["${input:axolotlFile}"],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "Build Axolotl"
+        },
+        {
+            "name": "Run Axolotl REPL",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/compiler",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "lldb",
+            "preLaunchTask": "Build Axolotl"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "axolotlFile",
+            "description": "Path to Axolotl file",
+            "default": "examples/test.axo",
+            "type": "promptString"
+        }
+    ]
+}

@@ -22,6 +22,7 @@ BinaryOperator stringToBinaryOp(const std::string& op) {
 UnaryOperator stringToUnaryOp(const std::string& op) {
     if (op == "-") return UnaryOperator::NEGATE;
     if (op == "!") return UnaryOperator::LOGICAL_NOT;
+    if (op == "typeof") return UnaryOperator::TYPEOF;
     throw std::runtime_error("Unknown unary operator: " + op);
 }
 
@@ -49,6 +50,7 @@ std::string unaryOpToString(UnaryOperator op) {
     switch (op) {
         case UnaryOperator::NEGATE: return "-";
         case UnaryOperator::LOGICAL_NOT: return "!";
+        case UnaryOperator::TYPEOF: return "typeof";
     }
     return "unknown";
 }

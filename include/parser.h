@@ -28,6 +28,7 @@ private:
     // Parsing methods
     std::unique_ptr<ASTNode> parseDeclaration();
     std::unique_ptr<ASTNode> parseImportDeclaration();
+    std::unique_ptr<TypeDeclaration> parseTypeDeclaration();
     std::unique_ptr<FunctionDeclaration> parseFunctionDeclaration();
     std::unique_ptr<ProgramDeclaration> parseProgramDeclaration();
     std::unique_ptr<Statement> parseStatement();
@@ -36,6 +37,10 @@ private:
     std::unique_ptr<Statement> parseWhileStatement();
     std::unique_ptr<Statement> parseForStatement();
     std::unique_ptr<Statement> parseReturnStatement();
+    std::unique_ptr<Statement> parseTryStatement();
+    std::unique_ptr<Statement> parseThrowStatement();
+    std::unique_ptr<Statement> parseBreakStatement();
+    std::unique_ptr<Statement> parseContinueStatement();
     std::unique_ptr<Statement> parseVariableDeclaration();
     std::unique_ptr<Expression> parseExpression();
     std::unique_ptr<Expression> parseAssignment();
@@ -51,6 +56,11 @@ private:
     
     // Helper for parsing function types: (type1, type2)->returnType
     std::string parseFunctionType();
+    
+    // Helper for parsing complex type specifications
+    std::string parseComplexTypeSpec();
+    std::string parseSimpleTypeSpec();
+    std::string parseArrayType();
 };
 
 class ParseError : public std::runtime_error {

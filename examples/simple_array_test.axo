@@ -1,0 +1,8 @@
+// Simple test for array return types
+func getNumbers() -> [int] {
+    var nums: [int] = [1, 2, 3];
+    return nums;
+}
+
+var result: [int] = getNumbers();
+print("Result:", result);

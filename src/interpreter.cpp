@@ -9,8 +9,13 @@
 #include <filesystem>
 #include <chrono>
 #include <thread>
+#include <cstdlib>
+#include <typeinfo>
 
 namespace fs = std::filesystem;
+
+// Global interpreter pointer for type checking
+Interpreter* currentInterpreter = nullptr;
 
 // Helper: trim whitespace
 static inline std::string trim(const std::string &s) {
@@ -36,29 +41,117 @@ static std::vector<std::string> splitUnion(const std::string &s) {
 // Forward declaration
 bool valueMatchesType(const Value &v, const std::string &typeSpec);
 
-// Check whether a Value matches a declared type specification. Supports unions ("a|b") and array types ("[T]").
+// Forward declaration for interpreter access
+class Interpreter;
+extern Interpreter* currentInterpreter;
+
+// Check whether a Value matches a declared type specification. Supports unions ("a|b"), array types ("[T]"), object types, and literal types.
 bool valueMatchesType(const Value &v, const std::string &typeSpec) {
     std::string t = trim(typeSpec);
     if (t.empty()) return false;
 
-    // Array type: [inner]
+    // Custom type lookup - resolve custom types first
+    if (currentInterpreter && currentInterpreter->typeRegistry.find(t) != currentInterpreter->typeRegistry.end()) {
+        std::string customTypeSpec = currentInterpreter->typeRegistry[t];
+        return valueMatchesType(v, customTypeSpec);
+    }
+
+    // Array type: [inner] or specific array elements
     if (t.size() >= 2 && t.front() == '[' && t.back() == ']') {
         std::string inner = t.substr(1, t.size() - 2);
         if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(v)) return false;
         auto arr = std::get<std::shared_ptr<ArrayValue>>(v);
-        for (auto &elem : arr->elements) {
-            if (!valueMatchesType(elem, inner)) return false;
+        
+        // Check if it's a specific array with comma-separated elements
+        if (inner.find(',') != std::string::npos) {
+            // Split by comma for specific array elements: [type1, type2]
+            std::vector<std::string> elementTypes;
+            size_t start = 0;
+            for (size_t i = 0; i <= inner.size(); ++i) {
+                if (i == inner.size() || inner[i] == ',') {
+                    elementTypes.push_back(trim(inner.substr(start, i - start)));
+                    start = i + 1;
+                }
+            }
+            if (arr->elements.size() != elementTypes.size()) return false;
+            for (size_t i = 0; i < arr->elements.size(); ++i) {
+                if (!valueMatchesType(arr->elements[i], elementTypes[i])) return false;
+            }
+            return true;
+        } else {
+            // Regular array type: all elements must match inner type
+            for (auto &elem : arr->elements) {
+                if (!valueMatchesType(elem, inner)) return false;
+            }
+            return true;
+        }
+    }
+
+    // Object type: {field1:type1,field2:type2}
+    if (t.size() >= 2 && t.front() == '{' && t.back() == '}') {
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(v)) return false;
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(v);
+        
+        std::string inner = t.substr(1, t.size() - 2);
+        if (inner.empty()) return true; // Empty object type matches any object
+        
+        // Parse field specifications
+        size_t pos = 0;
+        while (pos < inner.size()) {
+            // Find field name
+            size_t colonPos = inner.find(':', pos);
+            if (colonPos == std::string::npos) break;
+            
+            std::string fieldName = trim(inner.substr(pos, colonPos - pos));
+            
+            // Find field type (until comma or end)
+            size_t commaPos = inner.find(',', colonPos + 1);
+            if (commaPos == std::string::npos) commaPos = inner.size();
+            
+            std::string fieldType = trim(inner.substr(colonPos + 1, commaPos - colonPos - 1));
+            
+            // Check if object has this field and it matches the type
+            if (obj->fields.find(fieldName) == obj->fields.end()) return false;
+            if (!valueMatchesType(obj->fields[fieldName], fieldType)) return false;
+            
+            pos = commaPos + 1;
         }
         return true;
     }
 
-    // Union: split and check any (only applies to non-array top-level types)
+    // Union: split and check any (only applies to non-array/object top-level types)
     if (t.find('|') != std::string::npos) {
         auto parts = splitUnion(t);
         for (auto &p : parts) {
             if (valueMatchesType(v, p)) return true;
         }
         return false;
+    }
+
+    // String literal type: "specific_string"
+    if (t.size() >= 2 && t.front() == '"' && t.back() == '"') {
+        if (!std::holds_alternative<std::string>(v)) return false;
+        std::string expectedStr = t.substr(1, t.size() - 2);
+        return std::get<std::string>(v) == expectedStr;
+    }
+
+    // Integer literal type: specific number
+    if (t.find_first_not_of("0123456789-") == std::string::npos && !t.empty() && t != "-") {
+        if (!std::holds_alternative<int>(v)) return false;
+        try {
+            int expectedInt = std::stoi(t);
+            return std::get<int>(v) == expectedInt;
+        } catch (...) {
+            // Not a valid integer literal
+        }
+    }
+
+    // Boolean literal types
+    if (t == "true") {
+        return std::holds_alternative<bool>(v) && std::get<bool>(v) == true;
+    }
+    if (t == "false") {
+        return std::holds_alternative<bool>(v) && std::get<bool>(v) == false;
     }
 
     // "any" type matches anything
@@ -70,8 +163,9 @@ bool valueMatchesType(const Value &v, const std::string &typeSpec) {
     if (t == "string") return std::holds_alternative<std::string>(v);
     if (t == "bool") return std::holds_alternative<bool>(v);
     if (t == "object") return std::holds_alternative<std::shared_ptr<ObjectValue>>(v);
-    // function types - accept function pointers
-    if (t.rfind("(", 0) == 0) {
+    
+    // Function types - accept function pointers
+    if (t == "func" || t.rfind("(", 0) == 0) {
         return std::holds_alternative<FunctionDeclaration*>(v) || std::holds_alternative<FunctionExpression*>(v);
     }
 
@@ -157,8 +251,7 @@ Interpreter::Interpreter()
 {
     environment.pushScope();
     jitCompiler = std::make_unique<LLVMJITCompiler>();
-    
-
+    currentInterpreter = this;
 }
 
 Interpreter::~Interpreter() {
@@ -202,6 +295,10 @@ std::string Interpreter::visit(BooleanLiteral *node)
 std::string Interpreter::visit(Identifier *node)
 {
     Variable var = environment.get(node->name);
+    // Store the variable for typeof operations (includes declared type info)
+    lastVariable = var;
+    lastVariableName = node->name;
+    
     // Store array/object values in lastValue for later retrieval
     if (std::holds_alternative<std::shared_ptr<ArrayValue>>(var.value))
     {
@@ -565,7 +662,8 @@ std::string Interpreter::visit(FunctionCall *node)
         auto now = std::chrono::high_resolution_clock::now();
         auto duration = now.time_since_epoch();
         auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        return std::to_string(millis);
+        lastValue = static_cast<int>(millis);
+        return "[int]";
     }
 
     // Built-in: sleep(milliseconds) - sleep for specified milliseconds
@@ -583,6 +681,17 @@ std::string Interpreter::visit(FunctionCall *node)
             return "";
         }
         throw std::runtime_error("sleep() requires int argument");
+    }
+
+    // Built-in: toString(value) - convert value to string
+    if (callName == "toString")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("toString() expects 1 argument");
+        }
+        Value v = evaluate(node->args[0].get());
+        return valueToString(v);
     }
 
     // Check if this is a call to a function variable (via callee)
@@ -626,6 +735,18 @@ std::string Interpreter::visit(FunctionCall *node)
                 catch (const ReturnException &e)
                 {
                     environment.popScope();
+                    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(e.value) ||
+                        std::holds_alternative<std::shared_ptr<ObjectValue>>(e.value) ||
+                        std::holds_alternative<FunctionDeclaration*>(e.value) ||
+                        std::holds_alternative<FunctionExpression*>(e.value))
+                    {
+                        lastValue = e.value;
+                        if (std::holds_alternative<std::shared_ptr<ArrayValue>>(e.value))
+                            return "[array]";
+                        if (std::holds_alternative<std::shared_ptr<ObjectValue>>(e.value))
+                            return "{object}";
+                        return "[function]";
+                    }
                     return valueToString(e.value);
                 }
 
@@ -659,6 +780,18 @@ std::string Interpreter::visit(FunctionCall *node)
                 catch (const ReturnException &e)
                 {
                     environment.popScope();
+                    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(e.value) ||
+                        std::holds_alternative<std::shared_ptr<ObjectValue>>(e.value) ||
+                        std::holds_alternative<FunctionDeclaration*>(e.value) ||
+                        std::holds_alternative<FunctionExpression*>(e.value))
+                    {
+                        lastValue = e.value;
+                        if (std::holds_alternative<std::shared_ptr<ArrayValue>>(e.value))
+                            return "[array]";
+                        if (std::holds_alternative<std::shared_ptr<ObjectValue>>(e.value))
+                            return "{object}";
+                        return "[function]";
+                    }
                     return valueToString(e.value);
                 }
 
@@ -973,7 +1106,15 @@ std::string Interpreter::visit(WhileStatement *node)
     // Fallback to interpreted execution
     while (isTruthy(evaluate(node->condition.get())))
     {
-        executeBlock(node->body.get());
+        try {
+            executeBlock(node->body.get());
+        }
+        catch (const BreakException&) {
+            break;
+        }
+        catch (const ContinueException&) {
+            continue;
+        }
     }
     return "";
 }
@@ -1003,7 +1144,15 @@ std::string Interpreter::visit(ForStatement *node)
 
     while (isTruthy(evaluate(node->condition.get())))
     {
-        executeBlock(node->body.get());
+        try {
+            executeBlock(node->body.get());
+        }
+        catch (const BreakException&) {
+            break;
+        }
+        catch (const ContinueException&) {
+            // Continue to update expression
+        }
         evaluate(node->update.get());
     }
 
@@ -1024,6 +1173,8 @@ std::string Interpreter::visit(ReturnStatement *node)
 std::string Interpreter::visit(FunctionDeclaration *node)
 {
     functions[node->name] = node;
+    // Also store in environment so typeof can access it
+    environment.define(node->name, Variable(node, "function", false));
     return "";
 }
 
@@ -1087,6 +1238,82 @@ std::string Interpreter::visit(ImportDeclaration *node)
     {
         throw std::runtime_error(std::string("Import error (") + node->path + "): " + e.what());
     }
+}
+
+std::string Interpreter::visit(TypeDeclaration *node)
+{
+    // Store the type definition in the type registry
+    typeRegistry[node->name] = node->typeSpec;
+    return "";
+}
+
+std::string Interpreter::visit(ThrowStatement *node)
+{
+    Value value = evaluate(node->expression.get());
+    throw ThrowException(value);
+}
+
+std::string Interpreter::visit(TryStatement *node)
+{
+    bool finallyExecuted = false;
+    
+    try {
+        executeBlock(node->tryBlock.get());
+    }
+    catch (const ThrowException &e) {
+        if (node->catchBlock) {
+            environment.pushScope();
+            if (!node->catchVariable.empty()) {
+                environment.define(node->catchVariable, Variable(e.value, "any", false));
+            }
+            try {
+                executeBlock(node->catchBlock.get());
+            }
+            catch (...) {
+                environment.popScope();
+                if (node->finallyBlock) {
+                    executeBlock(node->finallyBlock.get());
+                    finallyExecuted = true;
+                }
+                throw;
+            }
+            environment.popScope();
+        } else {
+            if (node->finallyBlock) {
+                executeBlock(node->finallyBlock.get());
+                finallyExecuted = true;
+            }
+            throw;
+        }
+    }
+    catch (const std::runtime_error &e) {
+        // Normal errors (like undefined variables) should kill the program
+        std::cerr << "[debug] caught exception type: " << typeid(e).name() << std::endl;
+        std::cerr << "Fatal error: " << e.what() << std::endl;
+        std::exit(1);
+    }
+    catch (...) {
+        if (node->finallyBlock && !finallyExecuted) {
+            executeBlock(node->finallyBlock.get());
+        }
+        throw;
+    }
+    
+    if (node->finallyBlock && !finallyExecuted) {
+        executeBlock(node->finallyBlock.get());
+    }
+    
+    return "";
+}
+
+std::string Interpreter::visit(BreakStatement *node)
+{
+    throw BreakException();
+}
+
+std::string Interpreter::visit(ContinueStatement *node)
+{
+    throw ContinueException();
 }
 
 std::string Interpreter::visit(ProgramDeclaration *node)
@@ -1165,7 +1392,7 @@ Value Interpreter::evaluate(Expression *expr)
 {
     std::string result = expr->accept(this);
     // Check if a complex value was stored
-    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]" || result == "[bool]"))
+    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]" || result == "[bool]" || result == "[int]"))
     {
         return lastValue;
     }
@@ -1280,6 +1507,13 @@ Value Interpreter::performUnaryOp(UnaryOperator op, const Value &operand)
             return -std::get<float>(operand);
         case UnaryOperator::LOGICAL_NOT:
             return !isTruthy(operand);
+        case UnaryOperator::TYPEOF: {
+            std::string typeStr = getTypeOfValue(operand);
+            // Clear variable info after typeof operation
+            lastVariableName.clear();
+            lastVariable = Variable();
+            return typeStr;
+        }
     }
     throw std::runtime_error("Unknown unary operator: " + unaryOpToString(op));
 }
@@ -1372,6 +1606,61 @@ std::string Interpreter::valueToString(const Value &v)
         return result;
     }
     return "";
+}
+
+std::string Interpreter::getTypeOfValue(const Value &v)
+{
+    // If we have variable info from the last identifier access, use declared type when appropriate
+    if (!lastVariableName.empty() && !lastVariable.type.empty()) {
+        std::string declaredType = lastVariable.type;
+        
+        // For custom types, check if they exist in type registry
+        if (typeRegistry.find(declaredType) != typeRegistry.end()) {
+            return declaredType;  // Return the custom type name
+        }
+        
+        // For built-in types, return the declared type if it matches the runtime type
+        if (declaredType == "int" && std::holds_alternative<int>(v)) return "int";
+        if (declaredType == "float" && std::holds_alternative<float>(v)) return "float";
+        if (declaredType == "string" && std::holds_alternative<std::string>(v)) return "string";
+        if (declaredType == "bool" && std::holds_alternative<bool>(v)) return "bool";
+        if (declaredType == "function" && (std::holds_alternative<FunctionDeclaration*>(v) || std::holds_alternative<FunctionExpression*>(v))) return "function";
+        if (declaredType.size() >= 2 && declaredType.front() == '[' && declaredType.back() == ']' && std::holds_alternative<std::shared_ptr<ArrayValue>>(v)) {
+            return declaredType;  // Return array type like [int] or custom array type
+        }
+        if (declaredType == "object" && std::holds_alternative<std::shared_ptr<ObjectValue>>(v)) return "object";
+    }
+    
+    // Fallback to runtime type detection
+    if (std::holds_alternative<int>(v))
+    {
+        return "int";
+    }
+    if (std::holds_alternative<float>(v))
+    {
+        return "float";
+    }
+    if (std::holds_alternative<std::string>(v))
+    {
+        return "string";
+    }
+    if (std::holds_alternative<bool>(v))
+    {
+        return "bool";
+    }
+    if (std::holds_alternative<FunctionDeclaration*>(v) || std::holds_alternative<FunctionExpression*>(v))
+    {
+        return "function";
+    }
+    if (std::holds_alternative<std::shared_ptr<ArrayValue>>(v))
+    {
+        return "array";
+    }
+    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(v))
+    {
+        return "object";
+    }
+    return "unknown";
 }
 
 std::string Interpreter::visit(ArrayLiteral *node)

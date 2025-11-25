@@ -1,0 +1,290 @@
+// EXTREME AXOLOTL STRESS TEST - Push the language to its limits
+print("=== EXTREME AXOLOTL STRESS TEST ===");
+
+// Edge case: Maximum nesting depth
+func deepNest(n: int) -> int {
+    if (n <= 0) {
+        return 1;
+    }
+    return deepNest(n-1) + deepNest(n-1) + deepNest(n-1);
+}
+
+// Stress test: Massive array operations
+var massive: [int] = [];
+for (var i: int = 0; i < 1000; i = i + 1) {
+    push(massive, i * i % 97);
+}
+
+// Complex nested function with multiple returns
+func complexLogic(data: [int], threshold: int) -> object {
+    var stats: object = {min: 999999, max: -999999, sum: 0, count: 0};
+    
+    for (var i: int = 0; i < len(data); i = i + 1) {
+        var val: int = data[i];
+        
+        // Nested conditions with early returns
+        if (val < 0) {
+            continue;
+        }
+        if (val > 1000) {
+            break;
+        }
+        
+        stats.count = stats.count + 1;
+        stats.sum = stats.sum + val;
+        
+        if (val < stats.min) {
+            stats.min = val;
+        }
+        if (val > stats.max) {
+            stats.max = val;
+        }
+        
+        // Triple nested loops inside function
+        for (var j: int = 0; j < 3; j = j + 1) {
+            for (var k: int = 0; k < 3; k = k + 1) {
+                for (var l: int = 0; l < 2; l = l + 1) {
+                    if ((j + k + l) % val == 0) {
+                        stats.sum = stats.sum + 1;
+                    }
+                }
+            }
+        }
+    }
+    
+    return stats;
+}
+
+// Recursive factorial with bounds checking
+func memoFact(n: int) -> int {
+    if (n <= 1) {
+        return 1;
+    }
+    if (n > 15) {
+        // Prevent overflow for large numbers
+        return n * memoFact(n - 1);
+    }
+    
+    return n * memoFact(n - 1);
+}
+
+// Extreme nested object manipulation
+var world: object = {
+    regions: [
+        {name: "North", cities: [{name: "A", pop: 1000}, {name: "B", pop: 2000}]},
+        {name: "South", cities: [{name: "C", pop: 1500}, {name: "D", pop: 2500}]}
+    ],
+    totalPop: 0
+};
+
+// Calculate total population with deep nesting
+for (var r: int = 0; r < len(world.regions); r = r + 1) {
+    var region: object = world.regions[r];
+    for (var c: int = 0; c < len(region.cities); c = c + 1) {
+        world.totalPop = world.totalPop + region.cities[c].pop;
+    }
+}
+
+// Matrix operations simulation
+func matrixMult(a: [[int]], b: [[int]]) -> [[int]] {
+    var rows: int = len(a);
+    var cols: int = len(b[0]);
+    var result: [[int]] = [];
+    
+    for (var i: int = 0; i < rows; i = i + 1) {
+        var row: [int] = [];
+        for (var j: int = 0; j < cols; j = j + 1) {
+            var sum: int = 0;
+            for (var k: int = 0; k < len(b); k = k + 1) {
+                sum = sum + a[i][k] * b[k][j];
+            }
+            push(row, sum);
+        }
+        push(result, row);
+    }
+    
+    return result;
+}
+
+// Create test matrices
+var matA: [[int]] = [[1, 2], [3, 4]];
+var matB: [[int]] = [[5, 6], [7, 8]];
+
+// Extreme exception handling with nested try-catch
+func riskyComputation(mode: int, depth: int) -> int {
+    if (depth <= 0) {
+        if (mode == 1) {
+            throw "Base case error";
+        }
+        return mode * 10;
+    }
+    
+    var result: int = 0;
+    
+    try {
+        for (var i: int = 0; i < 5; i = i + 1) {
+            try {
+                if (i == mode && depth > 2) {
+                    throw "Nested computation failed";
+                }
+                result = result + riskyComputation(mode + 1, depth - 1);
+            } catch (inner) {
+                print("Inner exception at depth", depth, ":", inner);
+                result = result + depth;
+                
+                if (depth == 3) {
+                    throw "Propagating from depth 3";
+                }
+            } finally {
+                result = result + 1;
+            }
+        }
+    } catch (outer) {
+        print("Outer exception:", outer);
+        result = result * 2;
+    } finally {
+        result = result + depth;
+    }
+    
+    return result;
+}
+
+// Performance killer: Fibonacci with no memoization
+func slowFib(n: int) -> int {
+    if (n <= 0) {
+        return 0;
+    }
+    if (n == 1) {
+        return 1;
+    }
+    return slowFib(n - 1) + slowFib(n - 2);
+}
+
+// String manipulation stress test
+func stringStress(base: string, iterations: int) -> string {
+    var result: string = base;
+    
+    for (var i: int = 0; i < iterations; i = i + 1) {
+        result = result + toString(i);
+        
+        if (len(result) > 100) {
+            result = substr(result, 10, len(result) - 10);
+        }
+        
+        if (i % 10 == 0) {
+            result = toUpper(result);
+        } else if (i % 5 == 0) {
+            result = toLower(result);
+        }
+    }
+    
+    return result;
+}
+
+// Execute extreme tests
+print("\n1. Deep recursion test:");
+var deepResult: int = deepNest(8);
+print("Deep nest result:", deepResult);
+
+print("\n2. Massive array processing:");
+var stats: object = complexLogic(massive, 50);
+print("Stats:", stats);
+
+print("\n3. Simple factorial:");
+for (var i: int = 5; i <= 10; i = i + 1) {
+    print("Factorial", i, "=", memoFact(i));
+}
+
+print("\n4. World population:", world.totalPop);
+
+print("\n5. Matrix multiplication:");
+var matResult: [[int]] = matrixMult(matA, matB);
+print("Matrix result:", matResult);
+
+print("\n6. Extreme exception handling:");
+for (var mode: int = 0; mode < 3; mode = mode + 1) {
+    var exResult: int = riskyComputation(mode, 5);
+    print("Risk result for mode", mode, ":", exResult);
+}
+
+print("\n7. Fibonacci test (small values):");
+var fib5: int = slowFib(5);
+var fib8: int = slowFib(8);
+print("fib(5) =", fib5);
+print("fib(8) =", fib8);
+
+print("\n8. String manipulation stress:");
+var strResult: string = stringStress("BASE", 50);
+print("String result length:", len(strResult));
+
+// Ultimate stress: Nested everything
+print("\n9. ULTIMATE NESTED STRESS TEST:");
+var ultimate: int = 0;
+
+for (var a: int = 0; a < 10; a = a + 1) {
+    for (var b: int = 0; b < 8; b = b + 1) {
+        try {
+            for (var c: int = 0; c < 6; c = c + 1) {
+                var temp: int = 0;
+                
+                while (temp < 5) {
+                    try {
+                        if (temp == 2 && a % 3 == 0) {
+                            throw "Nested while exception";
+                        }
+                        
+                        var inner: int = memoFact(3 + temp);
+                        ultimate = ultimate + inner % 100;
+                        
+                        // Function call in nested structure
+                        if (b % 2 == 0) {
+                            ultimate = ultimate + complexLogic([temp, a, b], 10).sum;
+                        }
+                        
+                    } catch (whileEx) {
+                        ultimate = ultimate + temp * 10;
+                    } finally {
+                        temp = temp + 1;
+                    }
+                }
+            }
+        } catch (forEx) {
+            ultimate = ultimate + a + b;
+        }
+    }
+}
+
+print("Ultimate result:", ultimate);
+
+// Memory stress: Create and destroy large structures
+print("\n10. Memory stress test:");
+for (var round: int = 0; round < 5; round = round + 1) {
+    var bigData: [object] = [];
+    
+    for (var i: int = 0; i < 100; i = i + 1) {
+        var obj: object = {
+            id: i,
+            data: [],
+            nested: {value: i * 2, flag: i % 2 == 0}
+        };
+        
+        for (var j: int = 0; j < 20; j = j + 1) {
+            push(obj.data, j * i);
+        }
+        
+        push(bigData, obj);
+    }
+    
+    // Process the big data
+    var sum: int = 0;
+    for (var i: int = 0; i < len(bigData); i = i + 1) {
+        for (var j: int = 0; j < len(bigData[i].data); j = j + 1) {
+            sum = sum + bigData[i].data[j];
+        }
+    }
+    
+    print("Round", round, "sum:", sum);
+}
+
+print("\n=== EXTREME STRESS TEST COMPLETED ===");
+print("If you see this message, Axolotl survived the ultimate test!");

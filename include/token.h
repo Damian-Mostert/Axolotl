@@ -32,6 +32,14 @@ enum class TokenType {
     KW_FALSE,
     KW_PROGRAM,
     KW_AWAIT,
+    KW_TYPE,
+    KW_TYPEOF,
+    KW_TRY,
+    KW_CATCH,
+    KW_FINALLY,
+    KW_THROW,
+    KW_BREAK,
+    KW_CONTINUE,
     
     // Operators
     PLUS,

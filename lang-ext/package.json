@@ -1,8 +1,8 @@
 {
     "name": "axo-syntax",
     "displayName": "Axolotl Language",
-    "description": "Syntax highlighting for .axo files",
-    "version": "1.0.0",
+    "description": "Complete language support for Axolotl (.axo) files with syntax highlighting, snippets, and error detection",
+    "version": "1.1.0",
     "publisher": "DamianMostert",
     "license": "MIT",
     "engines": {
@@ -12,11 +12,21 @@
         "build": "vsce package"
     },
     "categories": [
-        "Programming Languages"
+        "Programming Languages",
+        "Snippets",
+        "Other"
+    ],
+    "keywords": [
+        "axolotl",
+        "axo",
+        "programming",
+        "language",
+        "syntax",
+        "highlighting"
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/yourusername/game-engine"
+        "url": "https://github.com/yourusername/axolotl"
     },
     "contributes": {
         "languages": [
@@ -30,7 +40,10 @@
                     ".axo",
                     ".axolotl"
                 ],
-                "configuration": "./language-configuration.json"
+                "configuration": "./language-configuration.json",
+                "mimetypes": [
+                    "text/x-axolotl"
+                ]
             }
         ],
         "grammars": [
@@ -40,11 +53,48 @@
                 "path": "./syntaxes/axo.tmLanguage.json"
             }
         ],
+        "snippets": [
+            {
+                "language": "axo",
+                "path": "./snippets/axo.json"
+            }
+        ],
         "iconThemes": [
             {
                 "id": "axo-icons",
                 "label": "Axolotl Icons",
                 "path": "./file-icons.json"
+            }
+        ],
+        "problemMatchers": [
+            {
+                "name": "axolotl",
+                "owner": "axolotl",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceFolder}"
+                ],
+                "pattern": {
+                    "regexp": "^Fatal error: (.*)\\s+\\(line (\\d+), col (\\d+)\\)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 1
+                }
+            }
+        ],
+        "taskDefinitions": [
+            {
+                "type": "axolotl",
+                "required": [
+                    "file"
+                ],
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "description": "The Axolotl file to compile and run"
+                    }
+                }
             }
         ]
     }
