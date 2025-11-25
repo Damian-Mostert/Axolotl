@@ -1,4 +1,6 @@
-# Compiler Engine Language (CEL)
+# Axolotl (AXO)
+
+![Image](assets/icon.png)    
 
 A simple, statically-typed programming language compiler built from scratch in C++ with **full VS Code syntax highlighting support**.
 
