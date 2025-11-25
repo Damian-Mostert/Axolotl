@@ -53,10 +53,10 @@ RM = /opt/homebrew/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/damian/game-engine
+CMAKE_SOURCE_DIR = /Users/damian/Axolotl
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/damian/game-engine/build
+CMAKE_BINARY_DIR = /Users/damian/Axolotl/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/compiler.dir/depend.make
@@ -73,88 +73,88 @@ CMakeFiles/compiler.dir/codegen:
 .PHONY : CMakeFiles/compiler.dir/codegen
 
 CMakeFiles/compiler.dir/src/main.cpp.o: CMakeFiles/compiler.dir/flags.make
-CMakeFiles/compiler.dir/src/main.cpp.o: /Users/damian/game-engine/src/main.cpp
+CMakeFiles/compiler.dir/src/main.cpp.o: /Users/damian/Axolotl/src/main.cpp
 CMakeFiles/compiler.dir/src/main.cpp.o: CMakeFiles/compiler.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/game-engine/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/compiler.dir/src/main.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/main.cpp.o -MF CMakeFiles/compiler.dir/src/main.cpp.o.d -o CMakeFiles/compiler.dir/src/main.cpp.o -c /Users/damian/game-engine/src/main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/compiler.dir/src/main.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/main.cpp.o -MF CMakeFiles/compiler.dir/src/main.cpp.o.d -o CMakeFiles/compiler.dir/src/main.cpp.o -c /Users/damian/Axolotl/src/main.cpp
 
 CMakeFiles/compiler.dir/src/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/compiler.dir/src/main.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/game-engine/src/main.cpp > CMakeFiles/compiler.dir/src/main.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/Axolotl/src/main.cpp > CMakeFiles/compiler.dir/src/main.cpp.i
 
 CMakeFiles/compiler.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/compiler.dir/src/main.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/game-engine/src/main.cpp -o CMakeFiles/compiler.dir/src/main.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/Axolotl/src/main.cpp -o CMakeFiles/compiler.dir/src/main.cpp.s
 
 CMakeFiles/compiler.dir/src/token.cpp.o: CMakeFiles/compiler.dir/flags.make
-CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/game-engine/src/token.cpp
+CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp
 CMakeFiles/compiler.dir/src/token.cpp.o: CMakeFiles/compiler.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/game-engine/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/compiler.dir/src/token.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/token.cpp.o -MF CMakeFiles/compiler.dir/src/token.cpp.o.d -o CMakeFiles/compiler.dir/src/token.cpp.o -c /Users/damian/game-engine/src/token.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/compiler.dir/src/token.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/token.cpp.o -MF CMakeFiles/compiler.dir/src/token.cpp.o.d -o CMakeFiles/compiler.dir/src/token.cpp.o -c /Users/damian/Axolotl/src/token.cpp
 
 CMakeFiles/compiler.dir/src/token.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/compiler.dir/src/token.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/game-engine/src/token.cpp > CMakeFiles/compiler.dir/src/token.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/Axolotl/src/token.cpp > CMakeFiles/compiler.dir/src/token.cpp.i
 
 CMakeFiles/compiler.dir/src/token.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/compiler.dir/src/token.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/game-engine/src/token.cpp -o CMakeFiles/compiler.dir/src/token.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/Axolotl/src/token.cpp -o CMakeFiles/compiler.dir/src/token.cpp.s
 
 CMakeFiles/compiler.dir/src/lexer.cpp.o: CMakeFiles/compiler.dir/flags.make
-CMakeFiles/compiler.dir/src/lexer.cpp.o: /Users/damian/game-engine/src/lexer.cpp
+CMakeFiles/compiler.dir/src/lexer.cpp.o: /Users/damian/Axolotl/src/lexer.cpp
 CMakeFiles/compiler.dir/src/lexer.cpp.o: CMakeFiles/compiler.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/game-engine/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/compiler.dir/src/lexer.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/lexer.cpp.o -MF CMakeFiles/compiler.dir/src/lexer.cpp.o.d -o CMakeFiles/compiler.dir/src/lexer.cpp.o -c /Users/damian/game-engine/src/lexer.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/compiler.dir/src/lexer.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/lexer.cpp.o -MF CMakeFiles/compiler.dir/src/lexer.cpp.o.d -o CMakeFiles/compiler.dir/src/lexer.cpp.o -c /Users/damian/Axolotl/src/lexer.cpp
 
 CMakeFiles/compiler.dir/src/lexer.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/compiler.dir/src/lexer.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/game-engine/src/lexer.cpp > CMakeFiles/compiler.dir/src/lexer.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/Axolotl/src/lexer.cpp > CMakeFiles/compiler.dir/src/lexer.cpp.i
 
 CMakeFiles/compiler.dir/src/lexer.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/compiler.dir/src/lexer.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/game-engine/src/lexer.cpp -o CMakeFiles/compiler.dir/src/lexer.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/Axolotl/src/lexer.cpp -o CMakeFiles/compiler.dir/src/lexer.cpp.s
 
 CMakeFiles/compiler.dir/src/ast.cpp.o: CMakeFiles/compiler.dir/flags.make
-CMakeFiles/compiler.dir/src/ast.cpp.o: /Users/damian/game-engine/src/ast.cpp
+CMakeFiles/compiler.dir/src/ast.cpp.o: /Users/damian/Axolotl/src/ast.cpp
 CMakeFiles/compiler.dir/src/ast.cpp.o: CMakeFiles/compiler.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/game-engine/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/compiler.dir/src/ast.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/ast.cpp.o -MF CMakeFiles/compiler.dir/src/ast.cpp.o.d -o CMakeFiles/compiler.dir/src/ast.cpp.o -c /Users/damian/game-engine/src/ast.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/compiler.dir/src/ast.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/ast.cpp.o -MF CMakeFiles/compiler.dir/src/ast.cpp.o.d -o CMakeFiles/compiler.dir/src/ast.cpp.o -c /Users/damian/Axolotl/src/ast.cpp
 
 CMakeFiles/compiler.dir/src/ast.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/compiler.dir/src/ast.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/game-engine/src/ast.cpp > CMakeFiles/compiler.dir/src/ast.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/Axolotl/src/ast.cpp > CMakeFiles/compiler.dir/src/ast.cpp.i
 
 CMakeFiles/compiler.dir/src/ast.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/compiler.dir/src/ast.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/game-engine/src/ast.cpp -o CMakeFiles/compiler.dir/src/ast.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/Axolotl/src/ast.cpp -o CMakeFiles/compiler.dir/src/ast.cpp.s
 
 CMakeFiles/compiler.dir/src/parser.cpp.o: CMakeFiles/compiler.dir/flags.make
-CMakeFiles/compiler.dir/src/parser.cpp.o: /Users/damian/game-engine/src/parser.cpp
+CMakeFiles/compiler.dir/src/parser.cpp.o: /Users/damian/Axolotl/src/parser.cpp
 CMakeFiles/compiler.dir/src/parser.cpp.o: CMakeFiles/compiler.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/game-engine/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/compiler.dir/src/parser.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/parser.cpp.o -MF CMakeFiles/compiler.dir/src/parser.cpp.o.d -o CMakeFiles/compiler.dir/src/parser.cpp.o -c /Users/damian/game-engine/src/parser.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/compiler.dir/src/parser.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/parser.cpp.o -MF CMakeFiles/compiler.dir/src/parser.cpp.o.d -o CMakeFiles/compiler.dir/src/parser.cpp.o -c /Users/damian/Axolotl/src/parser.cpp
 
 CMakeFiles/compiler.dir/src/parser.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/compiler.dir/src/parser.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/game-engine/src/parser.cpp > CMakeFiles/compiler.dir/src/parser.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/Axolotl/src/parser.cpp > CMakeFiles/compiler.dir/src/parser.cpp.i
 
 CMakeFiles/compiler.dir/src/parser.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/compiler.dir/src/parser.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/game-engine/src/parser.cpp -o CMakeFiles/compiler.dir/src/parser.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/Axolotl/src/parser.cpp -o CMakeFiles/compiler.dir/src/parser.cpp.s
 
 CMakeFiles/compiler.dir/src/interpreter.cpp.o: CMakeFiles/compiler.dir/flags.make
-CMakeFiles/compiler.dir/src/interpreter.cpp.o: /Users/damian/game-engine/src/interpreter.cpp
+CMakeFiles/compiler.dir/src/interpreter.cpp.o: /Users/damian/Axolotl/src/interpreter.cpp
 CMakeFiles/compiler.dir/src/interpreter.cpp.o: CMakeFiles/compiler.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/game-engine/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/compiler.dir/src/interpreter.cpp.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/interpreter.cpp.o -MF CMakeFiles/compiler.dir/src/interpreter.cpp.o.d -o CMakeFiles/compiler.dir/src/interpreter.cpp.o -c /Users/damian/game-engine/src/interpreter.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/compiler.dir/src/interpreter.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/compiler.dir/src/interpreter.cpp.o -MF CMakeFiles/compiler.dir/src/interpreter.cpp.o.d -o CMakeFiles/compiler.dir/src/interpreter.cpp.o -c /Users/damian/Axolotl/src/interpreter.cpp
 
 CMakeFiles/compiler.dir/src/interpreter.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/compiler.dir/src/interpreter.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/game-engine/src/interpreter.cpp > CMakeFiles/compiler.dir/src/interpreter.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/damian/Axolotl/src/interpreter.cpp > CMakeFiles/compiler.dir/src/interpreter.cpp.i
 
 CMakeFiles/compiler.dir/src/interpreter.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/compiler.dir/src/interpreter.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/game-engine/src/interpreter.cpp -o CMakeFiles/compiler.dir/src/interpreter.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/damian/Axolotl/src/interpreter.cpp -o CMakeFiles/compiler.dir/src/interpreter.cpp.s
 
 # Object files for target compiler
 compiler_OBJECTS = \
@@ -176,7 +176,7 @@ compiler: CMakeFiles/compiler.dir/src/parser.cpp.o
 compiler: CMakeFiles/compiler.dir/src/interpreter.cpp.o
 compiler: CMakeFiles/compiler.dir/build.make
 compiler: CMakeFiles/compiler.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/damian/game-engine/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable compiler"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/Users/damian/Axolotl/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable compiler"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/compiler.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -188,6 +188,6 @@ CMakeFiles/compiler.dir/clean:
 .PHONY : CMakeFiles/compiler.dir/clean
 
 CMakeFiles/compiler.dir/depend:
-	cd /Users/damian/game-engine/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/damian/game-engine /Users/damian/game-engine /Users/damian/game-engine/build /Users/damian/game-engine/build /Users/damian/game-engine/build/CMakeFiles/compiler.dir/DependInfo.cmake "--color=$(COLOR)" compiler
+	cd /Users/damian/Axolotl/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /Users/damian/Axolotl /Users/damian/Axolotl /Users/damian/Axolotl/build /Users/damian/Axolotl/build /Users/damian/Axolotl/build/CMakeFiles/compiler.dir/DependInfo.cmake "--color=$(COLOR)" compiler
 .PHONY : CMakeFiles/compiler.dir/depend
 

@@ -1,6 +1,6 @@
 CMakeFiles/compiler.dir/src/token.cpp.o: \
-  /Users/damian/game-engine/src/token.cpp \
-  /Users/damian/game-engine/include/token.h \
+  /Users/damian/Axolotl/src/token.cpp \
+  /Users/damian/Axolotl/include/token.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/string \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/max.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/comp.h \

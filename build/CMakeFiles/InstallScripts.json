@@ -1,7 +1,7 @@
 {
 	"InstallScripts" : 
 	[
-		"/Users/damian/game-engine/build/cmake_install.cmake"
+		"/Users/damian/Axolotl/build/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

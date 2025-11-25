@@ -21,13 +21,12 @@ void printUsage(const char* programName) {
 }
 
 int main(int argc, char* argv[]) {
+    std::string source;
     try {
         if (argc > 2) {
             printUsage(argv[0]);
             return 1;
         }
-        
-        std::string source;
         
         if (argc == 2) {
             // Read from file
@@ -93,6 +92,40 @@ int main(int argc, char* argv[]) {
         
         return 0;
     } catch (const std::exception& e) {
+        // Diagnostic: print the dynamic exception type name
+        try {
+            std::cerr << "[debug] caught exception type: " << typeid(e).name() << std::endl;
+        } catch (...) {}
+
+        // If it's a ParseError, show the friendly file/line/column pointer
+        if (auto pe = dynamic_cast<const ParseError*>(&e)) {
+            std::string filename = (argc == 2) ? std::string(argv[1]) : "<stdin>";
+            std::cerr << "Fatal error: " << pe->what() << std::endl;
+            std::cerr << "  File: " << filename << ":" << pe->getLine() << ":" << pe->getColumn() << std::endl;
+
+            std::istringstream ss(source);
+            std::string lineText;
+            int cur = 1;
+            while (std::getline(ss, lineText)) {
+                if (cur == pe->getLine()) break;
+                cur++;
+            }
+
+            if (!lineText.empty()) {
+                std::cerr << lineText << std::endl;
+                int col = pe->getColumn();
+                if (col < 1) col = 1;
+                std::string pointer(col - 1, ' ');
+                int tokenLen = std::max(1, (int)pe->getTokenValue().size());
+                if ((size_t)(col - 1) > lineText.size()) {
+                    std::cerr << pointer << "^" << std::endl;
+                } else {
+                    std::cerr << pointer << std::string(tokenLen, '^') << std::endl;
+                }
+            }
+            return 1;
+        }
+
         std::cerr << "Fatal error: " << e.what() << std::endl;
         return 1;
     }

@@ -1,4 +1,5 @@
 #include "../include/parser.h"
+#include <string>
 
 Parser::Parser(const std::vector<Token>& tokens)
     : tokens(tokens), current(0) {}
@@ -56,7 +57,10 @@ bool Parser::match(const std::vector<TokenType>& types) {
 
 Token Parser::consume(TokenType type, const std::string& message) {
     if (check(type)) return advance();
-    throw ParseError(message);
+    // Include location information in the message so it's visible even
+    // if the exception is handled as a generic std::exception later.
+    std::string locMsg = message + " (line " + std::to_string(peek().line) + ", col " + std::to_string(peek().column) + ")";
+    throw ParseError(locMsg, peek());
 }
 
 bool Parser::isAtEnd() const {
@@ -396,7 +400,7 @@ std::unique_ptr<Expression> Parser::parseAssignment() {
             std::unique_ptr<Expression> obj = std::move(fld->object);
             return std::make_unique<FieldAssignment>(std::move(obj), fld->field, std::move(value));
         }
-        throw ParseError("Invalid assignment target");
+        throw ParseError("Invalid assignment target", previous());
     }
     
     return expr;
@@ -650,7 +654,7 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
         return expr;
     }
     
-    throw ParseError("Unexpected token: " + peek().value);
+    throw ParseError("Unexpected token: " + peek().value, peek());
 }
 
 std::string Parser::parseFunctionType() {

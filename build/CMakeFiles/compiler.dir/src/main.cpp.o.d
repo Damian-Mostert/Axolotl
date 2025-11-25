@@ -1,7 +1,7 @@
 CMakeFiles/compiler.dir/src/main.cpp.o: \
-  /Users/damian/game-engine/src/main.cpp \
-  /Users/damian/game-engine/include/lexer.h \
-  /Users/damian/game-engine/include/token.h \
+  /Users/damian/Axolotl/src/main.cpp \
+  /Users/damian/Axolotl/include/lexer.h \
+  /Users/damian/Axolotl/include/token.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/string \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/max.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/comp.h \
@@ -763,9 +763,9 @@ CMakeFiles/compiler.dir/src/main.cpp.o: \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__iterator/erase_if_container.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__iterator/ranges_iterator_traits.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__node_handle \
-  /Users/damian/game-engine/include/parser.h \
-  /Users/damian/game-engine/include/ast.h \
-  /Users/damian/game-engine/include/interpreter.h \
+  /Users/damian/Axolotl/include/parser.h \
+  /Users/damian/Axolotl/include/ast.h \
+  /Users/damian/Axolotl/include/interpreter.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/iostream \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/istream \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__ostream/basic_ostream.h \

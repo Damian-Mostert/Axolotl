@@ -1,7 +1,7 @@
 CMakeFiles/compiler.dir/src/parser.cpp.o: \
-  /Users/damian/game-engine/src/parser.cpp \
-  /Users/damian/game-engine/src/../include/parser.h \
-  /Users/damian/game-engine/src/../include/token.h \
+  /Users/damian/Axolotl/src/parser.cpp \
+  /Users/damian/Axolotl/src/../include/parser.h \
+  /Users/damian/Axolotl/src/../include/token.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/string \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/max.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/comp.h \
@@ -644,7 +644,7 @@ CMakeFiles/compiler.dir/src/parser.cpp.o: \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/pstl.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/sample.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/bit \
-  /Users/damian/game-engine/src/../include/ast.h \
+  /Users/damian/Axolotl/src/../include/ast.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/vector \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/lexicographical_compare_three_way.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/three_way_comp_ref_type.h \

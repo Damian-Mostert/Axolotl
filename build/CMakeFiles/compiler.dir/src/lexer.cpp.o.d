@@ -1,7 +1,7 @@
 CMakeFiles/compiler.dir/src/lexer.cpp.o: \
-  /Users/damian/game-engine/src/lexer.cpp \
-  /Users/damian/game-engine/src/../include/lexer.h \
-  /Users/damian/game-engine/src/../include/token.h \
+  /Users/damian/Axolotl/src/lexer.cpp \
+  /Users/damian/Axolotl/src/../include/lexer.h \
+  /Users/damian/Axolotl/src/../include/token.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/string \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/max.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/comp.h \

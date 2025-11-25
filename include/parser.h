@@ -54,7 +54,20 @@ private:
 
 class ParseError : public std::runtime_error {
 public:
-    ParseError(const std::string& message) : std::runtime_error(message) {}
+    ParseError(const std::string& message)
+        : std::runtime_error(message), line(0), column(0), tokenValue("") {}
+
+    ParseError(const std::string& message, const Token& token)
+        : std::runtime_error(message), line(token.line), column(token.column), tokenValue(token.value) {}
+
+    int getLine() const { return line; }
+    int getColumn() const { return column; }
+    const std::string& getTokenValue() const { return tokenValue; }
+
+private:
+    int line;
+    int column;
+    std::string tokenValue;
 };
 
 #endif // PARSER_H

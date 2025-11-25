@@ -1,7 +1,7 @@
 CMakeFiles/compiler.dir/src/interpreter.cpp.o: \
-  /Users/damian/game-engine/src/interpreter.cpp \
-  /Users/damian/game-engine/include/interpreter.h \
-  /Users/damian/game-engine/include/ast.h \
+  /Users/damian/Axolotl/src/interpreter.cpp \
+  /Users/damian/Axolotl/include/interpreter.h \
+  /Users/damian/Axolotl/include/ast.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/memory \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__config \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__config_site \
@@ -796,9 +796,9 @@ CMakeFiles/compiler.dir/src/interpreter.cpp.o: \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/print \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/unistd.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/unordered_set \
-  /Users/damian/game-engine/include/lexer.h \
-  /Users/damian/game-engine/include/token.h \
-  /Users/damian/game-engine/include/parser.h \
+  /Users/damian/Axolotl/include/lexer.h \
+  /Users/damian/Axolotl/include/token.h \
+  /Users/damian/Axolotl/include/parser.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/sstream \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/fstream \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/filesystem \

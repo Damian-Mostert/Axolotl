@@ -1,6 +1,5 @@
-CMakeFiles/compiler.dir/src/ast.cpp.o: \
-  /Users/damian/game-engine/src/ast.cpp \
-  /Users/damian/game-engine/include/ast.h \
+CMakeFiles/compiler.dir/src/ast.cpp.o: /Users/damian/Axolotl/src/ast.cpp \
+  /Users/damian/Axolotl/include/ast.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/memory \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__config \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__config_site \
