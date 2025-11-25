@@ -12,6 +12,9 @@
 #include <unordered_set>
 #include <vector>
 
+// Forward declaration for JIT
+class LLVMJITCompiler;
+
 // Forward declarations
 class ArrayValue;
 class ObjectValue;
@@ -69,6 +72,7 @@ public:
 class Interpreter : public ASTVisitor {
 public:
     Interpreter();
+    ~Interpreter();
     
     void interpret(Program* program);
     
@@ -104,13 +108,14 @@ private:
     std::unordered_map<std::string, FunctionDeclaration*> functions;
     std::unordered_set<std::string> importedFiles;
     Value lastValue;  // Store last evaluated complex value (array, object)
+    std::unique_ptr<LLVMJITCompiler> jitCompiler;  // JIT compiler for loop optimization
     
     Value evaluate(Expression* expr);
     void execute(Statement* stmt);
     void executeBlock(Block* block);
     
-    Value performBinaryOp(const Value& left, const std::string& op, const Value& right);
-    Value performUnaryOp(const std::string& op, const Value& operand);
+    Value performBinaryOp(const Value& left, BinaryOperator op, const Value& right);
+    Value performUnaryOp(UnaryOperator op, const Value& operand);
     bool isTruthy(const Value& v);
     std::string valueToString(const Value& v);
 };

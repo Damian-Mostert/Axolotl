@@ -1,6 +1,8 @@
 #include "include/interpreter.h"
 #include "include/lexer.h"
 #include "include/parser.h"
+#include "include/operators.h"
+#include "include/jit.h"
 #include <variant>
 #include <sstream>
 #include <fstream>
@@ -152,7 +154,10 @@ void Environment::popScope()
 Interpreter::Interpreter()
 {
     environment.pushScope();
+    jitCompiler = std::make_unique<LLVMJITCompiler>();
 }
+
+Interpreter::~Interpreter() = default;
 
 void Interpreter::interpret(Program *program)
 {
@@ -872,6 +877,14 @@ std::string Interpreter::visit(IfStatement *node)
 
 std::string Interpreter::visit(WhileStatement *node)
 {
+    // Try JIT compilation first
+    if (jitCompiler && jitCompiler->isCompilable(node)) {
+        if (jitCompiler->compileAndExecute(node, this, environment)) {
+            return "";
+        }
+    }
+    
+    // Fallback to interpreted execution
     while (isTruthy(evaluate(node->condition.get())))
     {
         executeBlock(node->body.get());
@@ -881,6 +894,20 @@ std::string Interpreter::visit(WhileStatement *node)
 
 std::string Interpreter::visit(ForStatement *node)
 {
+    // Try JIT compilation first
+    if (jitCompiler && jitCompiler->isCompilable(node)) {
+        environment.pushScope();
+        if (node->init) {
+            node->init->accept(this);
+        }
+        if (jitCompiler->compileAndExecute(node, this, environment)) {
+            environment.popScope();
+            return "";
+        }
+        environment.popScope();
+    }
+    
+    // Fallback to interpreted execution
     environment.pushScope();
 
     if (node->init)
@@ -1020,115 +1047,83 @@ void Interpreter::executeBlock(Block *block)
     environment.popScope();
 }
 
-Value Interpreter::performBinaryOp(const Value &left, const std::string &op, const Value &right)
+Value Interpreter::performBinaryOp(const Value &left, BinaryOperator op, const Value &right)
 {
-    // Fast path: int + int (most common in loops)
-    if (op == "+") {
-        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
-            return std::get<int>(left) + std::get<int>(right);
-        }
-        if (std::holds_alternative<float>(left) && std::holds_alternative<float>(right)) {
-            return std::get<float>(left) + std::get<float>(right);
-        }
-        return valueToString(left) + valueToString(right);
-    }
-    
-    // Fast path: int comparisons (used in loop conditions)
+    // Fast path: int operations (most common in loops)
     if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
         int l = std::get<int>(left);
         int r = std::get<int>(right);
-        if (op == "-") return l - r;
-        if (op == "*") return l * r;
-        if (op == "/") return l / r;
-        if (op == "%") return l % r;
-        if (op == "<") return l < r;
-        if (op == ">") return l > r;
-        if (op == "<=") return l <= r;
-        if (op == ">=") return l >= r;
-        if (op == "==") return l == r;
-        if (op == "!=") return l != r;
+        switch (op) {
+            case BinaryOperator::ADD: return l + r;
+            case BinaryOperator::SUBTRACT: return l - r;
+            case BinaryOperator::MULTIPLY: return l * r;
+            case BinaryOperator::DIVIDE: return l / r;
+            case BinaryOperator::MODULO: return l % r;
+            case BinaryOperator::LESS: return l < r;
+            case BinaryOperator::GREATER: return l > r;
+            case BinaryOperator::LESS_EQUAL: return l <= r;
+            case BinaryOperator::GREATER_EQUAL: return l >= r;
+            case BinaryOperator::EQUAL: return l == r;
+            case BinaryOperator::NOT_EQUAL: return l != r;
+            default: break;
+        }
     }
     
-    // Other operators
-    if (op == "-") {
-        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
-            return std::get<int>(left) - std::get<int>(right);
+    // Float operations
+    if (std::holds_alternative<float>(left) && std::holds_alternative<float>(right)) {
+        float l = std::get<float>(left);
+        float r = std::get<float>(right);
+        switch (op) {
+            case BinaryOperator::ADD: return l + r;
+            case BinaryOperator::SUBTRACT: return l - r;
+            case BinaryOperator::MULTIPLY: return l * r;
+            case BinaryOperator::DIVIDE: return l / r;
+            case BinaryOperator::LESS: return l < r;
+            case BinaryOperator::GREATER: return l > r;
+            case BinaryOperator::LESS_EQUAL: return l <= r;
+            case BinaryOperator::GREATER_EQUAL: return l >= r;
+            case BinaryOperator::EQUAL: return l == r;
+            case BinaryOperator::NOT_EQUAL: return l != r;
+            default: break;
         }
-        return std::get<float>(left) - std::get<float>(right);
     }
-    else if (op == "*") {
-        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
-            return std::get<int>(left) * std::get<int>(right);
-        }
-        return std::get<float>(left) * std::get<float>(right);
+    
+    // String concatenation
+    if (op == BinaryOperator::ADD) {
+        return valueToString(left) + valueToString(right);
     }
-    else if (op == "/") {
-        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
-            return std::get<int>(left) / std::get<int>(right);
-        }
-        return std::get<float>(left) / std::get<float>(right);
-    }
-    else if (op == "%") {
-        return std::get<int>(left) % std::get<int>(right);
-    }
-    else if (op == "==") {
-        return valueToString(left) == valueToString(right);
-    }
-    else if (op == "!=") {
-        return valueToString(left) != valueToString(right);
-    }
-    else if (op == "<") {
-        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
-            return std::get<int>(left) < std::get<int>(right);
-        }
-        return std::get<float>(left) < std::get<float>(right);
-    }
-    else if (op == ">") {
-        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
-            return std::get<int>(left) > std::get<int>(right);
-        }
-        return std::get<float>(left) > std::get<float>(right);
-    }
-    else if (op == "<=") {
-        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
-            return std::get<int>(left) <= std::get<int>(right);
-        }
-        return std::get<float>(left) <= std::get<float>(right);
-    }
-    else if (op == ">=") {
-        if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
-            return std::get<int>(left) >= std::get<int>(right);
-        }
-        return std::get<float>(left) >= std::get<float>(right);
-    }
-    else if (op == "&&") {
-        return isTruthy(left) && isTruthy(right);
-    }
-    else if (op == "||") {
-        return isTruthy(left) || isTruthy(right);
-    }
-    else if (op == "=") {
-        return right;
+    
+    // Logical operations
+    switch (op) {
+        case BinaryOperator::LOGICAL_AND:
+            return isTruthy(left) && isTruthy(right);
+        case BinaryOperator::LOGICAL_OR:
+            return isTruthy(left) || isTruthy(right);
+        case BinaryOperator::ASSIGN:
+            return right;
+        case BinaryOperator::EQUAL:
+            return valueToString(left) == valueToString(right);
+        case BinaryOperator::NOT_EQUAL:
+            return valueToString(left) != valueToString(right);
+        default:
+            break;
     }
 
-    throw std::runtime_error("Unknown operator: " + op);
+    throw std::runtime_error("Unknown operator: " + binaryOpToString(op));
 }
 
-Value Interpreter::performUnaryOp(const std::string &op, const Value &operand)
+Value Interpreter::performUnaryOp(UnaryOperator op, const Value &operand)
 {
-    if (op == "-")
-    {
-        if (std::holds_alternative<int>(operand))
-        {
-            return -std::get<int>(operand);
-        }
-        return -std::get<float>(operand);
+    switch (op) {
+        case UnaryOperator::NEGATE:
+            if (std::holds_alternative<int>(operand)) {
+                return -std::get<int>(operand);
+            }
+            return -std::get<float>(operand);
+        case UnaryOperator::LOGICAL_NOT:
+            return !isTruthy(operand);
     }
-    else if (op == "!")
-    {
-        return !isTruthy(operand);
-    }
-    throw std::runtime_error("Unknown unary operator: " + op);
+    throw std::runtime_error("Unknown unary operator: " + unaryOpToString(op));
 }
 
 bool Interpreter::isTruthy(const Value &v)

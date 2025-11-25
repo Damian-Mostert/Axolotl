@@ -324,6 +324,30 @@ src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/operators.o: src/operators.cpp.o
+.PHONY : src/operators.o
+
+# target to build an object file
+src/operators.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/operators.cpp.o
+.PHONY : src/operators.cpp.o
+
+src/operators.i: src/operators.cpp.i
+.PHONY : src/operators.i
+
+# target to preprocess a source file
+src/operators.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/operators.cpp.i
+.PHONY : src/operators.cpp.i
+
+src/operators.s: src/operators.cpp.s
+.PHONY : src/operators.s
+
+# target to generate assembly for a file
+src/operators.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/compiler.dir/build.make CMakeFiles/compiler.dir/src/operators.cpp.s
+.PHONY : src/operators.cpp.s
+
 src/parser.o: src/parser.cpp.o
 .PHONY : src/parser.o
 
@@ -402,6 +426,9 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/operators.o"
+	@echo "... src/operators.i"
+	@echo "... src/operators.s"
 	@echo "... src/parser.o"
 	@echo "... src/parser.i"
 	@echo "... src/parser.s"

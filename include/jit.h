@@ -19,6 +19,12 @@ public:
     // If compilable, executes the loop and returns true
     bool compileAndExecute(WhileStatement *stmt, Interpreter *interp, Environment &env);
     
+    // Check if a for loop is JIT-compilable
+    bool isCompilable(ForStatement *stmt);
+    
+    // Compile and execute a for loop, returns false if not compilable
+    bool compileAndExecute(ForStatement *stmt, Interpreter *interp, Environment &env);
+    
 private:
     class Impl;
     std::unique_ptr<Impl> impl;

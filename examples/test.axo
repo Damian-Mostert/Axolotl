@@ -1,3 +1,8 @@
+use "examples/minimal.axo";
+use "examples/strings.axo";
+use "examples/arrays.axo";
+use "examples/enum_test.axo";
+
 const x:int = "5";
 
 print(x * 2);

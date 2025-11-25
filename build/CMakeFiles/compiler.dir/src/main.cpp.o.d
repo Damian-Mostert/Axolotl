@@ -765,6 +765,7 @@ CMakeFiles/compiler.dir/src/main.cpp.o: \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__node_handle \
   /Users/damian/Axolotl/include/parser.h \
   /Users/damian/Axolotl/include/ast.h \
+  /Users/damian/Axolotl/include/operators.h \
   /Users/damian/Axolotl/include/interpreter.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/iostream \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/istream \

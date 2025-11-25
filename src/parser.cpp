@@ -460,9 +460,8 @@ std::unique_ptr<Expression> Parser::parseLogicalOr() {
     auto expr = parseLogicalAnd();
     
     while (match({TokenType::LOGICAL_OR})) {
-        std::string op = previous().value;
         auto right = parseLogicalAnd();
-        expr = std::make_unique<BinaryOp>(std::move(expr), op, std::move(right));
+        expr = std::make_unique<BinaryOp>(std::move(expr), BinaryOperator::LOGICAL_OR, std::move(right));
     }
     
     return expr;
@@ -472,9 +471,8 @@ std::unique_ptr<Expression> Parser::parseLogicalAnd() {
     auto expr = parseEquality();
     
     while (match({TokenType::LOGICAL_AND})) {
-        std::string op = previous().value;
         auto right = parseEquality();
-        expr = std::make_unique<BinaryOp>(std::move(expr), op, std::move(right));
+        expr = std::make_unique<BinaryOp>(std::move(expr), BinaryOperator::LOGICAL_AND, std::move(right));
     }
     
     return expr;
@@ -484,7 +482,8 @@ std::unique_ptr<Expression> Parser::parseEquality() {
     auto expr = parseComparison();
     
     while (match({TokenType::EQUAL, TokenType::NOT_EQUAL})) {
-        std::string op = previous().value;
+        TokenType opType = previous().type;
+        BinaryOperator op = (opType == TokenType::EQUAL) ? BinaryOperator::EQUAL : BinaryOperator::NOT_EQUAL;
         auto right = parseComparison();
         expr = std::make_unique<BinaryOp>(std::move(expr), op, std::move(right));
     }
@@ -496,7 +495,15 @@ std::unique_ptr<Expression> Parser::parseComparison() {
     auto expr = parseTerm();
     
     while (match({TokenType::LESS, TokenType::GREATER, TokenType::LESS_EQUAL, TokenType::GREATER_EQUAL})) {
-        std::string op = previous().value;
+        TokenType opType = previous().type;
+        BinaryOperator op;
+        switch (opType) {
+            case TokenType::LESS: op = BinaryOperator::LESS; break;
+            case TokenType::GREATER: op = BinaryOperator::GREATER; break;
+            case TokenType::LESS_EQUAL: op = BinaryOperator::LESS_EQUAL; break;
+            case TokenType::GREATER_EQUAL: op = BinaryOperator::GREATER_EQUAL; break;
+            default: throw ParseError("Invalid comparison operator", previous());
+        }
         auto right = parseTerm();
         expr = std::make_unique<BinaryOp>(std::move(expr), op, std::move(right));
     }
@@ -508,7 +515,8 @@ std::unique_ptr<Expression> Parser::parseTerm() {
     auto expr = parseFactor();
     
     while (match({TokenType::PLUS, TokenType::MINUS})) {
-        std::string op = previous().value;
+        TokenType opType = previous().type;
+        BinaryOperator op = (opType == TokenType::PLUS) ? BinaryOperator::ADD : BinaryOperator::SUBTRACT;
         auto right = parseFactor();
         expr = std::make_unique<BinaryOp>(std::move(expr), op, std::move(right));
     }
@@ -520,7 +528,14 @@ std::unique_ptr<Expression> Parser::parseFactor() {
     auto expr = parseUnary();
     
     while (match({TokenType::STAR, TokenType::SLASH, TokenType::PERCENT})) {
-        std::string op = previous().value;
+        TokenType opType = previous().type;
+        BinaryOperator op;
+        switch (opType) {
+            case TokenType::STAR: op = BinaryOperator::MULTIPLY; break;
+            case TokenType::SLASH: op = BinaryOperator::DIVIDE; break;
+            case TokenType::PERCENT: op = BinaryOperator::MODULO; break;
+            default: throw ParseError("Invalid factor operator", previous());
+        }
         auto right = parseUnary();
         expr = std::make_unique<BinaryOp>(std::move(expr), op, std::move(right));
     }
@@ -530,7 +545,8 @@ std::unique_ptr<Expression> Parser::parseFactor() {
 
 std::unique_ptr<Expression> Parser::parseUnary() {
     if (match({TokenType::LOGICAL_NOT, TokenType::MINUS})) {
-        std::string op = previous().value;
+        TokenType opType = previous().type;
+        UnaryOperator op = (opType == TokenType::LOGICAL_NOT) ? UnaryOperator::LOGICAL_NOT : UnaryOperator::NEGATE;
         auto operand = parseUnary();
         return std::make_unique<UnaryOp>(op, std::move(operand));
     }

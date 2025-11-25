@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <variant>
+#include "operators.h"
 
 class ASTNode {
 public:
@@ -53,10 +54,10 @@ public:
 class BinaryOp : public Expression {
 public:
     std::unique_ptr<Expression> left;
-    std::string op;
+    BinaryOperator op;
     std::unique_ptr<Expression> right;
     
-    BinaryOp(std::unique_ptr<Expression> l, const std::string& o, 
+    BinaryOp(std::unique_ptr<Expression> l, BinaryOperator o, 
              std::unique_ptr<Expression> r)
         : left(std::move(l)), op(o), right(std::move(r)) {}
     
@@ -65,10 +66,10 @@ public:
 
 class UnaryOp : public Expression {
 public:
-    std::string op;
+    UnaryOperator op;
     std::unique_ptr<Expression> operand;
     
-    UnaryOp(const std::string& o, std::unique_ptr<Expression> e)
+    UnaryOp(UnaryOperator o, std::unique_ptr<Expression> e)
         : op(o), operand(std::move(e)) {}
     
     std::string accept(class ASTVisitor* visitor) override;
@@ -269,6 +270,8 @@ public:
     ImportDeclaration(const std::string& p) : path(p) {}
     std::string accept(class ASTVisitor* visitor) override;
 };
+
+
 
 class Program : public ASTNode {
 public:

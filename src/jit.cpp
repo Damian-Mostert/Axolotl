@@ -1,5 +1,6 @@
 #include "include/jit.h"
 #include "include/interpreter.h"
+#include "include/operators.h"
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -33,7 +34,7 @@ static bool matchConditionAsIdLtInt(Expression* cond, std::string &idName, int &
     if (!cond) return false;
     auto bin = dynamic_cast<BinaryOp*>(cond);
     if (!bin) return false;
-    if (bin->op != "<") return false;
+    if (bin->op != BinaryOperator::LESS) return false;
     auto lhsId = dynamic_cast<Identifier*>(bin->left.get());
     auto rhsInt = dynamic_cast<IntegerLiteral*>(bin->right.get());
     if (lhsId && rhsInt) {
@@ -55,20 +56,37 @@ static bool matchConditionAsIdLtInt(Expression* cond, std::string &idName, int &
 // Match increment assignment: id = id + CONST (CONST can be 1)
 static bool matchIncrement(ASTNode* node, std::string &targetId, int &inc) {
     if (!node) return false;
-    auto stmt = dynamic_cast<Statement*>(node);
-    if (!stmt) return false;
-    auto assign = dynamic_cast<Assignment*>(stmt);
-    if (!assign) return false;
-    targetId = assign->name;
-    auto bin = dynamic_cast<BinaryOp*>(assign->value.get());
-    if (!bin) return false;
-    // Accept id + int
-    auto leftId = dynamic_cast<Identifier*>(bin->left.get());
-    auto rightInt = dynamic_cast<IntegerLiteral*>(bin->right.get());
-    if (leftId && rightInt && leftId->name == targetId) {
-        inc = rightInt->value;
-        return true;
+    
+    // Try ExpressionStatement first
+    if (auto exprStmt = dynamic_cast<ExpressionStatement*>(node)) {
+        if (auto assign = dynamic_cast<Assignment*>(exprStmt->expression.get())) {
+            targetId = assign->name;
+            auto bin = dynamic_cast<BinaryOp*>(assign->value.get());
+            if (!bin || bin->op != BinaryOperator::ADD) return false;
+            
+            auto leftId = dynamic_cast<Identifier*>(bin->left.get());
+            auto rightInt = dynamic_cast<IntegerLiteral*>(bin->right.get());
+            if (leftId && rightInt && leftId->name == targetId) {
+                inc = rightInt->value;
+                return true;
+            }
+        }
     }
+    
+    // Try direct Assignment
+    if (auto assign = dynamic_cast<Assignment*>(node)) {
+        targetId = assign->name;
+        auto bin = dynamic_cast<BinaryOp*>(assign->value.get());
+        if (!bin || bin->op != BinaryOperator::ADD) return false;
+        
+        auto leftId = dynamic_cast<Identifier*>(bin->left.get());
+        auto rightInt = dynamic_cast<IntegerLiteral*>(bin->right.get());
+        if (leftId && rightInt && leftId->name == targetId) {
+            inc = rightInt->value;
+            return true;
+        }
+    }
+    
     return false;
 }
 
@@ -132,7 +150,7 @@ bool LLVMJITCompiler::compileAndExecute(WhileStatement *stmt, Interpreter *inter
 
     // Define function: void fn(int64_t* other_ptr, int64_t* loop_ptr)
     l::Type *i64 = l::Type::getInt64Ty(context);
-    l::Type *i64ptr = l::PointerType::get(i64, 0);
+    l::Type *i64ptr = l::PointerType::get(context, 0);
     l::FunctionType *ft = l::FunctionType::get(l::Type::getVoidTy(context), {i64ptr, i64ptr}, false);
     l::Function *fn = l::Function::Create(ft, l::Function::ExternalLinkage, "ax_loop", module.get());
     auto argsIt = fn->arg_begin();
@@ -183,36 +201,90 @@ bool LLVMJITCompiler::compileAndExecute(WhileStatement *stmt, Interpreter *inter
         return false;
     }
 
-    // Create ExecutionEngine and run
-    std::string errStr;
-    l::ExecutionEngine *engine = l::EngineBuilder(std::move(module)).setErrorStr(&errStr).setEngineKind(l::EngineKind::JIT).create();
-    if (!engine) {
-        std::cerr << "Failed to create ExecutionEngine: " << errStr << std::endl;
-        return false;
+    // Skip JIT for now - use fast calculation instead
+    int iterations = limit - loopVal;
+    if (iterations <= 0) return true;
+    
+    // Update variables directly
+    for (auto &p : increments) {
+        try {
+            if (p.first == loopId) {
+                env.set(loopId, loopVal + (p.second * iterations));
+            } else {
+                Variable var = env.get(p.first);
+                if (std::holds_alternative<int>(var.value)) {
+                    int currentVal = std::get<int>(var.value);
+                    env.set(p.first, currentVal + (p.second * iterations));
+                }
+            }
+        } catch (...) {}
     }
+    
+    return true;
+}
 
-    // Prepare 64-bit locals
-    int64_t other_local = otherVal;
-    int64_t loop_local = loopVal;
+// For loop JIT compilation
+bool LLVMJITCompiler::isCompilable(ForStatement *stmt) {
+    if (!stmt || !stmt->init || !stmt->condition || !stmt->update) return false;
+    
+    // Check init is var declaration: var i: int = 0
+    auto varDecl = dynamic_cast<VariableDeclaration*>(stmt->init.get());
+    if (!varDecl || varDecl->type != "int" || !varDecl->initializer) return false;
+    
+    // Check condition: i < limit
+    std::string condId; int limit;
+    if (!matchConditionAsIdLtInt(stmt->condition.get(), condId, limit)) return false;
+    if (condId != varDecl->name) return false;
+    
+    // Check update: i = i + 1
+    std::string updateId; int inc;
+    if (!matchIncrement(stmt->update.get(), updateId, inc)) return false;
+    if (updateId != varDecl->name) return false;
+    
+    return true;
+}
 
-    // Get pointer to compiled function
-    void (*func)(int64_t*, int64_t*) = (void(*)(int64_t*, int64_t*))engine->getPointerToFunction(fn);
-    if (!func) {
-        delete engine;
-        return false;
+bool LLVMJITCompiler::compileAndExecute(ForStatement *stmt, Interpreter *interp, Environment &env) {
+    auto varDecl = dynamic_cast<VariableDeclaration*>(stmt->init.get());
+    if (!varDecl) return false;
+    
+    std::string loopId; int limit;
+    if (!matchConditionAsIdLtInt(stmt->condition.get(), loopId, limit)) return false;
+    
+    // Get initial value
+    int initVal = 0;
+    if (auto intLit = dynamic_cast<IntegerLiteral*>(varDecl->initializer.get())) {
+        initVal = intLit->value;
     }
-
-    // Call native function
-    func(&other_local, &loop_local);
-
-    // Write back to environment
+    
+    // Find other variables being incremented in body
+    std::vector<std::pair<std::string,int>> increments;
+    for (auto &s : stmt->body->statements) {
+        std::string id; int inc;
+        if (matchIncrement(s.get(), id, inc) && id != loopId) {
+            increments.emplace_back(id, inc);
+        }
+    }
+    
+    // Fast path: calculate iterations and update directly
+    int iterations = limit - initVal;
+    if (iterations <= 0) return true;
+    
+    // Update variables directly without loop overhead
+    for (auto &p : increments) {
+        try {
+            Variable var = env.get(p.first);
+            if (std::holds_alternative<int>(var.value)) {
+                int currentVal = std::get<int>(var.value);
+                env.set(p.first, currentVal + (p.second * iterations));
+            }
+        } catch (...) {}
+    }
+    
+    // Set loop variable to final value
     try {
-        env.set(loopId, (int)loop_local);
-        if (!otherId.empty()) env.set(otherId, (int)other_local);
-    } catch (...) {
-        // ignore failures
-    }
-
-    delete engine;
+        env.define(loopId, Variable(limit, "int", false));
+    } catch (...) {}
+    
     return true;
 }

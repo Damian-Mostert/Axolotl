@@ -23,6 +23,7 @@ set(SOURCES
     src/ast.cpp
     src/parser.cpp
     src/interpreter.cpp
+    src/operators.cpp
     src/jit.cpp
 )
 

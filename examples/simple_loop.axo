@@ -1,0 +1,7 @@
+var sum: int = 0;
+
+for (var i: int = 0; i < 10; i = i + 1) {
+    sum = sum + 1;
+}
+
+print("Sum:", sum);
