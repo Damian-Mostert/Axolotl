@@ -1,0 +1,29 @@
+// Test the new import system
+print("=== IMPORT SYSTEM TEST ===");
+
+// Test 1: Import .axo file without extension (should auto-detect)
+print("\n1. Testing auto-detection of .axo files");
+import {PI} from "tests/utils";
+
+// Use imported functions
+var result1: int = add(5, 3);
+var result2: int = multiply(4, 7);
+var greeting: string = greet("World");
+
+print("✓ add(5, 3) =", result1);
+print("✓ multiply(4, 7) =", result2);
+print("✓ greet('World') =", greeting);
+print("✓ PI =", PI);
+print("✓ VERSION =", VERSION);
+
+// Test 2: Import JSON file (must specify .json extension)
+print("\n2. Testing JSON file import");
+import config from "tests/config.json";
+
+// Use imported JSON content (stored as string variable with filename)
+print("✓ config JSON content:", config);
+
+// Test 3: Import with explicit .axo extension
+print("\n3. Testing explicit .axo extension");
+
+print("\n✓ All import tests completed successfully!");

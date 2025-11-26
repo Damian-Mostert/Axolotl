@@ -1,0 +1,6 @@
+{
+  "appName": "Axolotl Test App",
+  "version": "2.0.0",
+  "debug": true,
+  "maxConnections": 100
+}

@@ -1,9 +1,9 @@
 print("Current time:", millis());
 sleep(1000);
 print("After 1 second sleep, current time:", millis());
-program myTask(sleep:bool) {
+program myTask(doSleep:bool) {
     print("Custom task starting at:", millis());
-    if(sleep){
+    if(doSleep){
         sleep(2000);
     }
     print("Custom task finished at:", millis());

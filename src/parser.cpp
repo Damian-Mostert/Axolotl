@@ -71,6 +71,12 @@ std::unique_ptr<ASTNode> Parser::parseDeclaration() {
     if (check(TokenType::KW_IMPORT)) {
         return parseImportDeclaration();
     }
+    if (check(TokenType::KW_USE)) {
+        return parseUseDeclaration();
+    }
+    if (check(TokenType::KW_EXPORT)) {
+        return parseExportDeclaration();
+    }
     if (check(TokenType::IDENTIFIER) && peek().value == "type") {
         return parseTypeDeclaration();
     }
@@ -88,9 +94,103 @@ std::unique_ptr<ASTNode> Parser::parseDeclaration() {
 
 std::unique_ptr<ASTNode> Parser::parseImportDeclaration() {
     consume(TokenType::KW_IMPORT, "Expected 'import'");
-    Token pathTok = consume(TokenType::STRING, "Expected string path in import");
+    
+    auto importDecl = std::make_unique<ImportDeclaration>("");
+    
+    // Handle different import patterns:
+    // import "path";  (simple import)
+    // import x from "path";  (default import)
+    // import {x, y} from "path";  (named imports)
+    // import x, {y, z} from "path";  (mixed import)
+    
+    if (check(TokenType::STRING)) {
+        // Simple import: import "path";
+        Token pathTok = advance();
+        importDecl->path = pathTok.value;
+    } else if (check(TokenType::LBRACE)) {
+        // Named imports: import {x, y} from "path";
+        advance(); // consume {
+        do {
+            Token name = consume(TokenType::IDENTIFIER, "Expected import name");
+            importDecl->namedImports.push_back(name.value);
+        } while (match({TokenType::COMMA}));
+        consume(TokenType::RBRACE, "Expected '}' after named imports");
+        Token fromToken = consume(TokenType::IDENTIFIER, "Expected 'from'");
+        if (fromToken.value != "from") {
+            throw ParseError("Expected 'from' keyword, got '" + fromToken.value + "'", fromToken);
+        }
+        Token pathTok = consume(TokenType::STRING, "Expected string path after 'from'");
+        importDecl->path = pathTok.value;
+    } else if (check(TokenType::IDENTIFIER)) {
+        // Default or mixed import
+        Token defaultName = advance();
+        importDecl->defaultImport = defaultName.value;
+        
+        if (match({TokenType::COMMA})) {
+            // Mixed import: import x, {y, z} from "path";
+            consume(TokenType::LBRACE, "Expected '{' after comma in mixed import");
+            do {
+                Token name = consume(TokenType::IDENTIFIER, "Expected import name");
+                importDecl->namedImports.push_back(name.value);
+            } while (match({TokenType::COMMA}));
+            consume(TokenType::RBRACE, "Expected '}' after named imports");
+        }
+        
+        Token fromToken2 = consume(TokenType::IDENTIFIER, "Expected 'from'");
+        if (fromToken2.value != "from") {
+            throw ParseError("Expected 'from' keyword, got '" + fromToken2.value + "'", fromToken2);
+        }
+        Token pathTok = consume(TokenType::STRING, "Expected string path after 'from'");
+        importDecl->path = pathTok.value;
+    } else {
+        throw ParseError("Expected import pattern", peek());
+    }
+    
     consume(TokenType::SEMICOLON, "Expected ';' after import");
-    return std::make_unique<ImportDeclaration>(pathTok.value);
+    return importDecl;
+}
+
+std::unique_ptr<ASTNode> Parser::parseUseDeclaration() {
+    consume(TokenType::KW_USE, "Expected 'use'");
+    
+    // Use statements only support simple path imports: use "path";
+    Token pathTok = consume(TokenType::STRING, "Expected string path after 'use'");
+    auto useDecl = std::make_unique<UseDeclaration>(pathTok.value);
+    
+    consume(TokenType::SEMICOLON, "Expected ';' after use");
+    return useDecl;
+}
+
+std::unique_ptr<ASTNode> Parser::parseExportDeclaration() {
+    consume(TokenType::KW_EXPORT, "Expected 'export'");
+    
+    // Handle different export patterns:
+    // export func name() { ... }  (export function)
+    // export var x = 5;  (export variable)
+    // export {x, y};  (named exports)
+    // export default func() { ... }  (default export)
+    
+    if (check(TokenType::IDENTIFIER) && peek().value == "default") {
+        // Default export
+        advance(); // consume "default"
+        auto declaration = parseDeclaration();
+        return std::make_unique<ExportDeclaration>(std::move(declaration), true);
+    } else if (check(TokenType::LBRACE)) {
+        // Named exports: export {x, y};
+        advance(); // consume {
+        std::vector<std::string> exports;
+        do {
+            Token name = consume(TokenType::IDENTIFIER, "Expected export name");
+            exports.push_back(name.value);
+        } while (match({TokenType::COMMA}));
+        consume(TokenType::RBRACE, "Expected '}' after export names");
+        consume(TokenType::SEMICOLON, "Expected ';' after export");
+        return std::make_unique<ExportDeclaration>(exports);
+    } else {
+        // Export declaration: export func name() { ... } or export var x = 5;
+        auto declaration = parseDeclaration();
+        return std::make_unique<ExportDeclaration>(std::move(declaration));
+    }
 }
 
 std::unique_ptr<TypeDeclaration> Parser::parseTypeDeclaration() {
@@ -406,6 +506,7 @@ std::unique_ptr<Statement> Parser::parseStatement() {
     if (check(TokenType::KW_THROW)) return parseThrowStatement();
     if (check(TokenType::KW_BREAK)) return parseBreakStatement();
     if (check(TokenType::KW_CONTINUE)) return parseContinueStatement();
+    if (check(TokenType::KW_SWITCH)) return parseSwitchStatement();
     if (check(TokenType::LBRACE)) {
         auto block = parseBlock();
         return block;
@@ -545,6 +646,57 @@ std::unique_ptr<Statement> Parser::parseContinueStatement() {
     consume(TokenType::KW_CONTINUE, "Expected 'continue'");
     consume(TokenType::SEMICOLON, "Expected ';' after continue");
     return std::make_unique<ContinueStatement>();
+}
+
+std::unique_ptr<Statement> Parser::parseSwitchStatement() {
+    consume(TokenType::KW_SWITCH, "Expected 'switch'");
+    consume(TokenType::LPAREN, "Expected '(' after 'switch'");
+    auto discriminant = parseExpression();
+    consume(TokenType::RPAREN, "Expected ')' after switch expression");
+    consume(TokenType::LBRACE, "Expected '{' after switch condition");
+    
+    auto switchStmt = std::make_unique<SwitchStatement>(std::move(discriminant));
+    
+    while (!check(TokenType::RBRACE) && !isAtEnd()) {
+        if (check(TokenType::KW_CASE)) {
+            advance(); // consume 'case'
+            auto caseValue = parseExpression();
+            consume(TokenType::COLON, "Expected ':' after case value");
+            
+            auto caseClause = std::make_unique<CaseClause>(std::move(caseValue), false);
+            
+            // Parse statements until next case/default/end of switch
+            while (!check(TokenType::KW_CASE) && !check(TokenType::KW_DEFAULT) && 
+                   !check(TokenType::RBRACE) && !isAtEnd()) {
+                auto stmt = parseDeclaration();
+                if (stmt) {
+                    caseClause->statements.push_back(std::move(stmt));
+                }
+            }
+            
+            switchStmt->cases.push_back(std::move(caseClause));
+        } else if (check(TokenType::KW_DEFAULT)) {
+            advance(); // consume 'default'
+            consume(TokenType::COLON, "Expected ':' after 'default'");
+            
+            auto defaultClause = std::make_unique<CaseClause>(nullptr, true);
+            
+            // Parse statements until next case/end of switch
+            while (!check(TokenType::KW_CASE) && !check(TokenType::RBRACE) && !isAtEnd()) {
+                auto stmt = parseDeclaration();
+                if (stmt) {
+                    defaultClause->statements.push_back(std::move(stmt));
+                }
+            }
+            
+            switchStmt->cases.push_back(std::move(defaultClause));
+        } else {
+            throw ParseError("Expected 'case' or 'default' in switch statement", peek());
+        }
+    }
+    
+    consume(TokenType::RBRACE, "Expected '}' after switch body");
+    return switchStmt;
 }
 
 std::unique_ptr<Statement> Parser::parseTryStatement() {

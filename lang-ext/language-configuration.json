@@ -13,7 +13,8 @@
     {"open": "[", "close": "]"},
     {"open": "(", "close": ")"},
     {"open": "\"", "close": "\"", "notIn": ["string"]},
-    {"open": "'", "close": "'", "notIn": ["string", "comment"]}
+    {"open": "'", "close": "'", "notIn": ["string", "comment"]},
+    {"open": "/*", "close": "*/", "notIn": ["string"]}
   ],
   "surroundingPairs": [
     ["{", "}"],
@@ -28,10 +29,10 @@
       "end": "^\\s*//\\s*#?endregion\\b"
     }
   },
-  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\/\\?\\s]+)",
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|([a-zA-Z_$][a-zA-Z0-9_$]*)",
   "indentationRules": {
-    "increaseIndentPattern": "^((?!\\/\\/).*)*\\{[^}\"'`]*$",
-    "decreaseIndentPattern": "^((?!.*?\\/\\*).*\\*/)?\\s*\\}.*$"
+    "increaseIndentPattern": "^((?!\\/\\/).*)*[\\{\\[]\\s*$|^\\s*(case\\s+.*:|default\\s*:)\\s*$",
+    "decreaseIndentPattern": "^((?!.*?\\/\\*).*\\*/)?\\s*[\\}\\]].*$|^\\s*(case\\s+.*:|default\\s*:|break\\s*;|continue\\s*;)\\s*$"
   },
   "onEnterRules": [
     {

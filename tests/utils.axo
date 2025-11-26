@@ -1,0 +1,21 @@
+// Utility functions for testing imports
+export func add(a: int, b: int) -> int {
+    return a + b;
+}
+
+export func multiply(x: int, y: int) -> int {
+    return x * y;
+}
+
+export func greet(name: string) -> string {
+    return "Hello, " + name + "!";
+}
+
+// Export some constants
+export const PI: float = 3.14159;
+export const VERSION: string = "1.0.0";
+
+// Default export
+export default func calculate(x: int, y: int) -> int {
+    return add(multiply(x, 2), y);
+}

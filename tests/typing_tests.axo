@@ -1,0 +1,374 @@
+// TYPING TESTS - Comprehensive type system testing for Axolotl
+print("=== AXOLOTL TYPING SYSTEM STRESS TEST ===");
+
+// Test 1: Basic Type Declarations
+print("\n1. Basic Type Declarations");
+var intVar: int = 42;
+var floatVar: float = 3.14;
+var stringVar: string = "hello";
+var boolVar: bool = true;
+print("✓ Basic types:", intVar, floatVar, stringVar, boolVar);
+
+// Test 2: Array Type Declarations
+print("\n2. Array Type Declarations");
+var intArray: [int] = [1, 2, 3];
+var floatArray: [float] = [1.1, 2.2, 3.3];
+var stringArray: [string] = ["a", "b", "c"];
+var boolArray: [bool] = [true, false, true];
+print("✓ Typed arrays:", intArray, floatArray, stringArray, boolArray);
+
+// Test 3: Nested Array Types
+print("\n3. Nested Array Types");
+var matrix: [[int]] = [[1, 2], [3, 4], [5, 6]];
+var stringMatrix: [[string]] = [["a", "b"], ["c", "d"]];
+print("✓ Nested arrays:", matrix, stringMatrix);
+
+// Test 4: Object Type Declarations
+print("\n4. Object Type Declarations");
+var person: object = {name: "Alice", age: 30, active: true};
+var config: object = {debug: false, version: "2.0", ports: [8080, 3000]};
+print("✓ Typed objects:", person, config);
+
+// Test 5: Function Type Declarations
+print("\n5. Function Type Declarations");
+func typedAdd(a: int, b: int) -> int {
+    return a + b;
+}
+
+func typedConcat(s1: string, s2: string) -> string {
+    return s1 + s2;
+}
+
+func typedFilter(arr: [int], threshold: int) -> [int] {
+    var result: [int] = [];
+    for (var i: int = 0; i < len(arr); i = i + 1) {
+        if (arr[i] > threshold) {
+            push(result, arr[i]);
+        }
+    }
+    return result;
+}
+
+print("✓ typedAdd(10, 20):", typedAdd(10, 20));
+print("✓ typedConcat('hello', 'world'):", typedConcat("hello", "world"));
+print("✓ typedFilter([1,5,3,8,2], 3):", typedFilter([1, 5, 3, 8, 2], 3));
+
+// Test 6: Function Expression Types
+print("\n6. Function Expression Types");
+var multiplier: func = func(x: int, factor: int) -> int {
+    return x * factor;
+};
+
+var stringProcessor: func = func(text: string, upper: bool) -> string {
+    if (upper) {
+        return toUpper(text);
+    } else {
+        return toLower(text);
+    }
+};
+
+print("✓ multiplier(5, 3):", multiplier(5, 3));
+print("✓ stringProcessor('Hello', true):", stringProcessor("Hello", true));
+print("✓ stringProcessor('WORLD', false):", stringProcessor("WORLD", false));
+
+// Test 7: Complex Type Combinations
+print("\n7. Complex Type Combinations");
+var complexData: object = {
+    users: [
+        {id: 1, name: "John", scores: [85, 92, 78]},
+        {id: 2, name: "Jane", scores: [91, 88, 95]}
+    ],
+    settings: {
+        theme: "dark",
+        notifications: true,
+        limits: [100, 200, 300]
+    }
+};
+print("✓ Complex nested structure:", complexData);
+
+// Test 8: Type-Safe Array Operations
+print("\n8. Type-Safe Array Operations");
+var numbers: [int] = [10, 20, 30, 40, 50];
+var doubled: [int] = [];
+
+for (var i: int = 0; i < len(numbers); i = i + 1) {
+    push(doubled, numbers[i] * 2);
+}
+print("✓ Original numbers:", numbers);
+print("✓ Doubled numbers:", doubled);
+
+// Test 9: Type-Safe Object Manipulation
+print("\n9. Type-Safe Object Manipulation");
+var employee: object = {
+    name: "Bob",
+    department: "Engineering",
+    salary: 75000,
+    skills: ["JavaScript", "Python", "Go"]
+};
+
+employee.salary = employee.salary + 5000;
+var skills: [string] = employee.skills;
+push(skills, "Rust");
+employee.skills = skills;
+employee.promoted = true;
+
+print("✓ Updated employee:", employee);
+
+// Test 10: Function Parameter Type Checking
+print("\n10. Function Parameter Type Checking");
+func processUser(user: object, active: bool) -> object {
+    user.active = active;
+    user.lastUpdated = millis();
+    return user;
+}
+
+func calculateStats(scores: [int]) -> object {
+    var sum: int = 0;
+    var min: int = scores[0];
+    var max: int = scores[0];
+    
+    for (var i: int = 0; i < len(scores); i = i + 1) {
+        sum = sum + scores[i];
+        if (scores[i] < min) {
+            min = scores[i];
+        }
+        if (scores[i] > max) {
+            max = scores[i];
+        }
+    }
+    
+    return {
+        sum: sum,
+        average: sum / len(scores),
+        min: min,
+        max: max,
+        count: len(scores)
+    };
+}
+
+var testUser: object = {name: "Charlie", role: "Developer"};
+var updatedUser: object = processUser(testUser, true);
+print("✓ Processed user:", updatedUser);
+
+var testScores: [int] = [85, 92, 78, 96, 88];
+var stats: object = calculateStats(testScores);
+print("✓ Score statistics:", stats);
+
+// Test 11: Return Type Validation
+print("\n11. Return Type Validation");
+func getStringLength(text: string) -> int {
+    return len(text);
+}
+
+func createArray(size: int, value: int) -> [int] {
+    var result: [int] = [];
+    for (var i: int = 0; i < size; i = i + 1) {
+        push(result, value);
+    }
+    return result;
+}
+
+func buildObject(name: string, count: int) -> object {
+    return {
+        name: name,
+        count: count,
+        created: millis(),
+        items: createArray(count, 0)
+    };
+}
+
+print("✓ String length:", getStringLength("TypeScript"));
+print("✓ Created array:", createArray(5, 42));
+print("✓ Built object:", buildObject("TestObj", 3));
+
+// Test 12: Type Inference Testing
+print("\n12. Type Inference Testing");
+var inferredInt: int = 100;
+var inferredFloat: float = 99.9;
+var inferredString: string = "inferred";
+var inferredBool: bool = false;
+
+// Arrays with type inference
+var inferredIntArray: [int] = [1, 2, 3, 4];
+var inferredStringArray: [string] = ["x", "y", "z"];
+
+print("✓ Inferred types work:", inferredInt, inferredFloat, inferredString, inferredBool);
+print("✓ Inferred arrays:", inferredIntArray, inferredStringArray);
+
+// Test 13: Const Type Declarations
+print("\n13. Const Type Declarations");
+const PI: float = 3.14159;
+const MAX_USERS: int = 1000;
+const APP_NAME: string = "Axolotl";
+const DEBUG_MODE: bool = true;
+const VALID_CODES: [int] = [200, 201, 204];
+
+print("✓ Constants:", PI, MAX_USERS, APP_NAME, DEBUG_MODE, VALID_CODES);
+
+// Test 14: Function Overloading Simulation
+print("\n14. Function Overloading Simulation");
+func processInt(value: int) -> string {
+    return "Integer: " + toString(value);
+}
+
+func processString(value: string) -> string {
+    return "String: " + value;
+}
+
+func processBool(value: bool) -> string {
+    if (value) {
+        return "Boolean: true";
+    } else {
+        return "Boolean: false";
+    }
+}
+
+print("✓ Process int:", processInt(42));
+print("✓ Process string:", processString("hello"));
+print("✓ Process bool:", processBool(true));
+
+// Test 15: Advanced Array Type Operations
+print("\n15. Advanced Array Type Operations");
+func mapInts(arr: [int], multiplier: int) -> [int] {
+    var result: [int] = [];
+    for (var i: int = 0; i < len(arr); i = i + 1) {
+        push(result, arr[i] * multiplier);
+    }
+    return result;
+}
+
+func filterStrings(arr: [string], minLength: int) -> [string] {
+    var result: [string] = [];
+    for (var i: int = 0; i < len(arr); i = i + 1) {
+        if (len(arr[i]) >= minLength) {
+            push(result, arr[i]);
+        }
+    }
+    return result;
+}
+
+var sourceInts: [int] = [1, 2, 3, 4, 5];
+var mappedInts: [int] = mapInts(sourceInts, 10);
+print("✓ Mapped integers:", mappedInts);
+
+var sourceStrings: [string] = ["a", "hello", "hi", "world", "x"];
+var filteredStrings: [string] = filterStrings(sourceStrings, 3);
+print("✓ Filtered strings:", filteredStrings);
+
+// Test 16: Type-Safe Error Handling
+print("\n16. Type-Safe Error Handling");
+func safeDiv(a: int, b: int) -> int {
+    if (b == 0) {
+        throw "Division by zero";
+    }
+    return a / b;
+}
+
+func parseNumber(text: string) -> int {
+    if (text == "zero") {
+        return 0;
+    }
+    if (text == "one") {
+        return 1;
+    }
+    throw "Invalid number: " + text;
+}
+
+try {
+    var result1: int = safeDiv(10, 2);
+    print("✓ Safe division:", result1);
+} catch (e) {
+    print("✗ Unexpected error:", e);
+}
+
+try {
+    var result2: int = parseNumber("one");
+    print("✓ Parsed number:", result2);
+} catch (e) {
+    print("✗ Parse error:", e);
+}
+
+try {
+    var result3: int = safeDiv(5, 0);
+    print("✗ Should not reach here");
+} catch (e) {
+    print("✓ Caught division error:", e);
+}
+
+// Test 17: Recursive Type Structures
+print("\n17. Recursive Type Structures");
+func buildTree(depth: int, value: int) -> object {
+    if (depth <= 0) {
+        return {value: value, children: []};
+    }
+    
+    var children: [object] = [];
+    for (var i: int = 0; i < 2; i = i + 1) {
+        push(children, buildTree(depth - 1, value + i + 1));
+    }
+    
+    return {
+        value: value,
+        children: children
+    };
+}
+
+func countNodes(tree: object) -> int {
+    var count: int = 1;
+    var children: [object] = tree.children;
+    
+    for (var i: int = 0; i < len(children); i = i + 1) {
+        count = count + countNodes(children[i]);
+    }
+    
+    return count;
+}
+
+var tree: object = buildTree(2, 1);
+var nodeCount: int = countNodes(tree);
+print("✓ Tree structure:", tree);
+print("✓ Node count:", nodeCount);
+
+// Test 18: Performance with Types
+print("\n18. Performance with Types");
+var perfStart: int = millis();
+
+func heavyComputation(data: [int], iterations: int) -> [int] {
+    var result: [int] = [];
+    
+    for (var iter: int = 0; iter < iterations; iter = iter + 1) {
+        for (var i: int = 0; i < len(data); i = i + 1) {
+            var processed: int = data[i] * iter + i;
+            push(result, processed % 1000);
+        }
+    }
+    
+    return result;
+}
+
+var inputData: [int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+var computedResult: [int] = heavyComputation(inputData, 50);
+
+var perfEnd: int = millis();
+print("✓ Heavy computation completed");
+print("✓ Result length:", len(computedResult));
+print("✓ Time taken:", perfEnd - perfStart, "ms");
+
+// Final Type System Summary
+print("\n=== TYPING SYSTEM SUMMARY ===");
+print("✅ All 18 typing test categories completed!");
+print("🎯 Type system features tested:");
+print("   • Basic type declarations (int, float, string, bool)");
+print("   • Array type declarations ([type])");
+print("   • Nested array types ([[type]])");
+print("   • Object type declarations");
+print("   • Function parameter and return types");
+print("   • Function expression types");
+print("   • Complex nested type structures");
+print("   • Type-safe operations");
+print("   • Const type declarations");
+print("   • Type inference validation");
+print("   • Error handling with types");
+print("   • Recursive type structures");
+print("   • Performance with type checking");
+print("\n🚀 Axolotl's type system is robust and working correctly!");

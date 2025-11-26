@@ -125,11 +125,15 @@ public:
     std::string visit(ExpressionStatement* node) override;
     std::string visit(Program* node) override;
     std::string visit(ImportDeclaration* node) override;
+    std::string visit(UseDeclaration* node) override;
+    std::string visit(ExportDeclaration* node) override;
     std::string visit(TypeDeclaration* node) override;
     std::string visit(ThrowStatement* node) override;
     std::string visit(TryStatement* node) override;
     std::string visit(BreakStatement* node) override;
     std::string visit(ContinueStatement* node) override;
+    std::string visit(CaseClause* node) override;
+    std::string visit(SwitchStatement* node) override;
     
 private:
     Environment environment;
@@ -138,6 +142,10 @@ private:
     std::unordered_map<std::string, std::future<void>> runningPrograms;
     std::mutex programsMutex;
     std::unordered_set<std::string> importedFiles;
+    std::unordered_map<std::string, std::unordered_map<std::string, Value>> moduleExports;  // Store exports per module
+    std::unordered_map<std::string, Value> moduleDefaultExports;  // Store default exports per module
+    std::string currentModulePath;  // Track current module being processed
+    std::unordered_map<std::string, std::unique_ptr<Program>> importedASTs;  // Keep imported ASTs alive
     Value lastValue;  // Store last evaluated complex value (array, object)
     Variable lastVariable;  // Store last accessed variable for typeof operations
     std::string lastVariableName;  // Store last accessed variable name
@@ -152,6 +160,7 @@ private:
     bool isTruthy(const Value& v);
     std::string valueToString(const Value& v);
     std::string getTypeOfValue(const Value& v);
+    std::string resolveImportPath(const std::string& requestedPath);
 };
 
 #endif // INTERPRETER_H

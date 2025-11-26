@@ -1,0 +1,261 @@
+// IntelliSense Demo - Test all language features with enhanced VS Code support
+
+print("=== Axolotl IntelliSense Demo ===");
+
+// 1. Basic Types with Auto-Completion
+var number: int = 42;
+var decimal: float = 3.14159;
+var message: string = "Hello, IntelliSense!";
+var flag: bool = true;
+var data: any = "flexible";
+
+// 2. Union Types (should show type suggestions)
+type Status = "active"|"inactive"|"pending";
+type ID = string|int;
+type FlexibleValue = string|int|bool|float;
+
+var userStatus: Status = "active";
+var userId: ID = "user_123";
+var mixedValue: FlexibleValue = 42;
+
+// 3. Custom Object Types
+type User = {
+    id: ID,
+    name: string,
+    age: int,
+    status: Status,
+    preferences: {
+        theme: string,
+        notifications: bool
+    }
+};
+
+type Product = {
+    id: int,
+    title: string,
+    price: float,
+    tags: [string],
+    available: bool
+};
+
+// 4. Array Types with IntelliSense
+var numbers: [int] = [1, 2, 3, 4, 5];
+var words: [string] = ["hello", "world", "intellisense"];
+var mixed: [string|int] = ["item", 1, "another", 2];
+var users: [User] = [
+    {
+        id: 1,
+        name: "Alice",
+        age: 30,
+        status: "active",
+        preferences: {theme: "dark", notifications: true}
+    },
+    {
+        id: "user_456",
+        name: "Bob", 
+        age: 25,
+        status: "pending",
+        preferences: {theme: "light", notifications: false}
+    }
+];
+
+// 5. Function Declarations (should show in auto-complete)
+func calculateTotal(items: [Product]) -> float {
+    var total: float = 0.0;
+    
+    for (var i: int = 0; i < len(items); i = i + 1) {
+        if (items[i].available) {
+            total = total + items[i].price;
+        }
+    }
+    
+    return total;
+}
+
+func processUser(user: User) -> string {
+    var result: string = "User: " + user.name;
+    result = result + " (ID: " + toString(user.id) + ")";
+    result = result + " - Status: " + user.status;
+    return result;
+}
+
+func handleUnionType(value: FlexibleValue) -> string {
+    var type: string = typeof(value);
+    
+    switch (type) {
+        case "string":
+            return "String value: " + value;
+        case "int":
+            return "Integer value: " + toString(value);
+        case "bool":
+            if (value) {
+                return "Boolean value: true";
+            } else {
+                return "Boolean value: false";
+            }
+        case "float":
+            return "Float value: " + toString(value);
+        default:
+            return "Unknown type: " + type;
+    }
+}
+
+// 6. Built-in Functions (should show documentation on hover)
+func demonstrateBuiltins() -> void {
+    // String functions
+    var text: string = "Hello, World!";
+    var length: int = len(text);
+    var upper: string = toUpper(text);
+    var lower: string = toLower(text);
+    var substring: string = substr(text, 0, 5);
+    var index: int = indexOf(text, "World");
+    var hasWorld: bool = contains(text, "World");
+    
+    print("String operations:");
+    print("Length:", length);
+    print("Upper:", upper);
+    print("Lower:", lower);
+    print("Substring:", substring);
+    print("Index of 'World':", index);
+    print("Contains 'World':", hasWorld);
+    
+    // Array functions
+    var testArray: [int] = [10, 20, 30];
+    print("Array length:", len(testArray));
+    push(testArray, 40);
+    print("After push:", testArray);
+    var popped: int = pop(testArray);
+    print("Popped value:", popped);
+    print("Final array:", testArray);
+    
+    // Utility functions
+    var currentTime: int = millis();
+    print("Current time:", currentTime);
+    print("Type of text:", typeof(text));
+    print("Type of length:", typeof(length));
+}
+
+// 7. Error Handling with Try-Catch
+func demonstrateErrorHandling() -> void {
+    try {
+        print("Attempting risky operation...");
+        
+        // Simulate potential error
+        var riskyValue: int = 10;
+        if (riskyValue > 5) {
+            throw "Value too high!";
+        }
+        
+        print("Operation succeeded");
+    } catch (error) {
+        print("Caught error:", error);
+    } finally {
+        print("Cleanup completed");
+    }
+}
+
+// 8. Complex Data Processing
+func processComplexData() -> void {
+    var products: [Product] = [
+        {id: 1, title: "Laptop", price: 999.99, tags: ["electronics", "computer"], available: true},
+        {id: 2, title: "Book", price: 29.99, tags: ["education", "reading"], available: true},
+        {id: 3, title: "Phone", price: 699.99, tags: ["electronics", "mobile"], available: false}
+    ];
+    
+    print("Processing", len(products), "products:");
+    
+    var total: float = calculateTotal(products);
+    print("Total value of available products:", total);
+    
+    // Process each user
+    for (var i: int = 0; i < len(users); i = i + 1) {
+        var userInfo: string = processUser(users[i]);
+        print(userInfo);
+        
+        // Demonstrate union type handling
+        var userIdResult: string = handleUnionType(users[i].id);
+        print("ID processing:", userIdResult);
+    }
+}
+
+// 9. Function Expressions and Higher-Order Functions
+func demonstrateFunctionExpressions() -> void {
+    var doubler: func = func(x: int) -> int {
+        return x * 2;
+    };
+    
+    var formatter: func = func(name: string, value: int) -> string {
+        return name + ": " + toString(value);
+    };
+    
+    print("Function expressions:");
+    print("Double 5:", doubler(5));
+    print("Format result:", formatter("Score", 95));
+}
+
+// 10. Advanced Type Checking
+func demonstrateTypeChecking() -> void {
+    var testValues: [FlexibleValue] = [
+        "hello",
+        42,
+        true,
+        3.14,
+        "world",
+        false,
+        100
+    ];
+    
+    print("Type checking demonstration:");
+    
+    for (var i: int = 0; i < len(testValues); i = i + 1) {
+        var value: FlexibleValue = testValues[i];
+        var result: string = handleUnionType(value);
+        print("Value", i, "->", result);
+    }
+}
+
+// 11. Import/Export Simulation (for IntelliSense testing)
+// These would normally be in separate files
+type Config = {
+    debug: bool,
+    version: string,
+    features: [string]
+};
+
+const APP_CONFIG: Config = {
+    debug: true,
+    version: "2.0.0",
+    features: ["intellisense", "type-checking", "auto-completion"]
+};
+
+func getConfig() -> Config {
+    return APP_CONFIG;
+}
+
+// 12. Main Execution Function
+func main() -> void {
+    print("Starting IntelliSense demonstration...");
+    
+    demonstrateBuiltins();
+    print("");
+    
+    demonstrateErrorHandling();
+    print("");
+    
+    processComplexData();
+    print("");
+    
+    demonstrateFunctionExpressions();
+    print("");
+    
+    demonstrateTypeChecking();
+    print("");
+    
+    var config: Config = getConfig();
+    print("App configuration:", config);
+    
+    print("IntelliSense demo completed successfully!");
+}
+
+// Execute the demo
+main();

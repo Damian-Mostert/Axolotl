@@ -1,0 +1,73 @@
+// Test switch-case functionality in Axolotl
+
+func testSwitch(value: int) -> void {
+    switch (value) {
+        case 1:
+            print("One");
+            break;
+        case 2:
+            print("Two");
+            break;
+        case 3:
+            print("Three");
+            break;
+        default:
+            print("Other:", value);
+            break;
+    }
+}
+
+func testFallthrough(grade: string) -> void {
+    switch (grade) {
+        case "A":
+        case "B":
+            print("Good grade!");
+            break;
+        case "C":
+            print("Average grade");
+            break;
+        case "D":
+        case "F":
+            print("Poor grade");
+            break;
+        default:
+            print("Invalid grade:", grade);
+    }
+}
+
+func main() -> void {
+    print("=== Switch Statement Tests ===");
+    
+    // Test basic switch cases
+    print("\nBasic switch tests:");
+    testSwitch(1);
+    testSwitch(2);
+    testSwitch(3);
+    testSwitch(42);
+    
+    // Test fallthrough behavior
+    print("\nFallthrough tests:");
+    testFallthrough("A");
+    testFallthrough("B");
+    testFallthrough("C");
+    testFallthrough("D");
+    testFallthrough("F");
+    testFallthrough("X");
+    
+    // Test switch with expressions
+    print("\nSwitch with expressions:");
+    var x: int = 5;
+    switch (x * 2) {
+        case 10:
+            print("x * 2 equals 10");
+            break;
+        case 20:
+            print("x * 2 equals 20");
+            break;
+        default:
+            print("x * 2 equals", x * 2);
+    }
+}
+
+
+main();

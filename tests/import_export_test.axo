@@ -1,0 +1,35 @@
+// Test JavaScript-style import/export functionality
+
+// Named imports
+use "tests/extreme_test.axo";
+import {add, multiply} from "tests/utils.axo";
+
+// Default import
+import calculate from "tests/utils.axo";
+
+// Mixed import (default + named)
+import calc, {greet, VERSION} from "tests/utils.axo";
+
+func main() -> void {
+    // Test named imports
+    var sum: int = add(5, 3);
+    var product: int = multiply(4, 7);
+    
+    print("Sum:", sum);
+    print("Product:", product);
+    print("PI:", PI);
+    
+    // Test default import
+    var result: int = calculate(10, 5);
+    print("Calculate result:", result);
+    
+    // Test mixed import
+    var result2: int = calc(3, 2);
+    var greeting: string = greet("World");
+    
+    print("Calc result:", result2);
+    print("Greeting:", greeting);
+    print("Version:", VERSION);
+}
+
+main();

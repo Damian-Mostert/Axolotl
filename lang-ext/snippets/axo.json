@@ -285,5 +285,41 @@
             ""
         ],
         "description": "Create a file header comment"
+    },
+    "Switch Statement": {
+        "prefix": "switch",
+        "body": [
+            "switch (${1:expression}) {",
+            "\tcase ${2:value1}:",
+            "\t\t${3:// case 1 body}",
+            "\t\tbreak;",
+            "\tcase ${4:value2}:",
+            "\t\t${5:// case 2 body}",
+            "\t\tbreak;",
+            "\tdefault:",
+            "\t\t${6:// default case}",
+            "}"
+        ],
+        "description": "Create a switch statement"
+    },
+    "Case Clause": {
+        "prefix": "case",
+        "body": [
+            "case ${1:value}:",
+            "\t${2:// case body}",
+            "\tbreak;"
+        ],
+        "description": "Create a case clause"
+    },
+    "Test Function": {
+        "prefix": "test",
+        "body": [
+            "func test${1:Name}() -> void {",
+            "\tprint(\"=== Testing ${1:Name} ===");",
+            "\t${2:// test implementation}",
+            "\tprint(\"✓ ${1:Name} test passed\");",
+            "}"
+        ],
+        "description": "Create a test function template"
     }
 }

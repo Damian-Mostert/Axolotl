@@ -28,6 +28,8 @@ private:
     // Parsing methods
     std::unique_ptr<ASTNode> parseDeclaration();
     std::unique_ptr<ASTNode> parseImportDeclaration();
+    std::unique_ptr<ASTNode> parseUseDeclaration();
+    std::unique_ptr<ASTNode> parseExportDeclaration();
     std::unique_ptr<TypeDeclaration> parseTypeDeclaration();
     std::unique_ptr<FunctionDeclaration> parseFunctionDeclaration();
     std::unique_ptr<ProgramDeclaration> parseProgramDeclaration();
@@ -41,6 +43,7 @@ private:
     std::unique_ptr<Statement> parseThrowStatement();
     std::unique_ptr<Statement> parseBreakStatement();
     std::unique_ptr<Statement> parseContinueStatement();
+    std::unique_ptr<Statement> parseSwitchStatement();
     std::unique_ptr<Statement> parseVariableDeclaration();
     std::unique_ptr<Expression> parseExpression();
     std::unique_ptr<Expression> parseAssignment();

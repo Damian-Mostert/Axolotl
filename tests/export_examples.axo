@@ -1,0 +1,29 @@
+// Examples of different export patterns
+
+// Export function declaration
+export func square(x: int) -> int {
+    return x * x;
+}
+
+// Export variable declaration
+export var MAX_SIZE: int = 100;
+export const MIN_SIZE: int = 1;
+
+// Regular declarations
+func helper(x: int) -> int {
+    return x + 1;
+}
+
+var counter: int = 0;
+
+// Named exports of existing declarations
+export {helper, counter};
+
+// Default export
+export default func power(base: int, exp: int) -> int {
+    var result: int = 1;
+    for (var i: int = 0; i < exp; i = i + 1) {
+        result = result * base;
+    }
+    return result;
+}

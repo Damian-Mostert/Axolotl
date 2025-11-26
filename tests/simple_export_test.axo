@@ -1,0 +1,16 @@
+// Simple export test
+export func add(a: int, b: int) -> int {
+    return a + b;
+}
+
+export const PI: float = 3.14159;
+export const NAME: string = "test";
+
+func main() -> void {
+    var result: int = add(5, 3);
+    print("Result:", result);
+    print("PI:", PI);
+    print("Name:", NAME);
+}
+
+main();

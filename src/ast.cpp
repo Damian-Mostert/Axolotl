@@ -138,6 +138,16 @@ std::string ImportDeclaration::accept(ASTVisitor* visitor) {
     return visitor->visit(this);
 }
 
+// UseDeclaration
+std::string UseDeclaration::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
+// ExportDeclaration
+std::string ExportDeclaration::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
 // ProgramDeclaration
 std::string ProgramDeclaration::accept(ASTVisitor* visitor) {
     return visitor->visit(this);
@@ -160,5 +170,15 @@ std::string BreakStatement::accept(ASTVisitor* visitor) {
 
 // ContinueStatement
 std::string ContinueStatement::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
+// CaseClause
+std::string CaseClause::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}
+
+// SwitchStatement
+std::string SwitchStatement::accept(ASTVisitor* visitor) {
     return visitor->visit(this);
 }

@@ -289,7 +289,33 @@ public:
 class ImportDeclaration : public ASTNode {
 public:
     std::string path;
+    std::vector<std::string> namedImports;
+    std::string defaultImport;
+    
     ImportDeclaration(const std::string& p) : path(p) {}
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
+class UseDeclaration : public ASTNode {
+public:
+    std::string path;
+    
+    UseDeclaration(const std::string& p) : path(p) {}
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
+class ExportDeclaration : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> declaration;
+    std::vector<std::string> namedExports;
+    bool isDefault;
+    
+    ExportDeclaration(std::unique_ptr<ASTNode> decl, bool isDefault = false)
+        : declaration(std::move(decl)), isDefault(isDefault) {}
+    
+    ExportDeclaration(const std::vector<std::string>& exports)
+        : namedExports(exports), isDefault(false) {}
+    
     std::string accept(class ASTVisitor* visitor) override;
 };
 
@@ -342,6 +368,29 @@ public:
     std::string accept(class ASTVisitor* visitor) override;
 };
 
+class CaseClause : public ASTNode {
+public:
+    std::unique_ptr<Expression> value; // null for default case
+    std::vector<std::unique_ptr<ASTNode>> statements;
+    bool isDefault;
+    
+    CaseClause(std::unique_ptr<Expression> val = nullptr, bool isDefault = false)
+        : value(std::move(val)), isDefault(isDefault) {}
+    
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
+class SwitchStatement : public Statement {
+public:
+    std::unique_ptr<Expression> discriminant;
+    std::vector<std::unique_ptr<CaseClause>> cases;
+    
+    SwitchStatement(std::unique_ptr<Expression> disc)
+        : discriminant(std::move(disc)) {}
+    
+    std::string accept(class ASTVisitor* visitor) override;
+};
+
 
 
 class Program : public ASTNode {
@@ -383,11 +432,15 @@ public:
     virtual std::string visit(AwaitExpression* node) = 0;
     virtual std::string visit(ExpressionStatement* node) = 0;
     virtual std::string visit(ImportDeclaration* node) = 0;
+    virtual std::string visit(UseDeclaration* node) = 0;
+    virtual std::string visit(ExportDeclaration* node) = 0;
     virtual std::string visit(TypeDeclaration* node) = 0;
     virtual std::string visit(ThrowStatement* node) = 0;
     virtual std::string visit(TryStatement* node) = 0;
     virtual std::string visit(BreakStatement* node) = 0;
     virtual std::string visit(ContinueStatement* node) = 0;
+    virtual std::string visit(CaseClause* node) = 0;
+    virtual std::string visit(SwitchStatement* node) = 0;
     virtual std::string visit(Program* node) = 0;
 };
 

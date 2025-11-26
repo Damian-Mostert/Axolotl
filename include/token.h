@@ -27,6 +27,8 @@ enum class TokenType {
     KW_VAR,
     KW_CONST,
     KW_IMPORT,
+    KW_USE,
+    KW_EXPORT,
     KW_OBJECT,
     KW_TRUE,
     KW_FALSE,
@@ -40,6 +42,9 @@ enum class TokenType {
     KW_THROW,
     KW_BREAK,
     KW_CONTINUE,
+    KW_SWITCH,
+    KW_CASE,
+    KW_DEFAULT,
     
     // Operators
     PLUS,

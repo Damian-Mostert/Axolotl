@@ -1,8 +1,8 @@
 {
     "name": "axo-syntax",
     "displayName": "Axolotl Language",
-    "description": "Complete language support for Axolotl (.axo) files with syntax highlighting, snippets, and error detection",
-    "version": "1.1.0",
+    "description": "Complete language support for Axolotl (.axo) files with IntelliSense, syntax highlighting, auto-completion, type checking, and error detection",
+    "version": "2.1.8",
     "publisher": "DamianMostert",
     "license": "MIT",
     "engines": {
@@ -14,15 +14,24 @@
     "categories": [
         "Programming Languages",
         "Snippets",
+        "Linters",
         "Other"
     ],
+    "activationEvents": [
+        "onLanguage:axo"
+    ],
+    "main": "./extension.js",
     "keywords": [
         "axolotl",
         "axo",
         "programming",
         "language",
         "syntax",
-        "highlighting"
+        "highlighting",
+        "intellisense",
+        "autocomplete",
+        "type-checking",
+        "language-server"
     ],
     "repository": {
         "type": "git",
@@ -96,6 +105,70 @@
                     }
                 }
             }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "Axolotl Language Configuration",
+            "properties": {
+                "axolotl.enableIntelliSense": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable IntelliSense features (auto-completion, hover, diagnostics)"
+                },
+                "axolotl.enableTypeChecking": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable real-time type checking and error detection"
+                },
+                "axolotl.compilerPath": {
+                    "type": "string",
+                    "default": "./build/compiler",
+                    "description": "Path to the Axolotl compiler executable"
+                },
+                "axolotl.maxNumberOfProblems": {
+                    "type": "number",
+                    "default": 100,
+                    "description": "Maximum number of problems to report"
+                },
+                "axolotl.trace.server": {
+                    "type": "string",
+                    "enum": ["off", "messages", "verbose"],
+                    "default": "off",
+                    "description": "Traces the communication between VS Code and the language server"
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "axolotl.compile",
+                "title": "Compile Axolotl File",
+                "category": "Axolotl"
+            },
+            {
+                "command": "axolotl.run",
+                "title": "Run Axolotl File",
+                "category": "Axolotl"
+            },
+            {
+                "command": "axolotl.checkSyntax",
+                "title": "Check Syntax",
+                "category": "Axolotl"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "axolotl.run",
+                "key": "f5",
+                "when": "editorTextFocus && resourceExtname == .axo"
+            },
+            {
+                "command": "axolotl.compile",
+                "key": "ctrl+shift+b",
+                "when": "editorTextFocus && resourceExtname == .axo"
+            }
         ]
+    },
+    "devDependencies": {
+        "vsce": "^2.0.0"
     }
 }

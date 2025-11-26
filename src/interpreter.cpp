@@ -303,7 +303,8 @@ std::string Interpreter::visit(FloatLiteral *node)
 
 std::string Interpreter::visit(StringLiteral *node)
 {
-    return node->value;
+    lastValue = node->value;
+    return "[string]";
 }
 
 std::string Interpreter::visit(BooleanLiteral *node)
@@ -736,6 +737,7 @@ std::string Interpreter::visit(FunctionCall *node)
                 
                 if (node->args.size() != prog->params.size())
                 {
+                    std::cerr << "[debug] Program '" << idCallee->name << "' expects " << prog->params.size() << " arguments but got " << node->args.size() << std::endl;
                     throw std::runtime_error("Program argument count mismatch");
                 }
 
@@ -831,6 +833,7 @@ std::string Interpreter::visit(FunctionCall *node)
                     FunctionDeclaration *func = std::get<FunctionDeclaration*>(calleeVal);
                     if (node->args.size() != func->params.size())
                     {
+                        std::cerr << "[debug] Environment FunctionDeclaration '" << idCallee->name << "' expects " << func->params.size() << " arguments but got " << node->args.size() << std::endl;
                         throw std::runtime_error("Function argument count mismatch");
                     }
 
@@ -863,6 +866,7 @@ std::string Interpreter::visit(FunctionCall *node)
                     FunctionExpression *func = std::get<FunctionExpression*>(calleeVal);
                     if (node->args.size() != func->params.size())
                     {
+                        std::cerr << "[debug] Environment FunctionExpression '" << idCallee->name << "' expects " << func->params.size() << " arguments but got " << node->args.size() << std::endl;
                         throw std::runtime_error("Function argument count mismatch");
                     }
 
@@ -1220,50 +1224,295 @@ std::string Interpreter::visit(ExpressionStatement *node)
     return "";
 }
 
+// Helper function to resolve import paths with Node.js-like behavior
+std::string Interpreter::resolveImportPath(const std::string& requestedPath) {
+    fs::path requested(requestedPath);
+    
+    // If path has an extension, use it as-is but validate it
+    if (requested.has_extension()) {
+        std::string ext = requested.extension().string();
+        if (ext != ".axo" && ext != ".json") {
+            throw std::runtime_error("Invalid file extension '" + ext + "'. Only .axo and .json files are allowed.");
+        }
+        
+        // For relative paths, resolve relative to the importing file's directory
+        fs::path absPath;
+        if (requested.is_relative()) {
+            // If we have a current module path, resolve relative to its directory
+            if (!currentModulePath.empty()) {
+                fs::path currentDir = fs::path(currentModulePath).parent_path();
+                absPath = currentDir / requested;
+            } else {
+                absPath = fs::current_path() / requested;
+            }
+        } else {
+            absPath = requested;
+        }
+        
+        if (fs::exists(absPath)) {
+            return absPath.string();
+        }
+        throw std::runtime_error("File not found: " + absPath.string());
+    }
+    
+    // No extension provided - try .axo first (default for Axolotl files)
+    fs::path axoPath = requested;
+    axoPath += ".axo";
+    fs::path absAxoPath = fs::absolute(axoPath);
+    
+    if (fs::exists(absAxoPath)) {
+        return absAxoPath.string();
+    }
+    
+    // If .axo doesn't exist, check if it's a directory with index.axo
+    fs::path dirPath = fs::absolute(requested);
+    if (fs::is_directory(dirPath)) {
+        fs::path indexPath = dirPath / "index.axo";
+        if (fs::exists(indexPath)) {
+            return indexPath.string();
+        }
+    }
+    
+    // File not found
+    throw std::runtime_error("Module not found: '" + requestedPath + "'. Tried: " + absAxoPath.string() + ", " + (dirPath / "index.axo").string());
+}
+
 std::string Interpreter::visit(ImportDeclaration *node)
 {
     try
     {
-        fs::path requested(node->path);
-        fs::path absPath = fs::absolute(requested);
-        std::string absStr = absPath.string();
-
-        if (importedFiles.find(absStr) != importedFiles.end())
-        {
-            // Already imported, skip
+        // Resolve the import path using Node.js-like resolution
+        std::string resolvedPath = resolveImportPath(node->path);
+        
+        // Check file extension to determine how to process
+        fs::path filePath(resolvedPath);
+        std::string extension = filePath.extension().string();
+        
+        if (extension == ".json") {
+            // For JSON files, just read content and make it available as a string
+            std::ifstream file(resolvedPath);
+            if (!file.is_open()) {
+                throw std::runtime_error("Could not open import file: " + resolvedPath);
+            }
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            std::string jsonContent = buffer.str();
+            
+            // Store JSON content as a variable with the filename (without extension)
+            std::string varName = filePath.stem().string();
+            environment.define(varName, Variable(jsonContent, "string", true));
+            
             return "";
         }
+        else if (extension == ".axo") {
+            // Process Axolotl files with export/import support
+            bool alreadyImported = importedFiles.find(resolvedPath) != importedFiles.end();
+            
+            if (!alreadyImported) {
+                // Mark as imported to prevent cycles
+                importedFiles.insert(resolvedPath);
+                
+                std::ifstream file(resolvedPath);
+                if (!file.is_open()) {
+                    throw std::runtime_error("Could not open import file: " + resolvedPath);
+                }
+                
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                std::string source = buffer.str();
 
-        // Mark as imported to prevent cycles
-        importedFiles.insert(absStr);
+                // Tokenize and parse
+                Lexer lexer(source);
+                auto tokens = lexer.tokenize();
+                Parser parser(tokens);
+                auto ast = parser.parse();
 
-        std::ifstream file(absStr);
-        if (!file.is_open())
-        {
-            throw std::runtime_error("Could not open import file: " + absStr);
+                // Set current module path and interpret to populate exports
+                std::string savedModulePath = currentModulePath;
+                currentModulePath = resolvedPath;
+                interpret(ast.get());
+                currentModulePath = savedModulePath;
+                
+                // Store the AST to keep function declarations alive
+                importedASTs[resolvedPath] = std::move(ast);
+            }
+            
+            // Handle import bindings
+            if (!node->defaultImport.empty()) {
+                // Default import: import x from "path";
+                std::cerr << "[debug] Processing default import: " << node->defaultImport << std::endl;
+                if (moduleDefaultExports.find(resolvedPath) != moduleDefaultExports.end()) {
+                    Value defaultValue = moduleDefaultExports[resolvedPath];
+                    environment.define(node->defaultImport, Variable(defaultValue, "any", true));
+                    // Also register functions in the functions registry for proper function calls
+                    if (std::holds_alternative<FunctionDeclaration*>(defaultValue)) {
+                        functions[node->defaultImport] = std::get<FunctionDeclaration*>(defaultValue);
+                    }
+                }
+            }
+            
+            if (!node->namedImports.empty()) {
+                // Named imports: import {x, y} from "path";
+                std::cerr << "[debug] Processing named imports: ";
+                for (const auto& name : node->namedImports) {
+                    std::cerr << name << " ";
+                }
+                std::cerr << std::endl;
+                auto moduleExportsIt = moduleExports.find(resolvedPath);
+                if (moduleExportsIt != moduleExports.end()) {
+                    for (const std::string& importName : node->namedImports) {
+                        auto exportIt = moduleExportsIt->second.find(importName);
+                        if (exportIt != moduleExportsIt->second.end()) {
+                            std::cerr << "[debug] Importing named export: " << importName << std::endl;
+                            environment.define(importName, Variable(exportIt->second, "any", true));
+                            // Also register functions in the functions registry for proper function calls
+                            if (std::holds_alternative<FunctionDeclaration*>(exportIt->second)) {
+                                functions[importName] = std::get<FunctionDeclaration*>(exportIt->second);
+                            }
+                        }
+                    }
+                }
+                // IMPORTANT: Do not import anything else when named imports are specified
+                return "";
+            }
+            
+            // If no specific imports are specified, don't import anything
+            // The module is loaded and executed, but no exports are made available
+            return "";
         }
-
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        std::string source = buffer.str();
-
-        // Tokenize
-        Lexer lexer(source);
-        auto tokens = lexer.tokenize();
-
-        // Parse
-        Parser parser(tokens);
-        auto ast = parser.parse();
-
-        // Interpret using the same interpreter (share environment/functions)
-        interpret(ast.get());
-
-        return "";
+        else {
+            throw std::runtime_error("Unsupported file type: " + extension + ". Only .axo and .json files are supported.");
+        }
     }
     catch (const std::exception &e)
     {
         throw std::runtime_error(std::string("Import error (") + node->path + "): " + e.what());
     }
+}
+
+std::string Interpreter::visit(UseDeclaration *node)
+{
+    try
+    {
+        // Resolve the use path using Node.js-like resolution
+        std::string resolvedPath = resolveImportPath(node->path);
+        
+        // Check file extension to determine how to process
+        fs::path filePath(resolvedPath);
+        std::string extension = filePath.extension().string();
+        
+        if (extension == ".json") {
+            // For JSON files, just read content but don't make it available in scope
+            // Use statements don't import anything into the current namespace
+            std::ifstream file(resolvedPath);
+            if (!file.is_open()) {
+                throw std::runtime_error("Could not open use file: " + resolvedPath);
+            }
+            // Just close the file - we're not importing anything
+            file.close();
+            return "";
+        }
+        else if (extension == ".axo") {
+            // Process Axolotl files but don't import any exports
+            bool alreadyImported = importedFiles.find(resolvedPath) != importedFiles.end();
+            
+            if (!alreadyImported) {
+                // Mark as imported to prevent cycles
+                importedFiles.insert(resolvedPath);
+                
+                std::ifstream file(resolvedPath);
+                if (!file.is_open()) {
+                    throw std::runtime_error("Could not open use file: " + resolvedPath);
+                }
+                
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                std::string source = buffer.str();
+
+                // Tokenize and parse
+                Lexer lexer(source);
+                auto tokens = lexer.tokenize();
+                Parser parser(tokens);
+                auto ast = parser.parse();
+
+                // Set current module path and interpret in isolated environment
+                std::string savedModulePath = currentModulePath;
+                Environment savedEnvironment = environment;
+                
+                // Create a new isolated environment for the used file
+                environment = Environment();
+                environment.pushScope();
+                
+                currentModulePath = resolvedPath;
+                interpret(ast.get());
+                currentModulePath = savedModulePath;
+                
+                // Restore the original environment
+                environment = savedEnvironment;
+                
+                // Store the AST to keep function declarations alive
+                importedASTs[resolvedPath] = std::move(ast);
+            }
+            
+            // IMPORTANT: Use statements do NOT import any exports into the current namespace
+            // They only ensure the module is loaded and executed
+            return "";
+        }
+        else {
+            throw std::runtime_error("Unsupported file type: " + extension + ". Only .axo and .json files are supported.");
+        }
+    }
+    catch (const std::exception &e)
+    {
+        throw std::runtime_error(std::string("Use error (") + node->path + "): " + e.what());
+    }
+}
+
+std::string Interpreter::visit(ExportDeclaration *node)
+{
+    // Use the current module path being processed
+    std::string currentModule = currentModulePath.empty() ? "<main>" : currentModulePath;
+    
+    if (node->declaration) {
+        // Export declaration: export func name() { ... } or export var x = 5;
+        node->declaration->accept(this);
+        
+        // Extract the name from the declaration and add to exports
+        if (auto funcDecl = dynamic_cast<FunctionDeclaration*>(node->declaration.get())) {
+            // The function should already be registered in functions registry by visit(FunctionDeclaration)
+            // Get it from the registry to ensure we have the correct pointer
+            auto funcIt = functions.find(funcDecl->name);
+            if (funcIt != functions.end()) {
+                Value funcValue = funcIt->second;  // Use the registered function pointer
+                if (node->isDefault) {
+                    moduleDefaultExports[currentModule] = funcValue;
+                } else {
+                    moduleExports[currentModule][funcDecl->name] = funcValue;
+                }
+            }
+        } else if (auto varDecl = dynamic_cast<VariableDeclaration*>(node->declaration.get())) {
+            // Get the variable value from environment
+            if (environment.has(varDecl->name)) {
+                Variable var = environment.get(varDecl->name);
+                std::cerr << "[debug] Exporting variable '" << varDecl->name << "' with value: " << valueToString(var.value) << std::endl;
+                if (node->isDefault) {
+                    moduleDefaultExports[currentModule] = var.value;
+                } else {
+                    moduleExports[currentModule][varDecl->name] = var.value;
+                }
+            }
+        }
+    } else if (!node->namedExports.empty()) {
+        // Named exports: export {x, y};
+        for (const std::string& exportName : node->namedExports) {
+            if (environment.has(exportName)) {
+                Variable var = environment.get(exportName);
+                moduleExports[currentModule][exportName] = var.value;
+            }
+        }
+    }
+    
+    return "";
 }
 
 std::string Interpreter::visit(TypeDeclaration *node)
@@ -1827,4 +2076,50 @@ std::string Interpreter::visit(FunctionExpression* node)
     // Store the function expression pointer in lastValue so it can be retrieved
     lastValue = node;
     return "[function]";
+}
+
+std::string Interpreter::visit(CaseClause* node)
+{
+    // Case clauses are handled by SwitchStatement, not directly executed
+    return "";
+}
+
+std::string Interpreter::visit(SwitchStatement* node)
+{
+    Value discriminantValue = evaluate(node->discriminant.get());
+    bool matched = false;
+    bool fallthrough = false;
+    
+    try {
+        for (auto& caseClause : node->cases) {
+            if (caseClause->isDefault) {
+                // Default case - execute if no previous match or if falling through
+                if (!matched || fallthrough) {
+                    matched = true;
+                    fallthrough = true;
+                    for (auto& stmt : caseClause->statements) {
+                        stmt->accept(this);
+                    }
+                }
+            } else {
+                // Regular case - check if value matches
+                Value caseValue = evaluate(caseClause->value.get());
+                bool caseMatches = (valueToString(discriminantValue) == valueToString(caseValue));
+                
+                if (caseMatches || fallthrough) {
+                    matched = true;
+                    fallthrough = true;
+                    for (auto& stmt : caseClause->statements) {
+                        stmt->accept(this);
+                    }
+                }
+            }
+        }
+    }
+    catch (const BreakException&) {
+        // Break statement exits the switch
+        return "";
+    }
+    
+    return "";
 }
