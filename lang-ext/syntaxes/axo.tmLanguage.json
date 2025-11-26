@@ -412,6 +412,14 @@
         {
           "name": "support.function.builtin.utility.axo",
           "match": "\\b(assert|error|keys|values|hasKey|clone|merge)\\b"
+        },
+        {
+          "name": "support.function.builtin.json.axo",
+          "match": "\\b(json_parse|json_stringify)\\b"
+        },
+        {
+          "name": "support.function.builtin.http.axo",
+          "match": "\\b(fetch)\\b"
         }
       ]
     },

@@ -14,6 +14,7 @@
 #include <typeinfo>
 #include <cmath>
 #include <random>
+#include <curl/curl.h>
 
 namespace fs = std::filesystem;
 
@@ -488,6 +489,376 @@ std::string Interpreter::visit(FunctionCall *node)
         dstFile.close();
 
         return ""; // Return empty string for void functions
+    }
+
+    // Built-in: json_parse(string)
+    if (callName == "json_parse")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("json_parse() expects 1 argument: json_parse(jsonString)");
+        }
+
+        Value jsonVal = evaluate(node->args[0].get());
+        std::string jsonStr = valueToString(jsonVal);
+
+        // Simple JSON parser for objects
+        if (jsonStr.size() > 0 && jsonStr[0] == '{') {
+            auto jsonObj = std::make_shared<ObjectValue>();
+            size_t pos = 1;
+            
+            while (pos < jsonStr.size() && jsonStr[pos] != '}') {
+                // Skip whitespace
+                while (pos < jsonStr.size() && (jsonStr[pos] == ' ' || jsonStr[pos] == '\n' || jsonStr[pos] == '\r' || jsonStr[pos] == '\t')) pos++;
+                if (pos >= jsonStr.size() || jsonStr[pos] == '}') break;
+                
+                // Parse key
+                if (jsonStr[pos] != '"') break;
+                pos++;
+                size_t keyStart = pos;
+                while (pos < jsonStr.size() && jsonStr[pos] != '"') pos++;
+                std::string key = jsonStr.substr(keyStart, pos - keyStart);
+                pos++;
+                
+                // Skip colon
+                while (pos < jsonStr.size() && (jsonStr[pos] == ' ' || jsonStr[pos] == ':')) pos++;
+                
+                // Parse value
+                Value val;
+                if (jsonStr[pos] == '"') {
+                    pos++;
+                    size_t valStart = pos;
+                    while (pos < jsonStr.size() && jsonStr[pos] != '"') {
+                        if (jsonStr[pos] == '\\') pos++;
+                        pos++;
+                    }
+                    val = jsonStr.substr(valStart, pos - valStart);
+                    pos++;
+                } else if (jsonStr[pos] == 't' || jsonStr[pos] == 'f') {
+                    val = (jsonStr[pos] == 't');
+                    pos += (jsonStr[pos] == 't') ? 4 : 5;
+                } else if (jsonStr[pos] == 'n') {
+                    val = std::string("");
+                    pos += 4;
+                } else if (jsonStr[pos] >= '0' && jsonStr[pos] <= '9' || jsonStr[pos] == '-') {
+                    size_t numStart = pos;
+                    bool isFloat = false;
+                    while (pos < jsonStr.size() && (jsonStr[pos] >= '0' && jsonStr[pos] <= '9' || jsonStr[pos] == '.' || jsonStr[pos] == '-' || jsonStr[pos] == 'e' || jsonStr[pos] == 'E')) {
+                        if (jsonStr[pos] == '.') isFloat = true;
+                        pos++;
+                    }
+                    std::string numStr = jsonStr.substr(numStart, pos - numStart);
+                    if (isFloat) {
+                        val = std::stof(numStr);
+                    } else {
+                        val = std::stoi(numStr);
+                    }
+                } else {
+                    val = std::string("");
+                }
+                
+                jsonObj->fields[key] = val;
+                
+                // Skip comma
+                while (pos < jsonStr.size() && (jsonStr[pos] == ' ' || jsonStr[pos] == ',' || jsonStr[pos] == '\n' || jsonStr[pos] == '\r' || jsonStr[pos] == '\t')) pos++;
+            }
+            
+            lastValue = jsonObj;
+            return "{object}";
+        }
+        
+        throw std::runtime_error("json_parse() requires valid JSON string");
+    }
+
+    // Built-in: json_stringify(object)
+    if (callName == "json_stringify")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("json_stringify() expects 1 argument: json_stringify(object)");
+        }
+
+        Value objVal = evaluate(node->args[0].get());
+        
+        if (std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal))
+        {
+            auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+            std::string json = "{";
+            bool first = true;
+            for (const auto& [key, val] : obj->fields)
+            {
+                if (!first) json += ",";
+                json += "\"" + key + "\":";
+                if (std::holds_alternative<std::string>(val))
+                {
+                    json += "\"" + std::get<std::string>(val) + "\"";
+                }
+                else if (std::holds_alternative<bool>(val))
+                {
+                    json += std::get<bool>(val) ? "true" : "false";
+                }
+                else
+                {
+                    json += valueToString(val);
+                }
+                first = false;
+            }
+            json += "}";
+            lastValue = json;
+            return "[string]";
+        }
+        
+        throw std::runtime_error("json_stringify() requires object");
+    }
+
+    // Built-in: fetch(url, options?)
+    if (callName == "fetch")
+    {
+        if (node->args.size() < 1 || node->args.size() > 2)
+        {
+            throw std::runtime_error("fetch() expects 1 or 2 arguments: fetch(url, options?)");
+        }
+
+        Value urlVal = evaluate(node->args[0].get());
+        std::string url = valueToString(urlVal);
+
+        // Default options
+        std::string method = "GET";
+        std::string body = "";
+        std::unordered_map<std::string, std::string> headers;
+
+        // Parse options if provided
+        if (node->args.size() == 2)
+        {
+            Value optionsVal = evaluate(node->args[1].get());
+            if (std::holds_alternative<std::shared_ptr<ObjectValue>>(optionsVal))
+            {
+                auto options = std::get<std::shared_ptr<ObjectValue>>(optionsVal);
+                
+                if (options->fields.find("method") != options->fields.end())
+                {
+                    method = valueToString(options->fields["method"]);
+                }
+                if (options->fields.find("body") != options->fields.end())
+                {
+                    Value bodyVal = options->fields["body"];
+                    // If body is an object, convert to JSON
+                    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(bodyVal))
+                    {
+                        auto bodyObj = std::get<std::shared_ptr<ObjectValue>>(bodyVal);
+                        body = "{";
+                        bool first = true;
+                        for (const auto& [key, val] : bodyObj->fields)
+                        {
+                            if (!first) body += ",";
+                            body += "\"" + key + "\":";
+                            if (std::holds_alternative<std::string>(val))
+                            {
+                                body += "\"" + std::get<std::string>(val) + "\"";
+                            }
+                            else
+                            {
+                                body += valueToString(val);
+                            }
+                            first = false;
+                        }
+                        body += "}";
+                    }
+                    else
+                    {
+                        body = valueToString(bodyVal);
+                    }
+                }
+                if (options->fields.find("headers") != options->fields.end())
+                {
+                    Value headersVal = options->fields["headers"];
+                    if (std::holds_alternative<std::shared_ptr<ObjectValue>>(headersVal))
+                    {
+                        auto headersObj = std::get<std::shared_ptr<ObjectValue>>(headersVal);
+                        for (const auto& [key, val] : headersObj->fields)
+                        {
+                            headers[key] = valueToString(val);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Perform HTTP request using libcurl
+        CURL* curl = curl_easy_init();
+        if (!curl)
+        {
+            throw std::runtime_error("Failed to initialize curl");
+        }
+
+        std::string responseBody;
+        std::string responseHeaders;
+        long statusCode = 0;
+
+        // Callback for response body
+        auto writeCallback = [](char* ptr, size_t size, size_t nmemb, void* userdata) -> size_t {
+            std::string* str = static_cast<std::string*>(userdata);
+            str->append(ptr, size * nmemb);
+            return size * nmemb;
+        };
+
+        // Callback for response headers
+        auto headerCallback = [](char* ptr, size_t size, size_t nmemb, void* userdata) -> size_t {
+            std::string* str = static_cast<std::string*>(userdata);
+            str->append(ptr, size * nmemb);
+            return size * nmemb;
+        };
+
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, +writeCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBody);
+        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, +headerCallback);
+        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &responseHeaders);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+        // Set method
+        if (method == "POST")
+        {
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+        }
+        else if (method == "PUT")
+        {
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+        }
+        else if (method == "DELETE")
+        {
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+        }
+        else if (method == "PATCH")
+        {
+            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+        }
+
+        // Set custom headers
+        struct curl_slist* headerList = nullptr;
+        for (const auto& [key, val] : headers)
+        {
+            std::string header = key + ": " + val;
+            headerList = curl_slist_append(headerList, header.c_str());
+        }
+        if (headerList)
+        {
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
+        }
+
+        // Perform request
+        CURLcode res = curl_easy_perform(curl);
+        
+        if (res != CURLE_OK)
+        {
+            std::string error = curl_easy_strerror(res);
+            curl_easy_cleanup(curl);
+            if (headerList) curl_slist_free_all(headerList);
+            throw std::runtime_error("fetch() failed: " + error);
+        }
+
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &statusCode);
+        curl_easy_cleanup(curl);
+        if (headerList) curl_slist_free_all(headerList);
+
+        // Parse JSON response if Content-Type is application/json
+        Value parsedBody = responseBody;
+        std::string contentType = "";
+        
+        // Extract Content-Type from headers
+        size_t ctPos = responseHeaders.find("Content-Type:");
+        if (ctPos == std::string::npos) ctPos = responseHeaders.find("content-type:");
+        if (ctPos != std::string::npos) {
+            size_t lineEnd = responseHeaders.find('\n', ctPos);
+            contentType = responseHeaders.substr(ctPos, lineEnd - ctPos);
+        }
+        
+        // Auto-parse JSON responses
+        if (contentType.find("application/json") != std::string::npos || 
+            (responseBody.size() > 0 && (responseBody[0] == '{' || responseBody[0] == '['))) {
+            try {
+                // Simple JSON parser for objects
+                if (responseBody[0] == '{') {
+                    auto jsonObj = std::make_shared<ObjectValue>();
+                    size_t pos = 1;
+                    
+                    while (pos < responseBody.size() && responseBody[pos] != '}') {
+                        // Skip whitespace
+                        while (pos < responseBody.size() && (responseBody[pos] == ' ' || responseBody[pos] == '\n' || responseBody[pos] == '\r' || responseBody[pos] == '\t')) pos++;
+                        if (pos >= responseBody.size() || responseBody[pos] == '}') break;
+                        
+                        // Parse key
+                        if (responseBody[pos] != '"') break;
+                        pos++;
+                        size_t keyStart = pos;
+                        while (pos < responseBody.size() && responseBody[pos] != '"') pos++;
+                        std::string key = responseBody.substr(keyStart, pos - keyStart);
+                        pos++;
+                        
+                        // Skip colon
+                        while (pos < responseBody.size() && (responseBody[pos] == ' ' || responseBody[pos] == ':')) pos++;
+                        
+                        // Parse value
+                        Value val;
+                        if (responseBody[pos] == '"') {
+                            pos++;
+                            size_t valStart = pos;
+                            while (pos < responseBody.size() && responseBody[pos] != '"') {
+                                if (responseBody[pos] == '\\') pos++;
+                                pos++;
+                            }
+                            val = responseBody.substr(valStart, pos - valStart);
+                            pos++;
+                        } else if (responseBody[pos] == 't' || responseBody[pos] == 'f') {
+                            val = (responseBody[pos] == 't');
+                            pos += (responseBody[pos] == 't') ? 4 : 5;
+                        } else if (responseBody[pos] == 'n') {
+                            val = std::string("");
+                            pos += 4;
+                        } else if (responseBody[pos] >= '0' && responseBody[pos] <= '9' || responseBody[pos] == '-') {
+                            size_t numStart = pos;
+                            bool isFloat = false;
+                            while (pos < responseBody.size() && (responseBody[pos] >= '0' && responseBody[pos] <= '9' || responseBody[pos] == '.' || responseBody[pos] == '-' || responseBody[pos] == 'e' || responseBody[pos] == 'E')) {
+                                if (responseBody[pos] == '.') isFloat = true;
+                                pos++;
+                            }
+                            std::string numStr = responseBody.substr(numStart, pos - numStart);
+                            if (isFloat) {
+                                val = std::stof(numStr);
+                            } else {
+                                val = std::stoi(numStr);
+                            }
+                        } else {
+                            val = std::string("");
+                        }
+                        
+                        jsonObj->fields[key] = val;
+                        
+                        // Skip comma
+                        while (pos < responseBody.size() && (responseBody[pos] == ' ' || responseBody[pos] == ',' || responseBody[pos] == '\n' || responseBody[pos] == '\r' || responseBody[pos] == '\t')) pos++;
+                    }
+                    
+                    parsedBody = jsonObj;
+                }
+            } catch (...) {
+                // If parsing fails, keep as string
+                parsedBody = responseBody;
+            }
+        }
+
+        // Build response object
+        auto response = std::make_shared<ObjectValue>();
+        response->fields["status"] = static_cast<int>(statusCode);
+        response->fields["body"] = parsedBody;
+        response->fields["headers"] = responseHeaders;
+        response->fields["ok"] = (statusCode >= 200 && statusCode < 300);
+        response->fields["url"] = url;
+
+        lastValue = response;
+        return "{object}";
     }
 
     // Built-in: print(...)

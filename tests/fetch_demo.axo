@@ -1,0 +1,57 @@
+// Comprehensive fetch() demonstration
+// Shows versatile HTTP operations with automatic JSON parsing
+
+print("=== Fetch API Demo ===\n");
+
+// 1. Simple GET request - JSON auto-parsed
+print("1. GET request with auto-parsed JSON:");
+var user: object = fetch("https://jsonplaceholder.typicode.com/users/1");
+print("   Status:", user.status, "| OK:", user.ok);
+print("   Name:", user.body.name);
+print("   Email:", user.body.email);
+print("   City:", user.body.address.city);
+
+// 2. POST with object body (auto-converted to JSON)
+print("\n2. POST with object body:");
+var newPost: object = {};
+newPost.title = "My New Post";
+newPost.body = "This is the content";
+newPost.userId = 1;
+
+var postOpts: object = {};
+postOpts.method = "POST";
+postOpts.body = newPost;
+
+var created: object = fetch("https://jsonplaceholder.typicode.com/posts", postOpts);
+print("   Created! Status:", created.status);
+
+// 3. POST with string body
+print("\n3. POST with JSON string:");
+var strOpts: object = {};
+strOpts.method = "POST";
+strOpts.body = "{\"title\":\"String Post\",\"userId\":1}";
+
+var result: object = fetch("https://jsonplaceholder.typicode.com/posts", strOpts);
+print("   Status:", result.status);
+
+// 4. PUT request
+print("\n4. PUT request:");
+var updateData: object = {};
+updateData.title = "Updated";
+
+var putOpts: object = {};
+putOpts.method = "PUT";
+putOpts.body = updateData;
+
+var updated: object = fetch("https://jsonplaceholder.typicode.com/posts/1", putOpts);
+print("   Status:", updated.status);
+
+// 5. DELETE request
+print("\n5. DELETE request:");
+var delOpts: object = {};
+delOpts.method = "DELETE";
+
+var deleted: object = fetch("https://jsonplaceholder.typicode.com/posts/1", delOpts);
+print("   Status:", deleted.status, "| OK:", deleted.ok);
+
+print("\n=== All operations completed! ===");

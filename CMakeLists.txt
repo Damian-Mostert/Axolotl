@@ -44,9 +44,13 @@ else()
     target_link_options(compiler PRIVATE -flto)
 endif()
 
+# Find and link curl
+find_package(CURL REQUIRED)
+include_directories(${CURL_INCLUDE_DIRS})
+
 # Link LLVM libraries
 llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
-target_link_libraries(compiler ${llvm_libs})
+target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES})
 
 # Link stdc++fs for GNU < 9 and also for AppleClang for filesystem support
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

@@ -233,6 +233,7 @@ compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Desc.a
 compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Disassembler.a
 compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Info.a
 compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMAArch64Utils.a
+compiler: /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib/libcurl.tbd
 compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMExecutionEngine.a
 compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMOrcTargetProcess.a
 compiler: /opt/homebrew/Cellar/llvm/21.1.6/lib/libLLVMOrcShared.a

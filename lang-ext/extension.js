@@ -414,6 +414,26 @@ class AxolotlLanguageProvider {
                 params: [{name: 'obj1', type: 'object'}, {name: 'obj2', type: 'object'}],
                 returnType: 'object',
                 documentation: 'Merge two objects into a new object'
+            },
+            // JSON functions
+            {
+                name: 'json_parse',
+                params: [{name: 'jsonString', type: 'string'}],
+                returnType: 'object',
+                documentation: 'Parse JSON string into an object'
+            },
+            {
+                name: 'json_stringify',
+                params: [{name: 'object', type: 'object'}],
+                returnType: 'string',
+                documentation: 'Convert object to JSON string'
+            },
+            // HTTP functions
+            {
+                name: 'fetch',
+                params: [{name: 'url', type: 'string'}, {name: 'options', type: 'object', optional: true}],
+                returnType: 'object',
+                documentation: 'Make HTTP request. Returns object with status, ok, body (auto-parsed if JSON), headers, url. Options: {method: string, body: string|object, headers: object}'
             }
         ];
 

@@ -1,0 +1,39 @@
+// Async HTTP fetch using programs - demonstrating await with fetch
+
+program fetchUser(userId: int) {
+    print("Fetching user", userId, "...");
+    var url: string = "https://jsonplaceholder.typicode.com/users/";
+    url = url + toString(userId);
+    
+    var response: object = fetch(url);
+    
+    if (response.ok) {
+        print("User", userId, "data:", response.body);
+    } else {
+        print("Failed to fetch user", userId, "- Status:", response.status);
+    }
+}
+
+program fetchPost(postId: int) {
+    print("Fetching post", postId, "...");
+    var url: string = "https://jsonplaceholder.typicode.com/posts/";
+    url = url + toString(postId);
+    
+    var response: object = fetch(url);
+    
+    if (response.ok) {
+        print("Post", postId, "data:", response.body);
+    } else {
+        print("Failed to fetch post", postId);
+    }
+}
+
+print("=== Async Fetch Example ===");
+print("Starting async requests...\n");
+
+// Await multiple fetch operations
+await fetchUser(1);
+await fetchPost(1);
+await fetchUser(2);
+
+print("\nAll requests completed!");

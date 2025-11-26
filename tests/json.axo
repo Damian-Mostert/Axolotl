@@ -1,0 +1,32 @@
+// JSON parse and stringify examples
+
+print("=== JSON Stringify ===");
+var user: object = {};
+user.name = "Alice";
+user.age = 30;
+user.active = true;
+
+var jsonStr: string = json_stringify(user);
+print("JSON string:", jsonStr);
+
+print("");
+print("=== JSON Parse ===");
+var jsonData: string = "{\"title\":\"Hello\",\"count\":42,\"enabled\":true}";
+var parsed: object = json_parse(jsonData);
+print("Parsed object:");
+print("  title:", parsed.title);
+print("  count:", parsed.count);
+print("  enabled:", parsed.enabled);
+
+print("");
+print("=== Round-trip ===");
+var original: object = {};
+original.message = "Test";
+original.value = 123;
+
+var serialized: string = json_stringify(original);
+print("Serialized:", serialized);
+
+var deserialized: object = json_parse(serialized);
+print("Deserialized message:", deserialized.message);
+print("Deserialized value:", deserialized.value);

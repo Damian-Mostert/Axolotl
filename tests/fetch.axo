@@ -1,0 +1,60 @@
+// HTTP fetch example - demonstrating versatile HTTP requests
+
+print("=== Basic GET Request ===");
+var response: object = fetch("https://jsonplaceholder.typicode.com/posts/1");
+print("Status:", response.status);
+print("OK:", response.ok);
+print("Body type:", typeof response.body);
+print("User ID:", response.body.userId);
+print("Post ID:", response.body.id);
+print("Title:", response.body.title);
+
+print("");
+print("=== POST Request with Object Body ===");
+var postData: object = {};
+postData.title = "My Post";
+postData.body = "This is the content";
+postData.userId = 1;
+
+var postOptions: object = {};
+postOptions.method = "POST";
+postOptions.body = postData;
+
+var response2: object = fetch("https://jsonplaceholder.typicode.com/posts", postOptions);
+print("Status:", response2.status);
+print("OK:", response2.ok);
+print("Created ID:", response2.body.id);
+print("Response body type:", typeof response2.body);
+
+print("");
+print("=== POST Request with String Body ===");
+var stringOptions: object = {};
+stringOptions.method = "POST";
+stringOptions.body = "{\"title\":\"foo\",\"body\":\"bar\",\"userId\":1}";
+
+var response3: object = fetch("https://jsonplaceholder.typicode.com/posts", stringOptions);
+print("Status:", response3.status);
+print("Created ID:", response3.body.id);
+
+print("");
+print("=== PUT Request ===");
+var putData: object = {};
+putData.title = "Updated Title";
+putData.body = "Updated content";
+
+var putOptions: object = {};
+putOptions.method = "PUT";
+putOptions.body = putData;
+
+var response4: object = fetch("https://jsonplaceholder.typicode.com/posts/1", putOptions);
+print("Status:", response4.status);
+print("Updated ID:", response4.body.id);
+
+print("");
+print("=== DELETE Request ===");
+var deleteOptions: object = {};
+deleteOptions.method = "DELETE";
+
+var response5: object = fetch("https://jsonplaceholder.typicode.com/posts/1", deleteOptions);
+print("Status:", response5.status);
+print("OK:", response5.ok);
