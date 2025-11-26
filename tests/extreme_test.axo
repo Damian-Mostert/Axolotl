@@ -285,6 +285,8 @@ for (var round: int = 0; round < 5; round = round + 1) {
     
     print("Round", round, "sum:", sum);
 }
+when(true){
 
+};
 print("\n=== EXTREME STRESS TEST COMPLETED ===");
 print("If you see this message, Axolotl survived the ultimate test!");

@@ -4,6 +4,25 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
+#include <algorithm>
+#include <typeinfo>
+
+// ANSI escape codes
+#define RESET   "\033[0m"
+#define BOLD    "\033[1m"
+#define DIM     "\033[2m"
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define BLUE    "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN    "\033[36m"
+#define WHITE   "\033[37m"
+
+#define BOLD_RED    "\033[1;31m"
+#define BOLD_YELLOW "\033[1;33m"
+#define BOLD_CYAN   "\033[1;36m"
 
 std::string readFile(const std::string& filename) {
     std::ifstream file(filename);
@@ -27,41 +46,26 @@ int main(int argc, char* argv[]) {
             printUsage(argv[0]);
             return 1;
         }
-        
+
         if (argc == 2) {
-            // Read from file
             source = readFile(argv[1]);
         } else {
-            // Interactive mode
-            std::cout << "Compiler Engine v1.0" << std::endl;
-            std::cout << "Type 'exit' to quit" << std::endl;
-            std::cout << "> ";
-            
+            std::cout << "Compiler Engine v1.0\nType 'exit' to quit\n> ";
             std::string line;
             while (std::getline(std::cin, line)) {
                 if (line == "exit") break;
-                if (line.empty()) {
-                    std::cout << "> ";
-                    continue;
-                }
+                if (line.empty()) { std::cout << "> "; continue; }
                 source += line + "\n";
-                
                 if (line.find(';') != std::string::npos || line.find('}') != std::string::npos) {
                     try {
-                        // Tokenize
                         Lexer lexer(source);
                         auto tokens = lexer.tokenize();
-                        
-                        // Parse
                         Parser parser(tokens);
                         auto ast = parser.parse();
-                        
-                        // Interpret
                         Interpreter interpreter;
                         interpreter.interpret(ast.get());
-                        
-                        std::cout << std::endl;
                         source = "";
+                        std::cout << std::endl;
                     } catch (const std::exception& e) {
                         std::cerr << "Error: " << e.what() << std::endl;
                         source = "";
@@ -71,62 +75,69 @@ int main(int argc, char* argv[]) {
             }
             return 0;
         }
-        
-        // Tokenize
-        //std::cout << "[*] Tokenizing..." << std::endl;
+
         Lexer lexer(source);
         auto tokens = lexer.tokenize();
-        //std::cout << "    Found " << tokens.size() << " tokens" << std::endl;
-        
-        // Parse
-        //std::cout << "[*] Parsing..." << std::endl;
         Parser parser(tokens);
         auto ast = parser.parse();
-        //std::cout << "    AST created successfully" << std::endl;
-        
-        // Interpret
-        //std::cout << "[*] Executing..." << std::endl;
         Interpreter interpreter;
         interpreter.interpret(ast.get());
-        //std::cout << "[*] Done!" << std::endl;
-        
+
         return 0;
+
     } catch (const std::exception& e) {
-        // Diagnostic: print the dynamic exception type name
         try {
-            std::cerr << "[debug] caught exception type: " << typeid(e).name() << std::endl;
+            std::cerr << DIM << "[debug] caught exception type: " << typeid(e).name() << RESET << "\n";
         } catch (...) {}
 
-        // If it's a ParseError, show the friendly file/line/column pointer
         if (auto pe = dynamic_cast<const ParseError*>(&e)) {
             std::string filename = (argc == 2) ? std::string(argv[1]) : "<stdin>";
-            std::cerr << "Fatal error: " << pe->what() << std::endl;
-            std::cerr << "  File: " << filename << ":" << pe->getLine() << ":" << pe->getColumn() << std::endl;
 
+            std::cerr << BOLD_RED << "✖ Fatal Parse Error: " << RESET
+                      << BOLD << pe->what() << RESET << "\n";
+            std::cerr << BOLD_CYAN << "  → File: " << RESET
+                      << CYAN << filename << RESET
+                      << ":" << YELLOW << pe->getLine() << RESET
+                      << ":" << YELLOW << pe->getColumn() << RESET << "\n\n";
+
+            // ---- CONTEXT BLOCK ----
             std::istringstream ss(source);
-            std::string lineText;
-            int cur = 1;
-            while (std::getline(ss, lineText)) {
-                if (cur == pe->getLine()) break;
-                cur++;
-            }
+            std::vector<std::string> lines;
+            std::string temp;
+            while (std::getline(ss, temp)) lines.push_back(temp);
 
-            if (!lineText.empty()) {
-                std::cerr << lineText << std::endl;
-                int col = pe->getColumn();
-                if (col < 1) col = 1;
-                std::string pointer(col - 1, ' ');
-                int tokenLen = std::max(1, (int)pe->getTokenValue().size());
-                if ((size_t)(col - 1) > lineText.size()) {
-                    std::cerr << pointer << "^" << std::endl;
-                } else {
-                    std::cerr << pointer << std::string(tokenLen, '^') << std::endl;
+            int errLine = pe->getLine();
+            int start = std::max(1, errLine - 2); // 2 lines before
+            int end = std::min((int)lines.size(), errLine + 2); // 2 lines after
+
+            // Print context lines
+            for (int i = start; i <= end; ++i) {
+                bool isError = (i == errLine);
+                if (isError) std::cerr << BOLD_RED;
+                else std::cerr << DIM;
+
+                std::cerr << (i - 1) << " - | " << RESET;
+                if (i - 1 < lines.size()) std::cerr << lines[i - 1];
+                std::cerr << "\n";
+
+                // Print caret **immediately after the error line only**
+                if (isError) {
+                    int col = pe->getColumn();
+                    if (col < 1) col = 1;
+                    std::string pointer(col - 1, ' ');
+                    int tokenLen = std::max(1, (int)pe->getTokenValue().size());
+
+                    std::cerr << std::string(6, ' ') // prefix for "NNN - | "
+                              << pointer
+                              << BOLD_RED << std::string(tokenLen, '^') << RESET
+                              << "\n";
                 }
             }
+
             return 1;
         }
 
-        std::cerr << "Fatal error: " << e.what() << std::endl;
+        std::cerr << BOLD_RED << "Fatal error: " << RESET << e.what() << "\n";
         return 1;
     }
 }
