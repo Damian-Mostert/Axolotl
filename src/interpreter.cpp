@@ -15,6 +15,10 @@
 #include <cmath>
 #include <random>
 #include <curl/curl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 namespace fs = std::filesystem;
 
@@ -364,11 +368,13 @@ std::string Interpreter::visit(UnaryOp *node)
 
 std::string Interpreter::visit(FunctionCall *node)
 {
-    // Determine function name (support callee identifiers)
+    // Determine function name (support callee identifiers and field access)
     std::string callName = node->name;
     if (node->callee) {
         if (auto id = dynamic_cast<Identifier*>(node->callee.get())) {
             callName = id->name;
+        } else if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
+            callName = fa->field;
         }
     }
 
@@ -609,6 +615,399 @@ std::string Interpreter::visit(FunctionCall *node)
         }
         
         throw std::runtime_error("json_stringify() requires object");
+    }
+
+    // Built-in: createServer(callback, port)
+    if (callName == "createServer")
+    {
+        if (node->args.size() != 2)
+        {
+            throw std::runtime_error("createServer() expects 2 arguments: createServer(callback, port)");
+        }
+
+        Value callbackVal = evaluate(node->args[0].get());
+        Value portVal = evaluate(node->args[1].get());
+        int port = std::get<int>(portVal);
+
+        // Create socket
+        int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (server_fd < 0)
+        {
+            throw std::runtime_error("Failed to create socket");
+        }
+
+        int opt = 1;
+        setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+        struct sockaddr_in address;
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = INADDR_ANY;
+        address.sin_port = htons(port);
+
+        if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
+        {
+            close(server_fd);
+            throw std::runtime_error("Failed to bind to port " + std::to_string(port));
+        }
+
+        if (::listen(server_fd, 10) < 0)
+        {
+            close(server_fd);
+            throw std::runtime_error("Failed to listen on port " + std::to_string(port));
+        }
+
+        std::cout << "Server listening on http://localhost:" << port << std::endl;
+
+        // Accept connections loop
+        while (true)
+        {
+            struct sockaddr_in client_addr;
+            socklen_t client_len = sizeof(client_addr);
+            int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+            
+            if (client_fd < 0) continue;
+
+            // Read request
+            char buffer[4096] = {0};
+            ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
+            
+            if (bytes_read > 0)
+            {
+                std::string request(buffer, bytes_read);
+                
+                // Parse HTTP request
+                std::istringstream iss(request);
+                std::string method, path, version;
+                iss >> method >> path >> version;
+
+                // Create request object
+                auto req = std::make_shared<ObjectValue>();
+                req->fields["method"] = method;
+                req->fields["url"] = path;
+                req->fields["path"] = path;
+
+                // Create response object
+                auto res = std::make_shared<ObjectValue>();
+                res->fields["_fd"] = client_fd;
+                res->fields["_statusCode"] = 200;
+
+                // Call request callback
+                if (std::holds_alternative<FunctionExpression*>(callbackVal))
+                {
+                    auto func = std::get<FunctionExpression*>(callbackVal);
+                    if (func->params.size() == 2)
+                    {
+                        environment.pushScope();
+                        environment.define(func->params[0].first, Variable(req, "object", false));
+                        environment.define(func->params[1].first, Variable(res, "object", false));
+                        try {
+                            executeBlock(func->body.get());
+                        } catch (const ReturnException&) {}
+                        environment.popScope();
+                    }
+                }
+            }
+            
+            close(client_fd);
+        }
+
+        close(server_fd);
+        return "";
+    }
+
+    // Built-in: server.listen(port, callback?) - internal handler
+    if (callName == "listen" && node->callee)
+    {
+        if (node->args.size() < 1 || node->args.size() > 2)
+        {
+            throw std::runtime_error("listen() expects 1 or 2 arguments: listen(port, callback?)");
+        }
+
+        // Get server object from callee (should be a field access like server.listen)
+        if (auto fieldAccess = dynamic_cast<FieldAccess*>(node->callee.get()))
+        {
+            Value serverVal = evaluate(fieldAccess->object.get());
+            if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(serverVal))
+            {
+                throw std::runtime_error("listen() must be called on a server object");
+            }
+
+            auto server = std::get<std::shared_ptr<ObjectValue>>(serverVal);
+            if (server->fields.find("_callback") == server->fields.end())
+            {
+                throw std::runtime_error("Invalid server object");
+            }
+
+            Value requestCallback = server->fields["_callback"];
+            Value portVal = evaluate(node->args[0].get());
+            int port = std::get<int>(portVal);
+
+            // Optional listen callback
+            Value listenCallback;
+            if (node->args.size() == 2)
+            {
+                listenCallback = evaluate(node->args[1].get());
+            }
+
+            // Create socket
+            int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+            if (server_fd < 0)
+            {
+                throw std::runtime_error("Failed to create socket");
+            }
+
+            int opt = 1;
+            setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+            struct sockaddr_in address;
+            address.sin_family = AF_INET;
+            address.sin_addr.s_addr = INADDR_ANY;
+            address.sin_port = htons(port);
+
+            if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) < 0)
+            {
+                close(server_fd);
+                throw std::runtime_error("Failed to bind to port " + std::to_string(port));
+            }
+
+            if (::listen(server_fd, 10) < 0)
+            {
+                close(server_fd);
+                throw std::runtime_error("Failed to listen on port " + std::to_string(port));
+            }
+
+            // Call listen callback if provided
+            if (node->args.size() == 2)
+            {
+                if (std::holds_alternative<FunctionExpression*>(listenCallback))
+                {
+                    auto func = std::get<FunctionExpression*>(listenCallback);
+                    environment.pushScope();
+                    try {
+                        executeBlock(func->body.get());
+                    } catch (const ReturnException&) {}
+                    environment.popScope();
+                }
+            }
+
+            std::cout << "Server listening on port " << port << std::endl;
+
+            // Accept connections loop
+            while (true)
+            {
+                struct sockaddr_in client_addr;
+                socklen_t client_len = sizeof(client_addr);
+                int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+                
+                if (client_fd < 0) continue;
+
+                // Read request
+                char buffer[4096] = {0};
+                ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);
+                
+                if (bytes_read > 0)
+                {
+                    std::string request(buffer, bytes_read);
+                    
+                    // Parse HTTP request
+                    std::istringstream iss(request);
+                    std::string method, path, version;
+                    iss >> method >> path >> version;
+
+                    // Parse headers
+                    std::unordered_map<std::string, std::string> headers;
+                    std::string line;
+                    std::getline(iss, line); // Skip first newline
+                    while (std::getline(iss, line) && line != "\r")
+                    {
+                        size_t colon = line.find(':');
+                        if (colon != std::string::npos)
+                        {
+                            std::string key = line.substr(0, colon);
+                            std::string value = line.substr(colon + 2);
+                            if (!value.empty() && value.back() == '\r') value.pop_back();
+                            headers[key] = value;
+                        }
+                    }
+
+                    // Create request object
+                    auto req = std::make_shared<ObjectValue>();
+                    req->fields["method"] = method;
+                    req->fields["url"] = path;
+                    req->fields["path"] = path;
+                    
+                    auto headersObj = std::make_shared<ObjectValue>();
+                    for (const auto& [k, v] : headers)
+                    {
+                        headersObj->fields[k] = v;
+                    }
+                    req->fields["headers"] = headersObj;
+
+                    // Create response object with methods
+                    auto res = std::make_shared<ObjectValue>();
+                    res->fields["_fd"] = client_fd;
+                    res->fields["_statusCode"] = 200;
+                    res->fields["_headers"] = std::make_shared<ObjectValue>();
+                    res->fields["writeHead"] = std::string("__res_writeHead__");
+                    res->fields["end"] = std::string("__res_end__");
+                    res->fields["write"] = std::string("__res_write__");
+
+                    // Call request callback
+                    if (std::holds_alternative<FunctionExpression*>(requestCallback))
+                    {
+                        auto func = std::get<FunctionExpression*>(requestCallback);
+                        if (func->params.size() == 2)
+                        {
+                            environment.pushScope();
+                            environment.define(func->params[0].first, Variable(req, "object", false));
+                            environment.define(func->params[1].first, Variable(res, "object", false));
+                            try {
+                                executeBlock(func->body.get());
+                            } catch (const ReturnException&) {}
+                            environment.popScope();
+                        }
+                    }
+                    else if (std::holds_alternative<FunctionDeclaration*>(requestCallback))
+                    {
+                        auto func = std::get<FunctionDeclaration*>(requestCallback);
+                        if (func->params.size() == 2)
+                        {
+                            environment.pushScope();
+                            environment.define(func->params[0].first, Variable(req, "object", false));
+                            environment.define(func->params[1].first, Variable(res, "object", false));
+                            try {
+                                executeBlock(func->body.get());
+                            } catch (const ReturnException&) {}
+                            environment.popScope();
+                        }
+                    }
+                }
+                
+                close(client_fd);
+            }
+
+            close(server_fd);
+        }
+        
+        return "";
+    }
+
+    // Built-in: res.writeHead(statusCode, headers?)
+    if (callName == "writeHead" && node->callee)
+    {
+        if (node->args.size() < 1 || node->args.size() > 2)
+        {
+            throw std::runtime_error("writeHead() expects 1 or 2 arguments: writeHead(statusCode, headers?)");
+        }
+
+        if (auto fieldAccess = dynamic_cast<FieldAccess*>(node->callee.get()))
+        {
+            Value resVal = evaluate(fieldAccess->object.get());
+            if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(resVal))
+            {
+                throw std::runtime_error("writeHead() must be called on response object");
+            }
+
+            auto res = std::get<std::shared_ptr<ObjectValue>>(resVal);
+            Value statusVal = evaluate(node->args[0].get());
+            res->fields["_statusCode"] = std::get<int>(statusVal);
+
+            if (node->args.size() == 2)
+            {
+                Value headersVal = evaluate(node->args[1].get());
+                if (std::holds_alternative<std::shared_ptr<ObjectValue>>(headersVal))
+                {
+                    res->fields["_headers"] = headersVal;
+                }
+            }
+        }
+        
+        return "";
+    }
+
+    // Built-in: res.write(data)
+    if (callName == "write" && node->callee)
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("write() expects 1 argument: write(data)");
+        }
+
+        if (auto fieldAccess = dynamic_cast<FieldAccess*>(node->callee.get()))
+        {
+            Value resVal = evaluate(fieldAccess->object.get());
+            if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(resVal))
+            {
+                throw std::runtime_error("write() must be called on response object");
+            }
+
+            auto res = std::get<std::shared_ptr<ObjectValue>>(resVal);
+            if (res->fields.find("_buffer") == res->fields.end())
+            {
+                res->fields["_buffer"] = std::string("");
+            }
+
+            Value dataVal = evaluate(node->args[0].get());
+            std::string currentBuffer = std::get<std::string>(res->fields["_buffer"]);
+            currentBuffer += valueToString(dataVal);
+            res->fields["_buffer"] = currentBuffer;
+        }
+        
+        return "";
+    }
+
+    // Built-in: res.end(data?)
+    if (callName == "end" && node->callee)
+    {
+        if (node->args.size() > 1)
+        {
+            throw std::runtime_error("end() expects 0 or 1 argument: end(data?)");
+        }
+
+        if (auto fieldAccess = dynamic_cast<FieldAccess*>(node->callee.get()))
+        {
+            Value resVal = evaluate(fieldAccess->object.get());
+            if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(resVal))
+            {
+                throw std::runtime_error("end() must be called on response object");
+            }
+
+            auto res = std::get<std::shared_ptr<ObjectValue>>(resVal);
+            int fd = std::get<int>(res->fields["_fd"]);
+            int statusCode = std::get<int>(res->fields["_statusCode"]);
+
+            std::string body;
+            if (node->args.size() == 1)
+            {
+                Value dataVal = evaluate(node->args[0].get());
+                body = valueToString(dataVal);
+            }
+            else if (res->fields.find("_buffer") != res->fields.end())
+            {
+                body = std::get<std::string>(res->fields["_buffer"]);
+            }
+
+            // Build response
+            std::string response = "HTTP/1.1 " + std::to_string(statusCode) + " OK\r\n";
+            
+            // Add custom headers
+            if (std::holds_alternative<std::shared_ptr<ObjectValue>>(res->fields["_headers"]))
+            {
+                auto headers = std::get<std::shared_ptr<ObjectValue>>(res->fields["_headers"]);
+                for (const auto& [key, val] : headers->fields)
+                {
+                    response += key + ": " + valueToString(val) + "\r\n";
+                }
+            }
+            
+            response += "Content-Length: " + std::to_string(body.length()) + "\r\n";
+            response += "\r\n";
+            response += body;
+
+            ::write(fd, response.c_str(), response.length());
+        }
+        
+        return "";
     }
 
     // Built-in: fetch(url, options?)
