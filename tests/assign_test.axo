@@ -1,0 +1,10 @@
+func main() -> void {
+    var x: int = 5;
+    var result: string = `${x}`;
+    print("Single:", result);
+    
+    var result2: string = `${x} and ${x}`;
+    print("Double:", result2);
+}
+
+main();

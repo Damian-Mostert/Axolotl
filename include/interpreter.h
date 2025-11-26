@@ -134,8 +134,18 @@ public:
     std::string visit(ContinueStatement* node) override;
     std::string visit(CaseClause* node) override;
     std::string visit(SwitchStatement* node) override;
+    std::string visit(WhenStatement* node) override;
     
 private:
+    struct PendingWhen {
+        Expression* condition;
+        Block* body;
+        std::vector<std::string> dependencies;
+        std::unordered_map<std::string, Value> lastValues;
+        bool lastConditionState = false;
+    };
+    std::vector<PendingWhen> pendingWhens;
+    void checkPendingWhens(const std::string& changedVar = "");
     Environment environment;
     std::unordered_map<std::string, FunctionDeclaration*> functions;
     std::unordered_map<std::string, ProgramDeclaration*> programs;
@@ -154,6 +164,7 @@ private:
     Value evaluate(Expression* expr);
     void execute(Statement* stmt);
     void executeBlock(Block* block);
+    void checkPendingWhens();
     
     Value performBinaryOp(const Value& left, BinaryOperator op, const Value& right);
     Value performUnaryOp(UnaryOperator op, const Value& operand);

@@ -507,6 +507,7 @@ std::unique_ptr<Statement> Parser::parseStatement() {
     if (check(TokenType::KW_BREAK)) return parseBreakStatement();
     if (check(TokenType::KW_CONTINUE)) return parseContinueStatement();
     if (check(TokenType::KW_SWITCH)) return parseSwitchStatement();
+    if (check(TokenType::KW_WHEN)) return parseWhenStatement();
     if (check(TokenType::LBRACE)) {
         auto block = parseBlock();
         return block;
@@ -697,6 +698,28 @@ std::unique_ptr<Statement> Parser::parseSwitchStatement() {
     
     consume(TokenType::RBRACE, "Expected '}' after switch body");
     return switchStmt;
+}
+
+std::unique_ptr<Statement> Parser::parseWhenStatement() {
+    consume(TokenType::KW_WHEN, "Expected 'when'");
+    consume(TokenType::LPAREN, "Expected '(' after 'when'");
+    auto condition = parseExpression();
+    
+    std::vector<std::string> dependencies;
+    if (match({TokenType::COMMA})) {
+        consume(TokenType::LBRACKET, "Expected '[' for dependencies");
+        if (!check(TokenType::RBRACKET)) {
+            do {
+                Token depToken = consume(TokenType::IDENTIFIER, "Expected variable name in dependencies");
+                dependencies.push_back(depToken.value);
+            } while (match({TokenType::COMMA}));
+        }
+        consume(TokenType::RBRACKET, "Expected ']' after dependencies");
+    }
+    
+    consume(TokenType::RPAREN, "Expected ')' after condition");
+    auto body = parseBlock();
+    return std::make_unique<WhenStatement>(std::move(condition), std::move(body), std::move(dependencies));
 }
 
 std::unique_ptr<Statement> Parser::parseTryStatement() {
@@ -974,7 +997,7 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
     if (match({TokenType::FLOAT})) {
         return std::make_unique<FloatLiteral>(std::stof(previous().value));
     }
-    if (match({TokenType::STRING})) {
+    if (match({TokenType::STRING, TokenType::TEMPLATE_STRING})) {
         return std::make_unique<StringLiteral>(previous().value);
     }
     if (match({TokenType::LBRACKET})) {

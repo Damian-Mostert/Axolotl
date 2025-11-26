@@ -561,6 +561,7 @@ class AxolotlLanguageProvider {
             { name: 'while', detail: 'While loop', snippet: 'while (${1:condition}) {\n\t${2}\n}' },
             { name: 'for', detail: 'For loop', snippet: 'for (var ${1:i}: int = 0; ${1:i} < ${2:limit}; ${1:i} = ${1:i} + 1) {\n\t${3}\n}' },
             { name: 'switch', detail: 'Switch statement', snippet: 'switch (${1:expression}) {\n\tcase ${2:value}:\n\t\t${3}\n\t\tbreak;\n\tdefault:\n\t\t${4}\n}' },
+            { name: 'when', detail: 'When statement', snippet: 'when (${1:condition}) {\n\t${2}\n}' },
             { name: 'case', detail: 'Case clause', snippet: 'case ${1:value}:\n\t${2}\n\tbreak;' },
             { name: 'default', detail: 'Default case', snippet: 'default:\n\t${1}' },
             { name: 'try', detail: 'Try-catch block', snippet: 'try {\n\t${1}\n} catch (${2:e}) {\n\t${3}\n}' },
@@ -825,6 +826,19 @@ class AxolotlLanguageProvider {
                 });
             }
 
+            // Parse catch parameters
+            const catchMatch = line.match(/catch\s*\(\s*(\w+)\s*\)/);
+            if (catchMatch) {
+                const [, paramName] = catchMatch;
+                symbols.push({
+                    name: paramName,
+                    type: 'any',
+                    kind: vscode.CompletionItemKind.Variable,
+                    detail: `catch parameter ${paramName}: any`,
+                    range: new vscode.Range(i, 0, i, line.length)
+                });
+            }
+
             // Parse import statements
             const importMatch = line.match(/^\s*import\s+(?:\{([^}]+)\}|([\w]+))\s+from\s+["']([^"']+)["']/);
             if (importMatch) {
@@ -922,7 +936,7 @@ class AxolotlLanguageProvider {
     isKeyword(word) {
         const keywords = [
             'func', 'var', 'const', 'if', 'else', 'while', 'for', 'return', 'break', 'continue',
-            'switch', 'case', 'default', 'try', 'catch', 'finally', 'throw', 'import', 'export',
+            'switch', 'case', 'default', 'when', 'try', 'catch', 'finally', 'throw', 'import', 'export',
             'use', 'type', 'program', 'await', 'typeof', 'true', 'false', 'int', 'float',
             'string', 'bool', 'void', 'any', 'object'
         ];

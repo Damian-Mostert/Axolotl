@@ -12,6 +12,7 @@ public:
     Parser(const std::vector<Token>& tokens);
     
     std::unique_ptr<Program> parse();
+    std::unique_ptr<Expression> parseExpression();
     
 private:
     std::vector<Token> tokens;
@@ -44,8 +45,8 @@ private:
     std::unique_ptr<Statement> parseBreakStatement();
     std::unique_ptr<Statement> parseContinueStatement();
     std::unique_ptr<Statement> parseSwitchStatement();
+    std::unique_ptr<Statement> parseWhenStatement();
     std::unique_ptr<Statement> parseVariableDeclaration();
-    std::unique_ptr<Expression> parseExpression();
     std::unique_ptr<Expression> parseAssignment();
     std::unique_ptr<Expression> parseLogicalOr();
     std::unique_ptr<Expression> parseLogicalAnd();

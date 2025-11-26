@@ -1,0 +1,8 @@
+func main() -> void {
+    var x: int = 5;
+    var test: string = `a${x}b${x}c`;
+    print(test);
+    print(len(test));
+}
+
+main();

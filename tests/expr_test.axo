@@ -1,0 +1,9 @@
+func main() -> void {
+    var x: int = 5;
+    var y: int = 10;
+    var result: string = `${x} + ${y} = ${x + y}`;
+    print("Result:", result);
+    print("Direct:", `${x} + ${y} = ${x + y}`);
+}
+
+main();

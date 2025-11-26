@@ -1,0 +1,7 @@
+func main() -> void {
+    var price: float = 19.99;
+    var quantity: int = 3;
+    print(`Total: \$${price * toFloat(quantity)}`);
+}
+
+main();

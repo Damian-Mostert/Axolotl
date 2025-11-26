@@ -35,6 +35,7 @@ std::unordered_map<std::string, TokenType> Lexer::keywords = {
     {"switch", TokenType::KW_SWITCH},
     {"case", TokenType::KW_CASE},
     {"default", TokenType::KW_DEFAULT},
+    {"when", TokenType::KW_WHEN},
 };
 
 Lexer::Lexer(const std::string& source)
@@ -68,8 +69,13 @@ Token Lexer::nextToken() {
     }
     
     // String literals
-    if (current == '"') {
-        return readString();
+    if (current == '"' || current == '\'') {
+        return readString(current);
+    }
+    
+    // Template literals
+    if (current == '`') {
+        return readTemplateLiteral();
     }
     
     // Numbers
@@ -148,13 +154,13 @@ Token Lexer::readNumber() {
     return Token(isFloat ? TokenType::FLOAT : TokenType::INTEGER, value, startLine, startCol);
 }
 
-Token Lexer::readString() {
+Token Lexer::readString(char quote) {
     int startLine = line;
     int startCol = column;
     advance(); // Skip opening quote
     std::string value;
     
-    while (currentChar() != '"' && position < source.length()) {
+    while (currentChar() != quote && position < source.length()) {
         if (currentChar() == '\\') {
             advance();
             switch (currentChar()) {
@@ -162,6 +168,7 @@ Token Lexer::readString() {
                 case 't': value += '\t'; break;
                 case 'r': value += '\r'; break;
                 case '"': value += '"'; break;
+                case '\'': value += '\''; break;
                 case '\\': value += '\\'; break;
                 default: value += currentChar();
             }
@@ -171,11 +178,68 @@ Token Lexer::readString() {
         advance();
     }
     
-    if (currentChar() == '"') {
+    if (currentChar() == quote) {
         advance(); // Skip closing quote
     }
     
     return Token(TokenType::STRING, value, startLine, startCol);
+}
+
+Token Lexer::readTemplateLiteral() {
+    int startLine = line;
+    int startCol = column;
+    advance(); // Skip opening backtick
+    std::string value;
+    
+    while (currentChar() != '`' && position < source.length()) {
+        if (currentChar() == '\\' && peekChar() == '$' && peekChar(2) != '{') {
+            // Escaped dollar not followed by interpolation: \$ - add literal $
+            advance(); // skip backslash
+            value += '$';
+            advance(); // skip $
+        } else if (currentChar() == '\\' && peekChar() == '$' && peekChar(2) == '{') {
+            // Escaped dollar followed by interpolation: \$${expr} - add $ then let interpolation happen
+            advance(); // skip backslash
+            value += '$';
+            // Don't advance past $, let the ${} handler process it
+        } else if (currentChar() == '\\') {
+            advance();
+            switch (currentChar()) {
+                case 'n': value += '\n'; break;
+                case 't': value += '\t'; break;
+                case 'r': value += '\r'; break;
+                case '`': value += '`'; break;
+                case '\\': value += '\\'; break;
+                default: value += currentChar();
+            }
+            advance();
+        } else if (currentChar() == '$' && peekChar() == '{') {
+            // Preserve interpolation ${...}
+            value += currentChar();
+            advance();
+            value += currentChar();
+            advance();
+            
+            // Find matching } and preserve everything
+            int braceCount = 1;
+            while (braceCount > 0 && position < source.length()) {
+                if (currentChar() == '{') braceCount++;
+                else if (currentChar() == '}') braceCount--;
+                
+                value += currentChar();
+                advance();
+            }
+        } else {
+            value += currentChar();
+            advance();
+        }
+    }
+    
+    if (currentChar() == '`') {
+        advance(); // Skip closing backtick
+    }
+    
+    return Token(TokenType::TEMPLATE_STRING, value, startLine, startCol);
 }
 
 Token Lexer::readIdentifier() {

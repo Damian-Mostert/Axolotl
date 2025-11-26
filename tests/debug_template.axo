@@ -1,0 +1,6 @@
+func main() -> void {
+    var test: string = `a${5}b${10}c`;
+    print(test);
+}
+
+main();

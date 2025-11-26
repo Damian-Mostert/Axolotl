@@ -305,7 +305,59 @@ std::string Interpreter::visit(FloatLiteral *node)
 
 std::string Interpreter::visit(StringLiteral *node)
 {
-    lastValue = node->value;
+    std::string value = node->value;
+    
+    // Handle template string interpolation ${...}
+    if (value.find("${") != std::string::npos) {
+        std::string result;
+        size_t pos = 0;
+        
+        while (pos < value.size()) {
+            size_t start = value.find("${", pos);
+            if (start == std::string::npos) {
+                result += value.substr(pos);
+                break;
+            }
+            
+            result += value.substr(pos, start - pos);
+            
+            // Find matching closing brace
+            size_t end = start + 2;
+            int braceCount = 1;
+            while (end < value.size() && braceCount > 0) {
+                if (value[end] == '{') braceCount++;
+                else if (value[end] == '}') braceCount--;
+                end++;
+            }
+            
+            if (braceCount != 0) {
+                result += value.substr(start);
+                break;
+            }
+            
+            std::string expr = value.substr(start + 2, end - start - 3);
+            // Parse and evaluate the expression
+            try {
+                Lexer exprLexer(expr);
+                auto exprTokens = exprLexer.tokenize();
+                Parser exprParser(exprTokens);
+                auto exprAst = exprParser.parseExpression();
+                Value exprValue = evaluate(exprAst.get());
+                result += valueToString(exprValue);
+            } catch (...) {
+                result += "${" + expr + "}";
+            }
+            
+            pos = end;
+        }
+        
+        Value stringValue = result;
+        lastValue = stringValue;
+        return "[string]";
+    }
+    
+    Value stringValue = value;
+    lastValue = stringValue;
     return "[string]";
 }
 
@@ -342,6 +394,12 @@ std::string Interpreter::visit(Identifier *node)
     {
         lastValue = var.value;
         return "[function]";
+    }
+    // Handle string values to prevent evaluate() from parsing them
+    if (std::holds_alternative<std::string>(var.value))
+    {
+        lastValue = var.value;
+        return "[string]";
     }
     return valueToString(var.value);
 }
@@ -1598,6 +1656,7 @@ std::string Interpreter::visit(Assignment *node)
 {
     Value value = evaluate(node->value.get());
     environment.set(node->name, value);
+    checkPendingWhens(node->name);
     return valueToString(value);
 }
 
@@ -1777,6 +1836,7 @@ std::string Interpreter::visit(ExpressionStatement *node)
 {
     // Evaluate the expression and discard the result
     evaluate(node->expression.get());
+    checkPendingWhens();
     return "";
 }
 
@@ -2655,6 +2715,7 @@ std::string Interpreter::visit(SwitchStatement* node)
                     fallthrough = true;
                     for (auto& stmt : caseClause->statements) {
                         stmt->accept(this);
+                        checkPendingWhens();
                     }
                 }
             } else {
@@ -2667,6 +2728,7 @@ std::string Interpreter::visit(SwitchStatement* node)
                     fallthrough = true;
                     for (auto& stmt : caseClause->statements) {
                         stmt->accept(this);
+                        checkPendingWhens();
                     }
                 }
             }
@@ -2678,4 +2740,56 @@ std::string Interpreter::visit(SwitchStatement* node)
     }
     
     return "";
+}
+
+std::string Interpreter::visit(WhenStatement* node)
+{
+    PendingWhen pw;
+    pw.condition = node->condition.get();
+    pw.body = node->body.get();
+    pw.dependencies = node->dependencies;
+    
+    // Store initial values of dependencies
+    for (const auto& dep : node->dependencies) {
+        if (environment.has(dep)) {
+            pw.lastValues[dep] = environment.get(dep).value;
+        }
+    }
+    
+    pendingWhens.push_back(std::move(pw));
+    return "";
+}
+
+void Interpreter::checkPendingWhens(const std::string& changedVar)
+{
+    auto it = pendingWhens.begin();
+    while (it != pendingWhens.end()) {
+        bool shouldCheck = false;
+        
+        if (it->dependencies.empty()) {
+            // No dependencies - check every time
+            shouldCheck = true;
+        } else if (!changedVar.empty()) {
+            // Check if changed variable is in dependencies
+            for (const auto& dep : it->dependencies) {
+                if (dep == changedVar) {
+                    shouldCheck = true;
+                    break;
+                }
+            }
+        }
+        
+        if (shouldCheck) {
+            try {
+                Value condValue = evaluate(it->condition);
+                if (isTruthy(condValue)) {
+                    executeBlock(it->body);
+                    it = pendingWhens.erase(it);
+                    continue;
+                }
+            } catch (...) {
+            // If evaluation fails, keep the when statement
+        }
+        ++it;
+    }
 }

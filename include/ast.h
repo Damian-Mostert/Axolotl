@@ -391,7 +391,17 @@ public:
     std::string accept(class ASTVisitor* visitor) override;
 };
 
-
+class WhenStatement : public Statement {
+public:
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Block> body;
+    std::vector<std::string> dependencies;
+    
+    WhenStatement(std::unique_ptr<Expression> cond, std::unique_ptr<Block> b, std::vector<std::string> deps = {})
+        : condition(std::move(cond)), body(std::move(b)), dependencies(std::move(deps)) {}
+    
+    std::string accept(class ASTVisitor* visitor) override;
+};
 
 class Program : public ASTNode {
 public:
@@ -441,6 +451,7 @@ public:
     virtual std::string visit(ContinueStatement* node) = 0;
     virtual std::string visit(CaseClause* node) = 0;
     virtual std::string visit(SwitchStatement* node) = 0;
+    virtual std::string visit(WhenStatement* node) = 0;
     virtual std::string visit(Program* node) = 0;
 };
 

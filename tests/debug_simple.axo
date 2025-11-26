@@ -1,0 +1,6 @@
+func main() -> void {
+    var test: string = `hello ${5} world`;
+    print(test);
+}
+
+main();

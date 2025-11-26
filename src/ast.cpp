@@ -182,3 +182,7 @@ std::string CaseClause::accept(ASTVisitor* visitor) {
 std::string SwitchStatement::accept(ASTVisitor* visitor) {
     return visitor->visit(this);
 }
+
+std::string WhenStatement::accept(ASTVisitor* visitor) {
+    return visitor->visit(this);
+}

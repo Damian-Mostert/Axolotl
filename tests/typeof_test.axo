@@ -1,43 +1,8 @@
-// Test typeof functionality
-
-print("=== Typeof Test ===");
-
-// Test basic types
-var x: int = 42;
-var y: float = 3.14;
-var z: string = "hello";
-var b: bool = true;
-
-print("typeof x (int):", typeof x);
-print("typeof y (float):", typeof y);
-print("typeof z (string):", typeof z);
-print("typeof b (bool):", typeof b);
-
-// Test array and object types
-var arr: [int] = [1, 2, 3];
-var obj: object = {name: "test", value: 123};
-
-print("typeof arr (array):", typeof arr);
-print("typeof obj (object):", typeof obj);
-
-// Test typeof in conditionals
-if (typeof x == "int") {
-    print("x is indeed an integer!");
+func main() -> void {
+    var x: int = 5;
+    var y: int = 10;
+    var result: string = `${x} + ${y} = ${x + y}`;
+    print(typeof(result));
 }
 
-if (typeof z == "string") {
-    print("z is indeed a string!");
-}
-
-if (typeof arr == "array") {
-    print("arr is indeed an array!");
-}
-
-// Test with function
-func testFunc() -> int {
-    return 42;
-}
-
-print("typeof testFunc (function):", typeof testFunc);
-
-print("=== All typeof tests completed ===");
+main();

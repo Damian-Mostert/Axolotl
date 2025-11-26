@@ -1,0 +1,7 @@
+func main() -> void {
+    var x: int = 5;
+    var test: string = `result: ${x + 10}`;
+    print(test);
+}
+
+main();

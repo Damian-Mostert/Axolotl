@@ -1,0 +1,7 @@
+func main() -> void {
+    var x: int = 5;
+    print(`A: \$${x + 1}`);
+    print(`B: \$${x}`);
+}
+
+main();

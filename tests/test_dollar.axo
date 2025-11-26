@@ -1,0 +1,6 @@
+func main() -> void {
+    var x: int = 100;
+    print(`Result: \$${x}`);
+}
+
+main();

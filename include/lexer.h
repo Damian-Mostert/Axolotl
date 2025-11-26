@@ -28,7 +28,8 @@ private:
     void skipComment();
     
     Token readNumber();
-    Token readString();
+    Token readString(char quote = '"');
+    Token readTemplateLiteral();
     Token readIdentifier();
     Token readOperator();
     

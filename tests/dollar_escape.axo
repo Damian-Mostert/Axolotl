@@ -1,0 +1,6 @@
+func main() -> void {
+    var price: float = 59.97;
+    print(`Total: \$${price}`);
+}
+
+main();

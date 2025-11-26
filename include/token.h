@@ -9,6 +9,7 @@ enum class TokenType {
     INTEGER,
     FLOAT,
     STRING,
+    TEMPLATE_STRING,
     IDENTIFIER,
     
     // Keywords
@@ -45,6 +46,7 @@ enum class TokenType {
     KW_SWITCH,
     KW_CASE,
     KW_DEFAULT,
+    KW_WHEN,
     
     // Operators
     PLUS,

@@ -63,6 +63,42 @@
               "match": "\\\\[ntr\"\\\\]"
             }
           ]
+        },
+        {
+          "name": "string.quoted.single.axo",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.axo",
+              "match": "\\\\[ntr'\\\\]"
+            }
+          ]
+        },
+        {
+          "name": "string.template.axo",
+          "begin": "`",
+          "end": "`",
+          "patterns": [
+            {
+              "name": "constant.character.escape.axo",
+              "match": "\\\\[ntr`\\\\$]"
+            },
+            {
+              "name": "meta.template.expression.axo",
+              "begin": "\\$\\{",
+              "end": "\\}",
+              "beginCaptures": {
+                "0": {"name": "punctuation.definition.template-expression.begin.axo"}
+              },
+              "endCaptures": {
+                "0": {"name": "punctuation.definition.template-expression.end.axo"}
+              },
+              "patterns": [
+                {"include": "#expression-content"}
+              ]
+            }
+          ]
         }
       ]
     },
@@ -323,7 +359,7 @@
         },
         {
           "name": "keyword.control.flow.axo",
-          "match": "\\b(if|else|while|for|return|break|continue|try|catch|finally|throw)\\b"
+          "match": "\\b(if|else|while|for|return|break|continue|when|try|catch|finally|throw)\\b"
         },
         {
           "name": "keyword.declaration.axo",
@@ -494,6 +530,22 @@
             {"include": "#array-literals"},
             {"include": "#identifiers"}
           ]
+        }
+      ]
+    },
+    "expression-content": {
+      "patterns": [
+        {"include": "#comments"},
+        {"include": "#strings"},
+        {"include": "#numbers"},
+        {"include": "#keywords"},
+        {"include": "#types"},
+        {"include": "#operators"},
+        {"include": "#builtin-functions"},
+        {"include": "#constants"},
+        {
+          "name": "variable.other.readwrite.axo",
+          "match": "[a-zA-Z_][a-zA-Z0-9_]*"
         }
       ]
     },

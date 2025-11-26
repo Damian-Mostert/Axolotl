@@ -1,0 +1,58 @@
+// Test single-quote strings and template literals
+var x:int = 1;
+
+when(x == 2){
+    print("X is now 2");
+}
+
+
+x = x+1;
+
+x = x-1;
+
+x = x+1;
+
+
+func main() -> void {
+    // Test single-quote strings
+    var single: string = 'Hello from single quotes!';
+    print("Single quote string:", single);
+    
+    // Test double-quote strings (existing)
+    var double: string = "Hello from double quotes!";
+    print("Double quote string:", double);
+    
+    // Test template literals with interpolation
+    var name: string = "Axolotl";
+    var version: int = 1;
+    var greeting: string = `Welcome to ${name} version ${version}!`;
+    print("Template literal:", greeting);
+    
+    // Test template literal with expressions
+    var x: int = 5;
+    var y: int = 10;
+    var result: string = `${x} + ${y} = ${x + y}`;
+    print("Expression in template:", result);
+    
+    // Test multiline template literal
+    var multiline: string = `This is a
+multiline string
+with ${name} interpolation`;
+    print("Multiline template:", multiline);
+    
+    // Test expression with dollar sign
+    var price: int = 20;
+    var quantity: int = 3;
+    var total: string = `Total: \$${price + quantity}`;
+    print("Expression with dollar:", total);
+    
+    // Test multiple dollar signs
+    var money: string = `I have \$100 and you have \$${price + 5}`;
+    print("Multiple dollars:", money);
+    
+    // Test escaped dollar sign
+    var escaped: string = `Price: \$${price}`;
+    print("Escaped dollar:", escaped);
+}
+
+main();
