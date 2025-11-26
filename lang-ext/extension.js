@@ -127,6 +127,293 @@ class AxolotlLanguageProvider {
                 params: [{name: 'source', type: 'string'}, {name: 'dest', type: 'string'}],
                 returnType: 'void',
                 documentation: 'Copy file from source to destination path'
+            },
+            {
+                name: 'readDir',
+                params: [{name: 'dirPath', type: 'string'}],
+                returnType: '[string]',
+                documentation: 'Read directory and return array of filenames'
+            },
+            {
+                name: 'sin',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate sine of x (in radians)'
+            },
+            {
+                name: 'cos',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate cosine of x (in radians)'
+            },
+            {
+                name: 'tan',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate tangent of x (in radians)'
+            },
+            {
+                name: 'sqrt',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate square root of x'
+            },
+            {
+                name: 'pow',
+                params: [{name: 'base', type: 'float|int'}, {name: 'exponent', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate base raised to the power of exponent'
+            },
+            {
+                name: 'abs',
+                params: [{name: 'x', type: 'int|float'}],
+                returnType: 'int|float',
+                documentation: 'Calculate absolute value of x'
+            },
+            {
+                name: 'floor',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'int',
+                documentation: 'Round x down to nearest integer'
+            },
+            {
+                name: 'ceil',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'int',
+                documentation: 'Round x up to nearest integer'
+            },
+            {
+                name: 'round',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'int',
+                documentation: 'Round x to nearest integer'
+            },
+            {
+                name: 'min',
+                params: [{name: 'a', type: 'int|float'}, {name: 'b', type: 'int|float'}],
+                returnType: 'int|float',
+                documentation: 'Return the smaller of two numbers'
+            },
+            {
+                name: 'max',
+                params: [{name: 'a', type: 'int|float'}, {name: 'b', type: 'int|float'}],
+                returnType: 'int|float',
+                documentation: 'Return the larger of two numbers'
+            },
+            {
+                name: 'random',
+                params: [],
+                returnType: 'float',
+                documentation: 'Generate random float between 0.0 and 1.0'
+            },
+            {
+                name: 'readDir',
+                params: [{name: 'dirPath', type: 'string'}],
+                returnType: '[string]',
+                documentation: 'Read directory and return array of filenames'
+            },
+            // Array functions
+            {
+                name: 'slice',
+                params: [{name: 'array', type: '[any]'}, {name: 'start', type: 'int'}, {name: 'end', type: 'int'}],
+                returnType: '[any]',
+                documentation: 'Extract a section of array from start to end index'
+            },
+            {
+                name: 'reverse',
+                params: [{name: 'array', type: '[any]'}],
+                returnType: '[any]',
+                documentation: 'Reverse the order of elements in array'
+            },
+            {
+                name: 'join',
+                params: [{name: 'array', type: '[any]'}, {name: 'separator', type: 'string'}],
+                returnType: 'string',
+                documentation: 'Join array elements into a string with separator'
+            },
+            {
+                name: 'sort',
+                params: [{name: 'array', type: '[any]'}],
+                returnType: '[any]',
+                documentation: 'Sort array elements in ascending order'
+            },
+            {
+                name: 'find',
+                params: [{name: 'array', type: '[any]'}, {name: 'value', type: 'any'}],
+                returnType: 'int',
+                documentation: 'Find index of value in array (-1 if not found)'
+            },
+            {
+                name: 'includes',
+                params: [{name: 'array', type: '[any]'}, {name: 'value', type: 'any'}],
+                returnType: 'bool',
+                documentation: 'Check if array contains value'
+            },
+            // String functions
+            {
+                name: 'trim',
+                params: [{name: 'str', type: 'string'}],
+                returnType: 'string',
+                documentation: 'Remove whitespace from both ends of string'
+            },
+            {
+                name: 'replace',
+                params: [{name: 'str', type: 'string'}, {name: 'search', type: 'string'}, {name: 'replacement', type: 'string'}],
+                returnType: 'string',
+                documentation: 'Replace first occurrence of search string with replacement'
+            },
+            {
+                name: 'split',
+                params: [{name: 'str', type: 'string'}, {name: 'delimiter', type: 'string'}],
+                returnType: '[string]',
+                documentation: 'Split string into array by delimiter'
+            },
+            {
+                name: 'startsWith',
+                params: [{name: 'str', type: 'string'}, {name: 'prefix', type: 'string'}],
+                returnType: 'bool',
+                documentation: 'Check if string starts with prefix'
+            },
+            {
+                name: 'endsWith',
+                params: [{name: 'str', type: 'string'}, {name: 'suffix', type: 'string'}],
+                returnType: 'bool',
+                documentation: 'Check if string ends with suffix'
+            },
+            {
+                name: 'repeat',
+                params: [{name: 'str', type: 'string'}, {name: 'count', type: 'int'}],
+                returnType: 'string',
+                documentation: 'Repeat string count times'
+            },
+            {
+                name: 'charAt',
+                params: [{name: 'str', type: 'string'}, {name: 'index', type: 'int'}],
+                returnType: 'string',
+                documentation: 'Get character at index in string'
+            },
+            {
+                name: 'charCodeAt',
+                params: [{name: 'str', type: 'string'}, {name: 'index', type: 'int'}],
+                returnType: 'int',
+                documentation: 'Get ASCII/Unicode code of character at index'
+            },
+            // Type conversion
+            {
+                name: 'toInt',
+                params: [{name: 'value', type: 'string|float|bool'}],
+                returnType: 'int',
+                documentation: 'Convert value to integer'
+            },
+            {
+                name: 'toFloat',
+                params: [{name: 'value', type: 'string|int'}],
+                returnType: 'float',
+                documentation: 'Convert value to float'
+            },
+            {
+                name: 'toBool',
+                params: [{name: 'value', type: 'any'}],
+                returnType: 'bool',
+                documentation: 'Convert value to boolean'
+            },
+            // Advanced math
+            {
+                name: 'log',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate natural logarithm (base e) of x'
+            },
+            {
+                name: 'log10',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate base-10 logarithm of x'
+            },
+            {
+                name: 'exp',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate e raised to the power of x'
+            },
+            {
+                name: 'asin',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate arcsine of x (result in radians)'
+            },
+            {
+                name: 'acos',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate arccosine of x (result in radians)'
+            },
+            {
+                name: 'atan',
+                params: [{name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate arctangent of x (result in radians)'
+            },
+            {
+                name: 'atan2',
+                params: [{name: 'y', type: 'float|int'}, {name: 'x', type: 'float|int'}],
+                returnType: 'float',
+                documentation: 'Calculate angle in radians from x-axis to point (x,y)'
+            },
+            {
+                name: 'clamp',
+                params: [{name: 'value', type: 'int|float'}, {name: 'min', type: 'int|float'}, {name: 'max', type: 'int|float'}],
+                returnType: 'int|float',
+                documentation: 'Clamp value between min and max'
+            },
+            {
+                name: 'lerp',
+                params: [{name: 'a', type: 'float|int'}, {name: 'b', type: 'float|int'}, {name: 't', type: 'float'}],
+                returnType: 'float',
+                documentation: 'Linear interpolation between a and b by factor t (0.0 to 1.0)'
+            },
+            // Utility functions
+            {
+                name: 'assert',
+                params: [{name: 'condition', type: 'bool'}, {name: 'message', type: 'string'}],
+                returnType: 'void',
+                documentation: 'Assert condition is true, throw error with message if false'
+            },
+            {
+                name: 'error',
+                params: [{name: 'message', type: 'string'}],
+                returnType: 'void',
+                documentation: 'Throw an error with the given message'
+            },
+            {
+                name: 'keys',
+                params: [{name: 'object', type: 'object'}],
+                returnType: '[string]',
+                documentation: 'Get array of object keys'
+            },
+            {
+                name: 'values',
+                params: [{name: 'object', type: 'object'}],
+                returnType: '[any]',
+                documentation: 'Get array of object values'
+            },
+            {
+                name: 'hasKey',
+                params: [{name: 'object', type: 'object'}, {name: 'key', type: 'string'}],
+                returnType: 'bool',
+                documentation: 'Check if object has the specified key'
+            },
+            {
+                name: 'clone',
+                params: [{name: 'value', type: 'any'}],
+                returnType: 'any',
+                documentation: 'Create a deep copy of value'
+            },
+            {
+                name: 'merge',
+                params: [{name: 'obj1', type: 'object'}, {name: 'obj2', type: 'object'}],
+                returnType: 'object',
+                documentation: 'Merge two objects into a new object'
             }
         ];
 
@@ -177,7 +464,7 @@ class AxolotlLanguageProvider {
         this.types.forEach((type, name) => {
             const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.TypeParameter);
             item.detail = `Type: ${type.definition}`;
-            item.documentation = new vscode.MarkdownString(`Built-in type \`${name}\``);
+            item.documentation = new vscode.MarkdownString(`Type \`${name}\``);
             items.push(item);
         });
 
@@ -566,11 +853,14 @@ class AxolotlLanguageProvider {
                     });
                 }
             }
-
-            // Enhanced error detection
-            this.detectErrors(line, i, diagnostics, symbols);
         }
 
+        // Run error detection after all symbols are collected
+        for (let i = 0; i < lines.length; i++) {
+            this.detectErrors(lines[i], i, diagnostics, symbols);
+        }
+
+        
         this.symbols.set(uri, symbols);
         this.diagnostics.set(document.uri, diagnostics);
     }

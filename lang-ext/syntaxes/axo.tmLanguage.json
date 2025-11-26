@@ -387,15 +387,15 @@
       "patterns": [
         {
           "name": "support.function.builtin.io.axo",
-          "match": "\\b(print|read|write|copy)\\b"
+          "match": "\\b(print|read|write|copy|readDir)\\b"
         },
         {
           "name": "support.function.builtin.array.axo",
-          "match": "\\b(len|push|pop)\\b"
+          "match": "\\b(len|push|pop|slice|reverse|join|sort|find|includes)\\b"
         },
         {
           "name": "support.function.builtin.string.axo",
-          "match": "\\b(substr|toUpper|toLower|indexOf|contains|toString)\\b"
+          "match": "\\b(substr|toUpper|toLower|indexOf|contains|toString|trim|replace|split|startsWith|endsWith|repeat|charAt|charCodeAt)\\b"
         },
         {
           "name": "support.function.builtin.time.axo",
@@ -403,7 +403,15 @@
         },
         {
           "name": "support.function.builtin.type.axo",
-          "match": "\\b(typeof)\\b"
+          "match": "\\b(typeof|toInt|toFloat|toBool)\\b"
+        },
+        {
+          "name": "support.function.builtin.math.axo",
+          "match": "\\b(sin|cos|tan|sqrt|pow|abs|floor|ceil|round|min|max|random|log|log10|exp|asin|acos|atan|atan2|clamp|lerp)\\b"
+        },
+        {
+          "name": "support.function.builtin.utility.axo",
+          "match": "\\b(assert|error|keys|values|hasKey|clone|merge)\\b"
         }
       ]
     },

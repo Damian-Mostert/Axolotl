@@ -12,6 +12,8 @@
 #include <thread>
 #include <cstdlib>
 #include <typeinfo>
+#include <cmath>
+#include <random>
 
 namespace fs = std::filesystem;
 
@@ -424,6 +426,31 @@ std::string Interpreter::visit(FunctionCall *node)
         return buffer.str(); // return file content as std::string
     }
 
+    // Built-in: readDir(...)
+    if (callName == "readDir")
+    {
+        if (node->args.size() != 1)
+        {
+            throw std::runtime_error("readDir() expects exactly 1 argument: readDir(dirPath)");
+        }
+
+        Value dirVal = evaluate(node->args[0].get());
+        std::string dirPath = valueToString(dirVal);
+
+        auto result = std::make_shared<ArrayValue>();
+        
+        try {
+            for (const auto& entry : fs::directory_iterator(dirPath)) {
+                result->elements.push_back(entry.path().filename().string());
+            }
+        } catch (const fs::filesystem_error& e) {
+            throw std::runtime_error("Could not read directory: " + dirPath + " - " + e.what());
+        }
+
+        lastValue = result;
+        return "[array]";
+    }
+
     // Built-in: copy(...)
     if (callName == "copy")
     {
@@ -460,7 +487,7 @@ std::string Interpreter::visit(FunctionCall *node)
         srcFile.close();
         dstFile.close();
 
-        return nullptr; // or some Value representing success
+        return ""; // Return empty string for void functions
     }
 
     // Built-in: print(...)
@@ -714,6 +741,535 @@ std::string Interpreter::visit(FunctionCall *node)
         std::string result = valueToString(v);
         lastValue = Value(result);
         return "[string]";
+    }
+
+    // Math functions
+    if (callName == "sin") {
+        if (node->args.size() != 1) throw std::runtime_error("sin() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::sin(val);
+        return "[float]";
+    }
+    if (callName == "cos") {
+        if (node->args.size() != 1) throw std::runtime_error("cos() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::cos(val);
+        return "[float]";
+    }
+    if (callName == "tan") {
+        if (node->args.size() != 1) throw std::runtime_error("tan() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::tan(val);
+        return "[float]";
+    }
+    if (callName == "sqrt") {
+        if (node->args.size() != 1) throw std::runtime_error("sqrt() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::sqrt(val);
+        return "[float]";
+    }
+    if (callName == "pow") {
+        if (node->args.size() != 2) throw std::runtime_error("pow() expects 2 arguments");
+        Value base = evaluate(node->args[0].get());
+        Value exp = evaluate(node->args[1].get());
+        float b = std::holds_alternative<float>(base) ? std::get<float>(base) : static_cast<float>(std::get<int>(base));
+        float e = std::holds_alternative<float>(exp) ? std::get<float>(exp) : static_cast<float>(std::get<int>(exp));
+        lastValue = std::pow(b, e);
+        return "[float]";
+    }
+    if (callName == "abs") {
+        if (node->args.size() != 1) throw std::runtime_error("abs() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        if (std::holds_alternative<int>(v)) {
+            lastValue = std::abs(std::get<int>(v));
+            return "[int]";
+        }
+        lastValue = std::fabs(std::get<float>(v));
+        return "[float]";
+    }
+    if (callName == "floor") {
+        if (node->args.size() != 1) throw std::runtime_error("floor() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = static_cast<int>(std::floor(val));
+        return "[int]";
+    }
+    if (callName == "ceil") {
+        if (node->args.size() != 1) throw std::runtime_error("ceil() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = static_cast<int>(std::ceil(val));
+        return "[int]";
+    }
+    if (callName == "round") {
+        if (node->args.size() != 1) throw std::runtime_error("round() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = static_cast<int>(std::round(val));
+        return "[int]";
+    }
+    if (callName == "min") {
+        if (node->args.size() != 2) throw std::runtime_error("min() expects 2 arguments");
+        Value a = evaluate(node->args[0].get());
+        Value b = evaluate(node->args[1].get());
+        if (std::holds_alternative<int>(a) && std::holds_alternative<int>(b)) {
+            lastValue = std::min(std::get<int>(a), std::get<int>(b));
+            return "[int]";
+        }
+        float fa = std::holds_alternative<float>(a) ? std::get<float>(a) : static_cast<float>(std::get<int>(a));
+        float fb = std::holds_alternative<float>(b) ? std::get<float>(b) : static_cast<float>(std::get<int>(b));
+        lastValue = std::min(fa, fb);
+        return "[float]";
+    }
+    if (callName == "max") {
+        if (node->args.size() != 2) throw std::runtime_error("max() expects 2 arguments");
+        Value a = evaluate(node->args[0].get());
+        Value b = evaluate(node->args[1].get());
+        if (std::holds_alternative<int>(a) && std::holds_alternative<int>(b)) {
+            lastValue = std::max(std::get<int>(a), std::get<int>(b));
+            return "[int]";
+        }
+        float fa = std::holds_alternative<float>(a) ? std::get<float>(a) : static_cast<float>(std::get<int>(a));
+        float fb = std::holds_alternative<float>(b) ? std::get<float>(b) : static_cast<float>(std::get<int>(b));
+        lastValue = std::max(fa, fb);
+        return "[float]";
+    }
+    if (callName == "random") {
+        if (node->args.size() != 0) throw std::runtime_error("random() expects no arguments");
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        static std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+        float randomValue = dis(gen);
+        lastValue = randomValue;
+        std::ostringstream oss;
+        oss << randomValue;
+        return oss.str();
+    }
+
+    // Advanced math functions
+    if (callName == "log") {
+        if (node->args.size() != 1) throw std::runtime_error("log() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::log(val);
+        return "[float]";
+    }
+    if (callName == "log10") {
+        if (node->args.size() != 1) throw std::runtime_error("log10() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::log10(val);
+        return "[float]";
+    }
+    if (callName == "exp") {
+        if (node->args.size() != 1) throw std::runtime_error("exp() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::exp(val);
+        return "[float]";
+    }
+    if (callName == "asin") {
+        if (node->args.size() != 1) throw std::runtime_error("asin() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::asin(val);
+        return "[float]";
+    }
+    if (callName == "acos") {
+        if (node->args.size() != 1) throw std::runtime_error("acos() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::acos(val);
+        return "[float]";
+    }
+    if (callName == "atan") {
+        if (node->args.size() != 1) throw std::runtime_error("atan() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        lastValue = std::atan(val);
+        return "[float]";
+    }
+    if (callName == "atan2") {
+        if (node->args.size() != 2) throw std::runtime_error("atan2() expects 2 arguments");
+        Value y = evaluate(node->args[0].get());
+        Value x = evaluate(node->args[1].get());
+        float fy = std::holds_alternative<float>(y) ? std::get<float>(y) : static_cast<float>(std::get<int>(y));
+        float fx = std::holds_alternative<float>(x) ? std::get<float>(x) : static_cast<float>(std::get<int>(x));
+        lastValue = std::atan2(fy, fx);
+        return "[float]";
+    }
+    if (callName == "clamp") {
+        if (node->args.size() != 3) throw std::runtime_error("clamp() expects 3 arguments");
+        Value val = evaluate(node->args[0].get());
+        Value minVal = evaluate(node->args[1].get());
+        Value maxVal = evaluate(node->args[2].get());
+        if (std::holds_alternative<int>(val) && std::holds_alternative<int>(minVal) && std::holds_alternative<int>(maxVal)) {
+            int v = std::get<int>(val);
+            int mn = std::get<int>(minVal);
+            int mx = std::get<int>(maxVal);
+            lastValue = std::max(mn, std::min(mx, v));
+            return "[int]";
+        }
+        float fv = std::holds_alternative<float>(val) ? std::get<float>(val) : static_cast<float>(std::get<int>(val));
+        float fmn = std::holds_alternative<float>(minVal) ? std::get<float>(minVal) : static_cast<float>(std::get<int>(minVal));
+        float fmx = std::holds_alternative<float>(maxVal) ? std::get<float>(maxVal) : static_cast<float>(std::get<int>(maxVal));
+        lastValue = std::max(fmn, std::min(fmx, fv));
+        return "[float]";
+    }
+    if (callName == "lerp") {
+        if (node->args.size() != 3) throw std::runtime_error("lerp() expects 3 arguments");
+        Value a = evaluate(node->args[0].get());
+        Value b = evaluate(node->args[1].get());
+        Value t = evaluate(node->args[2].get());
+        float fa = std::holds_alternative<float>(a) ? std::get<float>(a) : static_cast<float>(std::get<int>(a));
+        float fb = std::holds_alternative<float>(b) ? std::get<float>(b) : static_cast<float>(std::get<int>(b));
+        float ft = std::holds_alternative<float>(t) ? std::get<float>(t) : static_cast<float>(std::get<int>(t));
+        lastValue = fa + (fb - fa) * ft;
+        return "[float]";
+    }
+
+    // Array functions
+    if (callName == "slice") {
+        if (node->args.size() != 3) throw std::runtime_error("slice() expects 3 arguments");
+        Value arrVal = evaluate(node->args[0].get());
+        Value startVal = evaluate(node->args[1].get());
+        Value endVal = evaluate(node->args[2].get());
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal)) throw std::runtime_error("slice() requires array");
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
+        int start = std::get<int>(startVal);
+        int end = std::get<int>(endVal);
+        auto result = std::make_shared<ArrayValue>();
+        for (int i = start; i < end && i < (int)arr->elements.size(); i++) {
+            result->elements.push_back(arr->elements[i]);
+        }
+        lastValue = result;
+        return "[array]";
+    }
+    if (callName == "reverse") {
+        if (node->args.size() != 1) throw std::runtime_error("reverse() expects 1 argument");
+        Value arrVal = evaluate(node->args[0].get());
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal)) throw std::runtime_error("reverse() requires array");
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
+        auto result = std::make_shared<ArrayValue>();
+        for (auto it = arr->elements.rbegin(); it != arr->elements.rend(); ++it) {
+            result->elements.push_back(*it);
+        }
+        lastValue = result;
+        return "[array]";
+    }
+    if (callName == "join") {
+        if (node->args.size() != 2) throw std::runtime_error("join() expects 2 arguments");
+        Value arrVal = evaluate(node->args[0].get());
+        Value sepVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal)) throw std::runtime_error("join() requires array");
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
+        std::string sep = std::get<std::string>(sepVal);
+        std::string result;
+        for (size_t i = 0; i < arr->elements.size(); i++) {
+            if (i > 0) result += sep;
+            result += valueToString(arr->elements[i]);
+        }
+        lastValue = result;
+        return "[string]";
+    }
+    if (callName == "sort") {
+        if (node->args.size() != 1) throw std::runtime_error("sort() expects 1 argument");
+        Identifier *arrayId = dynamic_cast<Identifier *>(node->args[0].get());
+        if (!arrayId) throw std::runtime_error("sort() requires array variable");
+        Variable arrayVar = environment.get(arrayId->name);
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(arrayVar.value)) throw std::runtime_error("sort() requires array");
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(arrayVar.value);
+        std::sort(arr->elements.begin(), arr->elements.end(), [this](const Value& a, const Value& b) {
+            return valueToString(a) < valueToString(b);
+        });
+        lastValue = arr;
+        return "[array]";
+    }
+    if (callName == "find") {
+        if (node->args.size() != 2) throw std::runtime_error("find() expects 2 arguments");
+        Value arrVal = evaluate(node->args[0].get());
+        Value searchVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal)) throw std::runtime_error("find() requires array");
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
+        for (size_t i = 0; i < arr->elements.size(); i++) {
+            if (valueToString(arr->elements[i]) == valueToString(searchVal)) {
+                lastValue = static_cast<int>(i);
+                return "[int]";
+            }
+        }
+        lastValue = -1;
+        return "[int]";
+    }
+    if (callName == "includes") {
+        if (node->args.size() != 2) throw std::runtime_error("includes() expects 2 arguments");
+        Value arrVal = evaluate(node->args[0].get());
+        Value searchVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal)) throw std::runtime_error("includes() requires array");
+        auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
+        for (const auto& elem : arr->elements) {
+            if (valueToString(elem) == valueToString(searchVal)) {
+                lastValue = true;
+                return "[bool]";
+            }
+        }
+        lastValue = false;
+        return "[bool]";
+    }
+
+    // String functions
+    if (callName == "trim") {
+        if (node->args.size() != 1) throw std::runtime_error("trim() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        if (!std::holds_alternative<std::string>(v)) throw std::runtime_error("trim() requires string");
+        std::string str = std::get<std::string>(v);
+        size_t start = str.find_first_not_of(" \t\n\r");
+        if (start == std::string::npos) {
+            lastValue = std::string("");
+            return "[string]";
+        }
+        size_t end = str.find_last_not_of(" \t\n\r");
+        lastValue = str.substr(start, end - start + 1);
+        return "[string]";
+    }
+    if (callName == "replace") {
+        if (node->args.size() != 3) throw std::runtime_error("replace() expects 3 arguments");
+        Value strVal = evaluate(node->args[0].get());
+        Value searchVal = evaluate(node->args[1].get());
+        Value replaceVal = evaluate(node->args[2].get());
+        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("replace() requires string");
+        std::string str = std::get<std::string>(strVal);
+        std::string search = std::get<std::string>(searchVal);
+        std::string replacement = std::get<std::string>(replaceVal);
+        size_t pos = str.find(search);
+        if (pos != std::string::npos) {
+            str.replace(pos, search.length(), replacement);
+        }
+        lastValue = str;
+        return "[string]";
+    }
+    if (callName == "split") {
+        if (node->args.size() != 2) throw std::runtime_error("split() expects 2 arguments");
+        Value strVal = evaluate(node->args[0].get());
+        Value delimVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("split() requires string");
+        std::string str = std::get<std::string>(strVal);
+        std::string delim = std::get<std::string>(delimVal);
+        auto result = std::make_shared<ArrayValue>();
+        size_t start = 0;
+        size_t end = str.find(delim);
+        while (end != std::string::npos) {
+            result->elements.push_back(str.substr(start, end - start));
+            start = end + delim.length();
+            end = str.find(delim, start);
+        }
+        result->elements.push_back(str.substr(start));
+        lastValue = result;
+        return "[array]";
+    }
+    if (callName == "startsWith") {
+        if (node->args.size() != 2) throw std::runtime_error("startsWith() expects 2 arguments");
+        Value strVal = evaluate(node->args[0].get());
+        Value prefixVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("startsWith() requires string");
+        std::string str = std::get<std::string>(strVal);
+        std::string prefix = std::get<std::string>(prefixVal);
+        lastValue = str.rfind(prefix, 0) == 0;
+        return "[bool]";
+    }
+    if (callName == "endsWith") {
+        if (node->args.size() != 2) throw std::runtime_error("endsWith() expects 2 arguments");
+        Value strVal = evaluate(node->args[0].get());
+        Value suffixVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("endsWith() requires string");
+        std::string str = std::get<std::string>(strVal);
+        std::string suffix = std::get<std::string>(suffixVal);
+        if (suffix.length() > str.length()) {
+            lastValue = false;
+        } else {
+            lastValue = str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+        }
+        return "[bool]";
+    }
+    if (callName == "repeat") {
+        if (node->args.size() != 2) throw std::runtime_error("repeat() expects 2 arguments");
+        Value strVal = evaluate(node->args[0].get());
+        Value countVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("repeat() requires string");
+        std::string str = std::get<std::string>(strVal);
+        int count = std::get<int>(countVal);
+        std::string result;
+        for (int i = 0; i < count; i++) {
+            result += str;
+        }
+        lastValue = result;
+        return "[string]";
+    }
+    if (callName == "charAt") {
+        if (node->args.size() != 2) throw std::runtime_error("charAt() expects 2 arguments");
+        Value strVal = evaluate(node->args[0].get());
+        Value idxVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("charAt() requires string");
+        std::string str = std::get<std::string>(strVal);
+        int idx = std::get<int>(idxVal);
+        if (idx < 0 || idx >= (int)str.length()) {
+            lastValue = std::string("");
+        } else {
+            lastValue = std::string(1, str[idx]);
+        }
+        return "[string]";
+    }
+    if (callName == "charCodeAt") {
+        if (node->args.size() != 2) throw std::runtime_error("charCodeAt() expects 2 arguments");
+        Value strVal = evaluate(node->args[0].get());
+        Value idxVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("charCodeAt() requires string");
+        std::string str = std::get<std::string>(strVal);
+        int idx = std::get<int>(idxVal);
+        if (idx < 0 || idx >= (int)str.length()) {
+            lastValue = -1;
+        } else {
+            lastValue = static_cast<int>(str[idx]);
+        }
+        return "[int]";
+    }
+
+    // Type conversion functions
+    if (callName == "toInt") {
+        if (node->args.size() != 1) throw std::runtime_error("toInt() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        if (std::holds_alternative<int>(v)) {
+            lastValue = std::get<int>(v);
+        } else if (std::holds_alternative<float>(v)) {
+            lastValue = static_cast<int>(std::get<float>(v));
+        } else if (std::holds_alternative<bool>(v)) {
+            lastValue = std::get<bool>(v) ? 1 : 0;
+        } else if (std::holds_alternative<std::string>(v)) {
+            try {
+                lastValue = std::stoi(std::get<std::string>(v));
+            } catch (...) {
+                lastValue = 0;
+            }
+        } else {
+            lastValue = 0;
+        }
+        return "[int]";
+    }
+    if (callName == "toFloat") {
+        if (node->args.size() != 1) throw std::runtime_error("toFloat() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        if (std::holds_alternative<float>(v)) {
+            lastValue = std::get<float>(v);
+        } else if (std::holds_alternative<int>(v)) {
+            lastValue = static_cast<float>(std::get<int>(v));
+        } else if (std::holds_alternative<std::string>(v)) {
+            try {
+                lastValue = std::stof(std::get<std::string>(v));
+            } catch (...) {
+                lastValue = 0.0f;
+            }
+        } else {
+            lastValue = 0.0f;
+        }
+        return "[float]";
+    }
+    if (callName == "toBool") {
+        if (node->args.size() != 1) throw std::runtime_error("toBool() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        lastValue = isTruthy(v);
+        return "[bool]";
+    }
+
+    // Utility functions
+    if (callName == "assert") {
+        if (node->args.size() != 2) throw std::runtime_error("assert() expects 2 arguments");
+        Value condVal = evaluate(node->args[0].get());
+        Value msgVal = evaluate(node->args[1].get());
+        if (!isTruthy(condVal)) {
+            throw std::runtime_error("Assertion failed: " + std::get<std::string>(msgVal));
+        }
+        return "";
+    }
+    if (callName == "error") {
+        if (node->args.size() != 1) throw std::runtime_error("error() expects 1 argument");
+        Value msgVal = evaluate(node->args[0].get());
+        throw std::runtime_error(std::get<std::string>(msgVal));
+    }
+    if (callName == "keys") {
+        if (node->args.size() != 1) throw std::runtime_error("keys() expects 1 argument");
+        Value objVal = evaluate(node->args[0].get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal)) throw std::runtime_error("keys() requires object");
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        auto result = std::make_shared<ArrayValue>();
+        for (const auto& [key, val] : obj->fields) {
+            result->elements.push_back(key);
+        }
+        lastValue = result;
+        return "[array]";
+    }
+    if (callName == "values") {
+        if (node->args.size() != 1) throw std::runtime_error("values() expects 1 argument");
+        Value objVal = evaluate(node->args[0].get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal)) throw std::runtime_error("values() requires object");
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        auto result = std::make_shared<ArrayValue>();
+        for (const auto& [key, val] : obj->fields) {
+            result->elements.push_back(val);
+        }
+        lastValue = result;
+        return "[array]";
+    }
+    if (callName == "hasKey") {
+        if (node->args.size() != 2) throw std::runtime_error("hasKey() expects 2 arguments");
+        Value objVal = evaluate(node->args[0].get());
+        Value keyVal = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal)) throw std::runtime_error("hasKey() requires object");
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        std::string key = std::get<std::string>(keyVal);
+        lastValue = obj->fields.find(key) != obj->fields.end();
+        return "[bool]";
+    }
+    if (callName == "clone") {
+        if (node->args.size() != 1) throw std::runtime_error("clone() expects 1 argument");
+        Value v = evaluate(node->args[0].get());
+        // Deep copy for arrays and objects
+        if (std::holds_alternative<std::shared_ptr<ArrayValue>>(v)) {
+            auto arr = std::get<std::shared_ptr<ArrayValue>>(v);
+            auto newArr = std::make_shared<ArrayValue>();
+            newArr->elements = arr->elements; // Shallow copy elements
+            lastValue = newArr;
+            return "[array]";
+        }
+        if (std::holds_alternative<std::shared_ptr<ObjectValue>>(v)) {
+            auto obj = std::get<std::shared_ptr<ObjectValue>>(v);
+            auto newObj = std::make_shared<ObjectValue>();
+            newObj->fields = obj->fields; // Shallow copy fields
+            lastValue = newObj;
+            return "{object}";
+        }
+        lastValue = v;
+        return valueToString(v);
+    }
+    if (callName == "merge") {
+        if (node->args.size() != 2) throw std::runtime_error("merge() expects 2 arguments");
+        Value obj1Val = evaluate(node->args[0].get());
+        Value obj2Val = evaluate(node->args[1].get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(obj1Val) || 
+            !std::holds_alternative<std::shared_ptr<ObjectValue>>(obj2Val)) {
+            throw std::runtime_error("merge() requires two objects");
+        }
+        auto obj1 = std::get<std::shared_ptr<ObjectValue>>(obj1Val);
+        auto obj2 = std::get<std::shared_ptr<ObjectValue>>(obj2Val);
+        auto result = std::make_shared<ObjectValue>();
+        result->fields = obj1->fields;
+        for (const auto& [key, val] : obj2->fields) {
+            result->fields[key] = val;
+        }
+        lastValue = result;
+        return "{object}";
     }
 
     // Check if this is a call to a function variable (via callee)

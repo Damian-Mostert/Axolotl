@@ -1969,10 +1969,57 @@ CMakeFiles/compiler.dir/src/interpreter.cpp.o: /Users/damian/Axolotl/src/interpr
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__mutex/tag_types.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__mutex/unique_lock.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__node_handle \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/accumulate.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/adjacent_difference.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/exclusive_scan.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/gcd_lcm.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/inclusive_scan.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/inner_product.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/iota.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/partial_sum.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/pstl.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/reduce.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/transform_exclusive_scan.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/transform_inclusive_scan.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/transform_reduce.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__ostream/basic_ostream.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/bernoulli_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/binomial_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/cauchy_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/chi_squared_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/clamp_to_integral.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/default_random_engine.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/discard_block_engine.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/discrete_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/exponential_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/extreme_value_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/fisher_f_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/gamma_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/generate_canonical.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/geometric_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/independent_bits_engine.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/is_seed_sequence.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/is_valid.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/knuth_b.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/linear_congruential_engine.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/log2.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/lognormal_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/mersenne_twister_engine.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/negative_binomial_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/normal_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/piecewise_constant_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/piecewise_linear_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/poisson_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/random_device.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/ranlux.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/seed_seq.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/shuffle_order_engine.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/student_t_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/subtract_with_carry_engine.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/uniform_int_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/uniform_random_bit_generator.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/uniform_real_distribution.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/weibull_distribution.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/access.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/concepts.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/container_compatible_range.h \
@@ -2069,6 +2116,7 @@ CMakeFiles/compiler.dir/src/interpreter.cpp.o: /Users/damian/Axolotl/src/interpr
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_empty.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_enum.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_equality_comparable.h \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_execution_policy.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_final.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_floating_point.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_function.h \
@@ -2186,6 +2234,7 @@ CMakeFiles/compiler.dir/src/interpreter.cpp.o: /Users/damian/Axolotl/src/interpr
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/deque \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/errno.h \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/exception \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/execution \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/filesystem \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/format \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/forward_list \
@@ -2206,10 +2255,12 @@ CMakeFiles/compiler.dir/src/interpreter.cpp.o: /Users/damian/Axolotl/src/interpr
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/memory \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/mutex \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/new \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/numeric \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/optional \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/ostream \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/print \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/queue \
+  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/random \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/ratio \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/sstream \
   /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/stack \
@@ -7083,8 +7134,6 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Support/MemoryBufferRef.h:
 
-/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Support/MemoryBuffer.h:
-
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Support/MemAlloc.h:
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Support/ManagedStatic.h:
@@ -7195,8 +7244,6 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Config/Disassemblers.def:
 
-/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Config/AsmParsers.def:
-
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/IR/ConstantRange.h:
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/BinaryFormat/Swift.h:
@@ -7229,8 +7276,6 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/SmallVector.h:
 
-/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/SmallString.h:
-
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/Sequence.h:
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Support/Casting.h:
@@ -7256,10 +7301,6 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/EpochTracker.h:
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/DenseSet.h:
-
-/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/IntrusiveRefCntPtr.h:
-
-/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/DenseMapInfo.h:
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/DenseMap.h:
 
@@ -7287,10 +7328,6 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm-c/DataTypes.h:
 
-/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/IR/GEPNoWrapFlags.h:
-
-/Library/Developer/CommandLineTools/usr/lib/clang/17/include/inttypes.h:
-
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/xlocale/_inttypes.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/inttypes.h:
@@ -7317,9 +7354,17 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/thread:
 
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/random:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/numeric:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/filesystem:
 
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/execution:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/chrono:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_execution_policy.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__thread/thread.h:
 
@@ -7330,6 +7375,84 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/intrusive_shared_ptr.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__stop_token/atomic_unique_lock.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/uniform_real_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/subtract_with_carry_engine.h:
+
+/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Support/MemoryBuffer.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/shuffle_order_engine.h:
+
+/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Config/AsmParsers.def:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/seed_seq.h:
+
+/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/IntrusiveRefCntPtr.h:
+
+/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/DenseMapInfo.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/ranlux.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/poisson_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/piecewise_linear_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/mersenne_twister_engine.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/linear_congruential_engine.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/is_seed_sequence.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/independent_bits_engine.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/geometric_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/generate_canonical.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/gamma_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/extreme_value_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/exponential_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/discrete_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/discard_block_engine.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/default_random_engine.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/clamp_to_integral.h:
+
+/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/ADT/SmallString.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/chi_squared_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/cauchy_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/binomial_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/bernoulli_distribution.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/transform_reduce.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/transform_inclusive_scan.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/reduce.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/pstl.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/partial_sum.h:
+
+/opt/homebrew/Cellar/llvm/21.1.6/include/llvm/IR/GEPNoWrapFlags.h:
+
+/Library/Developer/CommandLineTools/usr/lib/clang/17/include/inttypes.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/iota.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/inner_product.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/accumulate.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__filesystem/perms.h:
 
@@ -7427,6 +7550,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/xlocale/_wchar.h:
 
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/exclusive_scan.h:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/xlocale/_ctype.h:
 
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Support/ReverseIteration.h:
@@ -7446,6 +7571,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/types.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/errno.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/inclusive_scan.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:
 
@@ -7548,6 +7675,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/_symbol_aliasing.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/_pthread/_pthread_condattr_t.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/random_device.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/_pthread/_pthread_cond_t.h:
 
@@ -7667,6 +7796,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/errno.h:
 
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/adjacent_difference.h:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/mach/machine/_structs.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/cwchar:
@@ -7694,6 +7825,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/xlocale/_wctype.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/atomic:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/gcd_lcm.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/algorithm:
 
@@ -8026,6 +8159,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__tuple/tuple_element.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/remove_reference.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/piecewise_constant_distribution.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__tuple/sfinae_helpers.h:
 
@@ -8539,6 +8674,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_types/_intmax_t.h:
 
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/fisher_f_distribution.h:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/cstddef:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__functional/operations.h:
@@ -8565,6 +8702,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/to_chars_base_10.h:
 
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/negative_binomial_distribution.h:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__math/inverse_trigonometric_functions.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__fwd/bit_reference.h:
@@ -8574,6 +8713,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__bit_reference:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/three_way_comp_ref_type.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/weibull_distribution.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/wctype.h:
 
@@ -8735,9 +8876,13 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_types.h:
 
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__numeric/transform_exclusive_scan.h:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__tuple/tuple_size.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/find.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/normal_distribution.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/xlocale/_stdlib.h:
 
@@ -8794,6 +8939,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /opt/homebrew/Cellar/llvm/21.1.6/include/llvm/Support/Compiler.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__config:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/student_t_distribution.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__format/width_estimation_table.h:
 
@@ -8957,6 +9104,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/count_if.h:
 
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/uniform_random_bit_generator.h:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/sys/_types/_u_int8_t.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/is_partitioned.h:
@@ -8976,6 +9125,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/alloca.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/maybe_const.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/lognormal_distribution.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/uniform_int_distribution.h:
 
@@ -9074,6 +9225,8 @@ CMakeFiles/compiler.dir/src/token.cpp.o: /Users/damian/Axolotl/src/token.cpp \
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__atomic/kill_dependency.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__ranges/size.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__random/knuth_b.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/stable_partition.h:
 
