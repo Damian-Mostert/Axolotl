@@ -1,1 +1,9 @@
 node_modules
+build/CMakeCache.txt
+build/CMakeFiles/
+build/*.cmake
+build/Makefile
+build/compiler
+*.o
+*.a
+.DS_Store
