@@ -91,9 +91,17 @@ public:
 class Interpreter : public ASTVisitor {
 public:
     std::unordered_map<std::string, std::string> typeRegistry;  // Store custom type definitions
+    Value lastValue;  // Store last evaluated complex value (array, object)
+    Environment environment;
     
     Interpreter();
     ~Interpreter();
+    
+    // Public methods for builtins
+    Value evaluate(Expression* expr);
+    std::string valueToString(const Value& v);
+    bool isTruthy(const Value& v);
+    void executeBlock(Block* block);
     
     void interpret(Program* program);
     
@@ -136,7 +144,6 @@ public:
     std::string visit(SwitchStatement* node) override;
     
 private:
-    Environment environment;
     std::unordered_map<std::string, FunctionDeclaration*> functions;
     std::unordered_map<std::string, ProgramDeclaration*> programs;
     std::unordered_map<std::string, std::future<void>> runningPrograms;
@@ -146,19 +153,14 @@ private:
     std::unordered_map<std::string, Value> moduleDefaultExports;  // Store default exports per module
     std::string currentModulePath;  // Track current module being processed
     std::unordered_map<std::string, std::unique_ptr<Program>> importedASTs;  // Keep imported ASTs alive
-    Value lastValue;  // Store last evaluated complex value (array, object)
     Variable lastVariable;  // Store last accessed variable for typeof operations
     std::string lastVariableName;  // Store last accessed variable name
     std::unique_ptr<LLVMJITCompiler> jitCompiler;  // JIT compiler for loop optimization
     
-    Value evaluate(Expression* expr);
     void execute(Statement* stmt);
-    void executeBlock(Block* block);
     
     Value performBinaryOp(const Value& left, BinaryOperator op, const Value& right);
     Value performUnaryOp(UnaryOperator op, const Value& operand);
-    bool isTruthy(const Value& v);
-    std::string valueToString(const Value& v);
     std::string getTypeOfValue(const Value& v);
     std::string resolveImportPath(const std::string& requestedPath);
 };

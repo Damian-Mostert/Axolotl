@@ -1,0 +1,226 @@
+// Draggable Box Collector Game
+print("Starting Box Collector Game!");
+
+const canvas: object = createCanvas(800, 600);
+var score: int = 0;
+var playerX: int = 350;
+var playerY: int = 250;
+var playerSize: int = 50;
+var isDragging: bool = false;
+var dragOffsetX: int = 0;
+var dragOffsetY: int = 0;
+
+// Target positions
+var target1X: int = 50;
+var target1Y: int = 100;
+var target1Active: bool = true;
+
+var target2X: int = 200;
+var target2Y: int = 400;
+var target2Active: bool = true;
+
+var target3X: int = 350;
+var target3Y: int = 100;
+var target3Active: bool = true;
+
+var target4X: int = 500;
+var target4Y: int = 400;
+var target4Active: bool = true;
+
+var target5X: int = 650;
+var target5Y: int = 250;
+var target5Active: bool = true;
+
+const targetSize: int = 40;
+
+// Check collision
+func checkCollision(px: int, py: int, psize: int, tx: int, ty: int, tsize: int) -> bool {
+    return px < tx + tsize && px + psize > tx && py < ty + tsize && py + psize > ty;
+}
+
+// Game loop
+var running: bool = true;
+var frameCount: int = 0;
+
+print("Use WASD or Arrow Keys to move, or drag with mouse!");
+print("Collect all 5 boxes to win!");
+
+while (running) {
+    updateInputs();
+    
+    const mx: int = getMouseX();
+    const my: int = getMouseY();
+    const mousePressed: bool = isMouseDown();
+    
+    // Handle dragging
+    if (mousePressed && !isDragging) {
+        if (mx >= playerX && mx <= playerX + playerSize && my >= playerY && my <= playerY + playerSize) {
+            isDragging = true;
+            dragOffsetX = mx - playerX;
+            dragOffsetY = my - playerY;
+        }
+    }
+    
+    if (!mousePressed) {
+        isDragging = false;
+    }
+    
+    if (isDragging) {
+        playerX = mx - dragOffsetX;
+        playerY = my - dragOffsetY;
+        
+        if (playerX < 0) {
+            playerX = 0;
+        }
+        if (playerX > 800 - playerSize) {
+            playerX = 800 - playerSize;
+        }
+        if (playerY < 0) {
+            playerY = 0;
+        }
+        if (playerY > 600 - playerSize) {
+            playerY = 600 - playerSize;
+        }
+    }
+    
+    // Keyboard controls
+    if (isKeyDown("W") || isKeyDown("Up")) {
+        playerY = playerY - 5;
+        if (playerY < 0) {
+            playerY = 0;
+        }
+    }
+    if (isKeyDown("S") || isKeyDown("Down")) {
+        playerY = playerY + 5;
+        if (playerY > 600 - playerSize) {
+            playerY = 600 - playerSize;
+        }
+    }
+    if (isKeyDown("A") || isKeyDown("Left")) {
+        playerX = playerX - 5;
+        if (playerX < 0) {
+            playerX = 0;
+        }
+    }
+    if (isKeyDown("D") || isKeyDown("Right")) {
+        playerX = playerX + 5;
+        if (playerX > 800 - playerSize) {
+            playerX = 800 - playerSize;
+        }
+    }
+    
+    // Check collisions
+    if (target1Active) {
+        if (checkCollision(playerX, playerY, playerSize, target1X, target1Y, targetSize)) {
+            target1Active = false;
+            score = score + 10;
+            print("Collected! Score:", score);
+        }
+    }
+    
+    if (target2Active) {
+        if (checkCollision(playerX, playerY, playerSize, target2X, target2Y, targetSize)) {
+            target2Active = false;
+            score = score + 10;
+            print("Collected! Score:", score);
+        }
+    }
+    
+    if (target3Active) {
+        if (checkCollision(playerX, playerY, playerSize, target3X, target3Y, targetSize)) {
+            target3Active = false;
+            score = score + 10;
+            print("Collected! Score:", score);
+        }
+    }
+    
+    if (target4Active) {
+        if (checkCollision(playerX, playerY, playerSize, target4X, target4Y, targetSize)) {
+            target4Active = false;
+            score = score + 10;
+            print("Collected! Score:", score);
+        }
+    }
+    
+    if (target5Active) {
+        if (checkCollision(playerX, playerY, playerSize, target5X, target5Y, targetSize)) {
+            target5Active = false;
+            score = score + 10;
+            print("Collected! Score:", score);
+        }
+    }
+    
+    // Clear canvas - dark background
+    canvas.fillStyle("#1a1a2e");
+    canvas.fillRect(0, 0, 800, 600);
+    
+    // Draw score bar
+    canvas.fillStyle("#16213e");
+    canvas.fillRect(0, 0, 800, 50);
+    
+    // Draw targets
+    if (target1Active) {
+        canvas.fillStyle("#f39c12");
+        canvas.fillRect(target1X, target1Y, targetSize, targetSize);
+        canvas.fillStyle("#e67e22");
+        canvas.fillCircle(target1X + 20, target1Y + 20, 8);
+    }
+    
+    if (target2Active) {
+        canvas.fillStyle("#f39c12");
+        canvas.fillRect(target2X, target2Y, targetSize, targetSize);
+        canvas.fillStyle("#e67e22");
+        canvas.fillCircle(target2X + 20, target2Y + 20, 8);
+    }
+    
+    if (target3Active) {
+        canvas.fillStyle("#f39c12");
+        canvas.fillRect(target3X, target3Y, targetSize, targetSize);
+        canvas.fillStyle("#e67e22");
+        canvas.fillCircle(target3X + 20, target3Y + 20, 8);
+    }
+    
+    if (target4Active) {
+        canvas.fillStyle("#f39c12");
+        canvas.fillRect(target4X, target4Y, targetSize, targetSize);
+        canvas.fillStyle("#e67e22");
+        canvas.fillCircle(target4X + 20, target4Y + 20, 8);
+    }
+    
+    if (target5Active) {
+        canvas.fillStyle("#f39c12");
+        canvas.fillRect(target5X, target5Y, targetSize, targetSize);
+        canvas.fillStyle("#e67e22");
+        canvas.fillCircle(target5X + 20, target5Y + 20, 8);
+    }
+    
+    // Draw player
+    if (isDragging) {
+        canvas.fillStyle("#e74c3c");
+    } else {
+        canvas.fillStyle("#3498db");
+    }
+    canvas.fillRect(playerX, playerY, playerSize, playerSize);
+    
+    // Draw player eyes
+    canvas.fillStyle("#ecf0f1");
+    canvas.fillCircle(playerX + 15, playerY + 15, 6);
+    canvas.fillCircle(playerX + 35, playerY + 15, 6);
+    canvas.fillStyle("#2c3e50");
+    canvas.fillCircle(playerX + 15, playerY + 15, 3);
+    canvas.fillCircle(playerX + 35, playerY + 15, 3);
+    
+    canvas.render();
+    
+    // Check win condition
+    if (!target1Active && !target2Active && !target3Active && !target4Active && !target5Active) {
+        print("YOU WIN! Final Score:", score);
+        running = false;
+    }
+    
+    frameCount = frameCount + 1;
+    sleep(16);
+}
+
+print("Game Over! Thanks for playing!");
+sleep(2000);

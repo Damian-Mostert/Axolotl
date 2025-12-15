@@ -26,6 +26,17 @@ set(SOURCES
     src/operators.cpp
     src/jit.cpp
     src/error_handler.cpp
+    src/builtins/registry.cpp
+    src/builtins/string_functions.cpp
+    src/builtins/io_functions.cpp
+    src/builtins/array_functions.cpp
+    src/builtins/math_functions.cpp
+    src/builtins/conversion_functions.cpp
+    src/builtins/utility_functions.cpp
+    src/builtins/json_functions.cpp
+    src/builtins/http_functions.cpp
+    src/builtins/canvas_functions.cpp
+    src/builtins/input_functions.cpp
 )
 
 # Create executable
@@ -48,9 +59,14 @@ endif()
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 
+# Find SDL2
+find_library(SDL2_LIBRARY SDL2 PATHS /opt/homebrew/lib)
+find_path(SDL2_INCLUDE_DIR SDL2/SDL.h PATHS /opt/homebrew/include)
+include_directories(${SDL2_INCLUDE_DIR})
+
 # Link LLVM libraries
 llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
-target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES})
+target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES} ${SDL2_LIBRARY})
 
 # Link stdc++fs for GNU < 9 and also for AppleClang for filesystem support
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

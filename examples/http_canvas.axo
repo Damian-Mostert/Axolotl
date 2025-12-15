@@ -1,0 +1,50 @@
+// Fetch data from API and render in canvas
+print("Fetching data from API...");
+const response: object = fetch("https://jsonplaceholder.typicode.com/posts/1");
+const post: object = response.body;
+
+print("Post ID:", post.id);
+print("Title:", post.title);
+
+// Create canvas
+const canvas: object = createCanvas(800, 600);
+
+// White background
+canvas.fillStyle("#FFFFFF");
+canvas.fillRect(0, 0, 800, 600);
+
+// Draw header bar
+canvas.fillStyle("#4A90E2");
+canvas.fillRect(0, 0, 800, 80);
+
+// Draw post ID indicator
+canvas.fillStyle("#FF6B6B");
+canvas.fillRect(50, 150, 100, 100);
+
+// Draw user ID indicator
+canvas.fillStyle("#4ECDC4");
+canvas.fillRect(200, 150, 100, 100);
+
+// Draw status indicator (green if OK)
+if (response.ok) {
+    canvas.fillStyle("#95E1D3");
+} else {
+    canvas.fillStyle("#F38181");
+}
+canvas.fillRect(350, 150, 100, 100);
+
+// Draw content area
+canvas.strokeStyle("#2C3E50");
+canvas.strokeRect(50, 300, 700, 250);
+
+canvas.render();
+
+print("Canvas rendered! Close window to exit.");
+print("Red box = Post ID:", post.id);
+print("Cyan box = User ID:", post.userId);
+print("Green box = Response OK");
+
+while (true) {
+    pollEvents();
+    sleep(16);
+}

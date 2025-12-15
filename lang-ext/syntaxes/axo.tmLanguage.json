@@ -420,6 +420,14 @@
         {
           "name": "support.function.builtin.http.axo",
           "match": "\\b(fetch)\\b"
+        },
+        {
+          "name": "support.function.builtin.graphics.axo",
+          "match": "\\b(createCanvas|updateInputs|render|fillStyle|fillRect|fillCircle)\\b"
+        },
+        {
+          "name": "support.function.builtin.input.axo",
+          "match": "\\b(getMouseX|getMouseY|isMouseDown|isKeyDown)\\b"
         }
       ]
     },
