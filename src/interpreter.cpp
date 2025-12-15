@@ -21,6 +21,9 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+// Forward declaration for env loader
+extern std::shared_ptr<ObjectValue> loadEnvFile(const std::string& path);
+
 namespace fs = std::filesystem;
 
 // Global interpreter pointer for type checking
@@ -279,6 +282,27 @@ Interpreter::Interpreter()
     environment.pushScope();
     jitCompiler = std::make_unique<LLVMJITCompiler>();
     currentInterpreter = this;
+    
+    // Create process global object
+    auto processObj = std::make_shared<ObjectValue>();
+    
+    // Load .env file into process.env
+    processObj->fields["env"] = loadEnvFile(".env");
+    
+    // Add process.args (empty for now, will be populated by main)
+    auto argsArray = std::make_shared<ArrayValue>();
+    processObj->fields["args"] = argsArray;
+    
+    // Add process.cwd (current working directory)
+    char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+        processObj->fields["cwd"] = std::string(cwd);
+    } else {
+        processObj->fields["cwd"] = std::string(".");
+    }
+    
+    // Define process as a global constant
+    environment.define("process", Variable(processObj, "object", true));
 }
 
 Interpreter::~Interpreter() {

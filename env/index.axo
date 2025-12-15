@@ -1,0 +1,19 @@
+print(process.env.TEST);
+
+const canvas: object = createCanvas(800, 600);
+
+canvas.fillStyle("#FFFFFF");
+canvas.fillRect(0, 0, 800, 600);
+canvas.fillStyle("#FF0000");
+canvas.fillRect(100, 100, 200, 150);
+canvas.strokeStyle("#0000FF");
+canvas.strokeRect(400, 100, 200, 150);
+canvas.fillStyle("#00FF00");
+canvas.fillRect(250, 300, 150, 100);
+canvas.render();
+
+print("Canvas created! Close window to exit.");
+
+while (true) {
+    pollEvents();
+}

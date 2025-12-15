@@ -35,8 +35,8 @@ std::string readFile(const std::string& filename) {
 }
 
 void printUsage(const char* programName) {
-    std::cout << "Usage: " << programName << " <script.lang>" << std::endl;
-    std::cout << "   or: " << programName << " (interactive mode)" << std::endl;
+    std::cout << "Usage: " << programName << " <script.axo>" << std::endl;
+    std::cout << "   or: " << programName << " (runs index.axo if present)" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -47,33 +47,23 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
+        std::string filename;
         if (argc == 2) {
-            source = readFile(argv[1]);
+            filename = argv[1];
+            source = readFile(filename);
         } else {
-            std::cout << "Compiler Engine v1.0\nType 'exit' to quit\n> ";
-            std::string line;
-            while (std::getline(std::cin, line)) {
-                if (line == "exit") break;
-                if (line.empty()) { std::cout << "> "; continue; }
-                source += line + "\n";
-                if (line.find(';') != std::string::npos || line.find('}') != std::string::npos) {
-                    try {
-                        Lexer lexer(source);
-                        auto tokens = lexer.tokenize();
-                        Parser parser(tokens);
-                        auto ast = parser.parse();
-                        Interpreter interpreter;
-                        interpreter.interpret(ast.get());
-                        source = "";
-                        std::cout << std::endl;
-                    } catch (const std::exception& e) {
-                        std::cerr << "Error: " << e.what() << std::endl;
-                        source = "";
-                    }
-                }
-                std::cout << "> ";
+            // Auto-run index.axo if it exists
+            filename = "index.axo";
+            std::ifstream testFile(filename);
+            if (testFile.good()) {
+                testFile.close();
+                source = readFile(filename);
+            } else {
+                std::cerr << BOLD_RED << "Error: " << RESET << "No file specified and index.axo not found\n";
+                std::cerr << "Usage: axolotl <file.axo>\n";
+                std::cerr << "   or: create an index.axo file in the current directory\n";
+                return 1;
             }
-            return 0;
         }
 
         Lexer lexer(source);
@@ -91,12 +81,12 @@ int main(int argc, char* argv[]) {
         } catch (...) {}
 
         if (auto pe = dynamic_cast<const ParseError*>(&e)) {
-            std::string filename = (argc == 2) ? std::string(argv[1]) : "<stdin>";
+            std::string displayFilename = (argc == 2) ? std::string(argv[1]) : "index.axo";
 
             std::cerr << BOLD_RED << "✖ Fatal Parse Error: " << RESET
                       << BOLD << pe->what() << RESET << "\n";
             std::cerr << BOLD_CYAN << "  → File: " << RESET
-                      << CYAN << filename << RESET
+                      << CYAN << displayFilename << RESET
                       << ":" << YELLOW << pe->getLine() << RESET
                       << ":" << YELLOW << pe->getColumn() << RESET << "\n\n";
 

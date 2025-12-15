@@ -37,6 +37,7 @@ set(SOURCES
     src/builtins/http_functions.cpp
     src/builtins/canvas_functions.cpp
     src/builtins/input_functions.cpp
+    src/builtins/env_loader.cpp
 )
 
 # Create executable
@@ -93,6 +94,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     # No need to link stdc++fs for AppleClang on macOS
 endif()
+
+# Install targets
+install(TARGETS compiler DESTINATION bin RENAME axolotl)
+install(DIRECTORY modules DESTINATION lib/axolotl OPTIONAL)
+install(DIRECTORY env DESTINATION lib/axolotl OPTIONAL)
+install(FILES README.md DESTINATION share/axolotl)
+install(DIRECTORY tests DESTINATION share/axolotl/examples OPTIONAL)
 
 # Test executable
 enable_testing()
