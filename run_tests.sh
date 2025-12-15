@@ -1,55 +1,61 @@
 #!/bin/bash
-
-# Compiler Engine Test Suite
-# This script verifies that all components work correctly
-
 set -e
 
-PROJECT_DIR="/Users/damian/game-engine"
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
 COMPILER="$BUILD_DIR/compiler"
+TEST_DIR="$PROJECT_DIR/tests"
 
 echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║           COMPILER ENGINE TEST SUITE                           ║"
+echo "║           AXOLOTL TEST SUITE                                   ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Check if compiler exists
 if [ ! -f "$COMPILER" ]; then
     echo "❌ ERROR: Compiler not found at $COMPILER"
-    echo "Please run: cd $PROJECT_DIR && cmake -S . -B build && cmake --build build"
+    echo "Please run: ./build.sh"
     exit 1
 fi
 
-echo "✅ Compiler found: $COMPILER"
-echo "📊 Compiler size: $(ls -lh $COMPILER | awk '{print $5}')"
+echo "✅ Compiler found"
+echo "📁 Test directory: $TEST_DIR"
 echo ""
-
-# Test each example
-TESTS=(
-    "examples/minimal.lang"
-    "examples/simple.lang"
-    "examples/functions.lang"
-    "examples/logic.lang"
-    "examples/fibonacci.lang"
-    "examples/test.lang"
-    "examples/showcase.lang"
-)
 
 PASSED=0
 FAILED=0
+SKIPPED=0
+
+# Tests to skip (interactive/long-running)
+SKIP_TESTS=();
+
+should_skip() {
+    local test="$1"
+    for skip in "${SKIP_TESTS[@]}"; do
+        if [[ "$test" == "$skip" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 echo "═══════════════════════════════════════════════════════════════════"
-echo "Running Test Suite"
+echo "Running Tests"
 echo "═══════════════════════════════════════════════════════════════════"
 echo ""
 
-for test in "${TESTS[@]}"; do
-    if [ -f "$PROJECT_DIR/$test" ]; then
-        echo -n "Testing $test ... "
+for test in "$TEST_DIR"/*.axo; do
+    if [ -f "$test" ]; then
+        basename=$(basename "$test")
         
-        # Run with timeout (use sleep to avoid infinite loops)
-        if (sleep 1; pkill -9 -f "build/compiler" 2>/dev/null) & "$COMPILER" "$PROJECT_DIR/$test" >/dev/null 2>&1; then
+        if should_skip "$basename"; then
+            echo "Testing $basename ... ⏭️  SKIPPED (interactive)"
+            ((SKIPPED++))
+            continue
+        fi
+        
+        printf "Testing %-40s ... " "$basename"
+        
+        if "$COMPILER" "$test" >/dev/null 2>&1; then
             echo "✅ PASSED"
             ((PASSED++))
         else
@@ -59,20 +65,10 @@ for test in "${TESTS[@]}"; do
     fi
 done
 
-wait 2>/dev/null || true
-pkill -9 -f "build/compiler" 2>/dev/null || true
-
 echo ""
 echo "═══════════════════════════════════════════════════════════════════"
-echo "Test Results: $PASSED passed, $FAILED failed"
+echo "Results: $PASSED passed, $FAILED failed, $SKIPPED skipped"
 echo "═══════════════════════════════════════════════════════════════════"
-echo ""
 
-# Summary
-if [ $FAILED -eq 0 ]; then
-    echo "🎉 ALL TESTS PASSED!"
-    exit 0
-else
-    echo "⚠️  SOME TESTS FAILED"
-    exit 1
-fi
+[ $FAILED -eq 0 ] && echo "🎉 ALL TESTS PASSED!" || echo "⚠️  SOME TESTS FAILED"
+exit $FAILED

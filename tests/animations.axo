@@ -1,0 +1,90 @@
+// Canvas Animation Showcase
+print("Canvas Animation Demo - Testing capabilities");
+
+const canvas: object = createCanvas(800, 600);
+var frame: int = 0;
+
+print("Watch the animations! Press ESC to exit (close window)");
+
+while (frame < 600) {
+    updateInputs();
+    
+    // Dark background
+    canvas.fillStyle("#0a0a0a");
+    canvas.fillRect(0, 0, 800, 600);
+    
+    // Pulsing circles
+    var pulse: int = frame % 60;
+    var radius: int = 20 + pulse;
+    canvas.fillStyle("#e74c3c");
+    canvas.fillCircle(150, 150, radius);
+    canvas.fillStyle("#3498db");
+    canvas.fillCircle(650, 150, 60 - pulse);
+    
+    // Rotating squares
+    var angle: int = frame % 360;
+    var centerX: int = 400;
+    var centerY: int = 300;
+    var offset: int = angle / 3;
+    
+    canvas.fillStyle("#f39c12");
+    canvas.fillRect(centerX - 50 + offset, centerY - 50, 40, 40);
+    canvas.fillStyle("#9b59b6");
+    canvas.fillRect(centerX + 10 - offset, centerY - 50, 40, 40);
+    
+    // Bouncing ball
+    var bounceY: int = frame % 100;
+    if (bounceY > 50) {
+        bounceY = 100 - bounceY;
+    }
+    canvas.fillStyle("#2ecc71");
+    canvas.fillCircle(400, 450 + bounceY, 25);
+    
+    // Wave pattern
+    var i: int = 0;
+    while (i < 800) {
+        var waveOffset: int = (frame + i) % 60;
+        var waveY: int = 500 + waveOffset / 3;
+        canvas.fillStyle("#1abc9c");
+        canvas.fillRect(i, waveY, 10, 5);
+        i = i + 20;
+    }
+    
+    // Spiral circles
+    var spiralFrame: int = frame % 120;
+    var j: int = 0;
+    while (j < 8) {
+        var spiralAngle: int = (spiralFrame + j * 15) % 360;
+        var spiralX: int = 150 + spiralAngle / 6;
+        var spiralY: int = 450 + (j * 5);
+        canvas.fillStyle("#e67e22");
+        canvas.fillCircle(spiralX, spiralY, 8);
+        j = j + 1;
+    }
+    
+    // Color cycling rectangles
+    var colorCycle: int = frame % 180;
+    if (colorCycle < 60) {
+        canvas.fillStyle("#e74c3c");
+    } else {
+        if (colorCycle < 120) {
+            canvas.fillStyle("#3498db");
+        } else {
+            canvas.fillStyle("#2ecc71");
+        }
+    }
+    canvas.fillRect(650, 400, 100, 100);
+    
+    // Progress bar
+    var progress: int = (frame * 800) / 600;
+    canvas.fillStyle("#34495e");
+    canvas.fillRect(0, 580, 800, 20);
+    canvas.fillStyle("#27ae60");
+    canvas.fillRect(0, 580, progress, 20);
+    
+    canvas.render();
+    frame = frame + 1;
+    sleep(16);
+}
+
+print("Animation complete!");

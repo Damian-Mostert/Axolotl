@@ -1,21 +1,16 @@
 #!/bin/bash
+set -e
 
-# Build and Test the Compiler Engine
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║        COMPILER ENGINE - BUILD & RUN SCRIPT                    ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
-echo ""
+LLVM_DIR="/opt/homebrew/opt/llvm/lib/cmake/llvm"
 
-PROJECT_DIR="/Users/damian/game-engine"
-cd "$PROJECT_DIR"
+echo "🔨 Building Axolotl..."
 
-# Clean and rebuild
-echo "🏗️  Building the Compiler Engine..."
-echo ""
+if [ ! -d "build" ]; then
+    echo "📁 Creating build directory..."
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR="$LLVM_DIR"
+fi
 
-mkdir -p build
-cd build
-cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release 2>&1 | grep -E "Configuring|Generating|C compiler|CXX compiler" || true
-cmake --build . 2>&1 | tail -3
+cmake --build build -j$(sysctl -n hw.ncpu)
 
-cd "$PROJECT_DIR"
+echo "✅ Build complete!"
+echo "Run: ./build/compiler examples/game.axo"

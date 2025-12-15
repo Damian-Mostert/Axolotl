@@ -60,13 +60,24 @@ find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
 
 # Find SDL2
-find_library(SDL2_LIBRARY SDL2 PATHS /opt/homebrew/lib)
-find_path(SDL2_INCLUDE_DIR SDL2/SDL.h PATHS /opt/homebrew/include)
+find_library(SDL2_LIBRARY SDL2 PATHS /opt/homebrew/lib REQUIRED)
+find_library(SDL2_IMAGE_LIBRARY SDL2_image PATHS /opt/homebrew/lib REQUIRED)
+find_path(SDL2_INCLUDE_DIR SDL2/SDL.h PATHS /opt/homebrew/include REQUIRED)
+
+if(NOT SDL2_LIBRARY)
+    message(FATAL_ERROR "SDL2 not found")
+endif()
+if(NOT SDL2_IMAGE_LIBRARY)
+    message(FATAL_ERROR "SDL2_image not found")
+endif()
+
 include_directories(${SDL2_INCLUDE_DIR})
+message(STATUS "Found SDL2: ${SDL2_LIBRARY}")
+message(STATUS "Found SDL2_image: ${SDL2_IMAGE_LIBRARY}")
 
 # Link LLVM libraries
 llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
-target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES} ${SDL2_LIBRARY})
+target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY})
 
 # Link stdc++fs for GNU < 9 and also for AppleClang for filesystem support
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

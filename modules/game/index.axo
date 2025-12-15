@@ -1,0 +1,196 @@
+// Axolotl Game Engine - 2D/3D Support
+export const ENGINE_VERSION: string = "1.0.0";
+
+// Engine Configuration
+export type EngineConfig = {
+    width: int,
+    height: int,
+    mode: string,
+    title: string
+};
+
+export type Transform = {
+    x: float,
+    y: float,
+    z: float,
+    rotation: float,
+    scaleX: float,
+    scaleY: float,
+    scaleZ: float
+};
+
+export type Sprite = {
+    image: object,
+    transform: Transform,
+    visible: bool
+};
+
+export type Camera = {
+    x: float,
+    y: float,
+    z: float,
+    fov: float,
+    near: float,
+    far: float
+};
+
+// Engine State
+var engineCanvas: object = {};
+var engineMode: string = "2d";
+var engineWidth: int = 800;
+var engineHeight: int = 600;
+var engineRunning: bool = false;
+var engineCamera: object = {};
+var cameraInitialized: bool = false;
+
+// Initialize Engine
+export func initEngine(config: EngineConfig) -> bool {
+    engineWidth = config.width;
+    engineHeight = config.height;
+    engineMode = config.mode;
+    engineCanvas = createCanvas(config.width, config.height);
+    engineRunning = true;
+    
+    if (engineMode == "3d") {
+        engineCamera = {
+            x: 0.0,
+            y: 0.0,
+            z: -5.0,
+            fov: 60.0,
+            near: 0.1,
+            far: 100.0
+        };
+        cameraInitialized = true;
+    }
+    
+    print("Engine initialized:", config.mode, "mode");
+    return true;
+}
+
+// Transform Utilities
+export func createTransform(x: float, y: float, z: float) -> Transform {
+    return {
+        x: x,
+        y: y,
+        z: z,
+        rotation: 0.0,
+        scaleX: 1.0,
+        scaleY: 1.0,
+        scaleZ: 1.0
+    };
+}
+
+// Sprite Management
+export func createSprite(imagePath: string, x: float, y: float) -> Sprite {
+    const img: object = loadImage(imagePath);
+    return {
+        image: img,
+        transform: createTransform(x, y, 0.0),
+        visible: true
+    };
+}
+
+export func drawSprite(sprite: Sprite) -> void {
+    if (sprite.visible) {
+        if (engineMode == "2d") {
+            engineCanvas.drawImage(sprite.image, sprite.transform.x, sprite.transform.y);
+        } else {
+            const screenX: int = project3DToScreen(sprite.transform.x, sprite.transform.z);
+            const screenY: int = project3DToScreenY(sprite.transform.y, sprite.transform.z);
+            engineCanvas.drawImage(sprite.image, screenX, screenY);
+        }
+    }
+}
+
+// 3D Projection
+func project3DToScreen(x: float, z: float) -> int {
+    const scale: float = engineCamera.fov / (z - engineCamera.z);
+    return (engineWidth / 2) + (x * scale);
+}
+
+func project3DToScreenY(y: float, z: float) -> int {
+    const scale: float = engineCamera.fov / (z - engineCamera.z);
+    return (engineHeight / 2) - (y * scale);
+}
+
+// Rendering
+export func clearScreen(color: string) -> void {
+    engineCanvas.fillStyle(color);
+    engineCanvas.fillRect(0, 0, engineWidth, engineHeight);
+}
+
+export func renderFrame() -> void {
+    engineCanvas.render();
+}
+
+// Collision Detection
+export func checkCollision(x1: float, y1: float, w1: float, h1: float, x2: float, y2: float, w2: float, h2: float) -> bool {
+    return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+}
+
+export func distance(x1: float, y1: float, x2: float, y2: float) -> float {
+    const dx: float = x2 - x1;
+    const dy: float = y2 - y1;
+    return sqrt(dx * dx + dy * dy);
+}
+
+// Camera Control
+export func moveCamera(x: float, y: float, z: float) -> void {
+    if (cameraInitialized) {
+        engineCamera.x = engineCamera.x + x;
+        engineCamera.y = engineCamera.y + y;
+        engineCamera.z = engineCamera.z + z;
+    }
+}
+
+export func setCamera(x: float, y: float, z: float) -> void {
+    if (cameraInitialized) {
+        engineCamera.x = x;
+        engineCamera.y = y;
+        engineCamera.z = z;
+    }
+}
+
+// Drawing Primitives
+export func drawRect(x: int, y: int, w: int, h: int, color: string) -> void {
+    engineCanvas.fillStyle(color);
+    engineCanvas.fillRect(x, y, w, h);
+}
+
+export func drawCircle(x: int, y: int, radius: int, color: string) -> void {
+    engineCanvas.fillStyle(color);
+    engineCanvas.fillCircle(x, y, radius);
+}
+
+export func strokeRect(x: int, y: int, w: int, h: int, color: string) -> void {
+    engineCanvas.strokeStyle(color);
+    engineCanvas.strokeRect(x, y, w, h);
+}
+
+// Input Helpers
+export func getInput() -> void {
+    updateInputs();
+}
+
+export func isRunning() -> bool {
+    return engineRunning;
+}
+
+export func stopEngine() -> void {
+    engineRunning = false;
+}
+
+// Math Utilities
+func sqrt(n: float) -> float {
+    if (n < 0.0) {
+        return 0.0;
+    }
+    var x: float = n;
+    var y: float = 1.0;
+    const e: float = 0.000001;
+    while (x - y > e) {
+        x = (x + y) / 2.0;
+        y = n / x;
+    }
+    return x;
+}

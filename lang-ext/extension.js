@@ -434,6 +434,116 @@ class AxolotlLanguageProvider {
                 params: [{name: 'url', type: 'string'}, {name: 'options', type: 'object', optional: true}],
                 returnType: 'object',
                 documentation: 'Make HTTP request. Returns object with status, ok, body (auto-parsed if JSON), headers, url. Options: {method: string, body: string|object, headers: object}'
+            },
+            {
+                name: 'createServer',
+                params: [{name: 'callback', type: 'func'}, {name: 'port', type: 'int'}],
+                returnType: 'void',
+                documentation: 'Create HTTP server. Callback receives (req, res) objects. Server listens on specified port'
+            },
+            {
+                name: 'writeHead',
+                params: [{name: 'statusCode', type: 'int'}, {name: 'headers', type: 'object', optional: true}],
+                returnType: 'void',
+                documentation: 'Write HTTP response headers (call on response object)'
+            },
+            {
+                name: 'end',
+                params: [{name: 'data', type: 'string', optional: true}],
+                returnType: 'void',
+                documentation: 'End HTTP response and send data (call on response object)'
+            },
+            // Canvas/Graphics functions
+            {
+                name: 'createCanvas',
+                params: [{name: 'width', type: 'int'}, {name: 'height', type: 'int'}],
+                returnType: 'object',
+                documentation: 'Create canvas window with specified dimensions. Returns canvas object with drawing methods'
+            },
+            {
+                name: 'fillStyle',
+                params: [{name: 'color', type: 'string'}],
+                returnType: 'void',
+                documentation: 'Set fill color for shapes (hex format: "#RRGGBB"). Call on canvas object'
+            },
+            {
+                name: 'strokeStyle',
+                params: [{name: 'color', type: 'string'}],
+                returnType: 'void',
+                documentation: 'Set stroke color for shapes (hex format: "#RRGGBB"). Call on canvas object'
+            },
+            {
+                name: 'fillRect',
+                params: [{name: 'x', type: 'int'}, {name: 'y', type: 'int'}, {name: 'width', type: 'int'}, {name: 'height', type: 'int'}],
+                returnType: 'void',
+                documentation: 'Draw filled rectangle at (x, y) with specified dimensions. Call on canvas object'
+            },
+            {
+                name: 'strokeRect',
+                params: [{name: 'x', type: 'int'}, {name: 'y', type: 'int'}, {name: 'width', type: 'int'}, {name: 'height', type: 'int'}],
+                returnType: 'void',
+                documentation: 'Draw rectangle outline at (x, y) with specified dimensions. Call on canvas object'
+            },
+            {
+                name: 'clearRect',
+                params: [{name: 'x', type: 'int'}, {name: 'y', type: 'int'}, {name: 'width', type: 'int'}, {name: 'height', type: 'int'}],
+                returnType: 'void',
+                documentation: 'Clear rectangle area (fill with white). Call on canvas object'
+            },
+            {
+                name: 'fillCircle',
+                params: [{name: 'x', type: 'int'}, {name: 'y', type: 'int'}, {name: 'radius', type: 'int'}],
+                returnType: 'void',
+                documentation: 'Draw filled circle at center (x, y) with specified radius. Call on canvas object'
+            },
+            {
+                name: 'render',
+                params: [],
+                returnType: 'void',
+                documentation: 'Present all drawing operations to screen. Call on canvas object'
+            },
+            {
+                name: 'pollEvents',
+                params: [],
+                returnType: 'void',
+                documentation: 'Process window events (close, etc). Call in game loop to keep window responsive'
+            },
+            // Input functions
+            {
+                name: 'updateInputs',
+                params: [],
+                returnType: 'void',
+                documentation: 'Update keyboard and mouse input state. Call once per frame in game loop'
+            },
+            {
+                name: 'getMouseX',
+                params: [],
+                returnType: 'int',
+                documentation: 'Get current mouse X coordinate'
+            },
+            {
+                name: 'getMouseY',
+                params: [],
+                returnType: 'int',
+                documentation: 'Get current mouse Y coordinate'
+            },
+            {
+                name: 'isMouseDown',
+                params: [],
+                returnType: 'bool',
+                documentation: 'Check if mouse button is currently pressed'
+            },
+            {
+                name: 'wasMouseClicked',
+                params: [],
+                returnType: 'bool',
+                documentation: 'Check if mouse was clicked (returns true once per click, then resets)'
+            },
+            {
+                name: 'isKeyDown',
+                params: [{name: 'key', type: 'string'}],
+                returnType: 'bool',
+                documentation: 'Check if keyboard key is currently pressed. Key names: "W", "A", "S", "D", "Up", "Down", "Left", "Right", etc.'
             }
         ];
 
