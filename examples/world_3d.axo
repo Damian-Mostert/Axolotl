@@ -38,7 +38,7 @@ tree2.setPosition(-8, 2, 8);
 tree2.setColor("#664422");
 scene.add(tree2);
 
-const leaves2: object = SphereGeometry(2,50,50);
+const leaves2: object = SphereGeometry(2);
 leaves2.setPosition(-8, 5, 8);
 leaves2.setColor("#228844");
 leaves2.setMetallic(1.0);

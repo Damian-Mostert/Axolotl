@@ -1,0 +1,20 @@
+print("Creating canvas...");
+var canvas: object = createCanvas(400, 300, "Simple 2D Test");
+print("Canvas created");
+
+print("Setting fill style to red...");
+canvas.fillStyle("#ff0000");
+
+print("Drawing red rectangle...");
+canvas.fillRect(50, 50, 200, 150);
+
+print("Calling render...");
+canvas.render();
+print("Render called - you should see a red rectangle");
+
+print("Waiting 5 seconds...");
+var start: int = millis();
+while (millis() - start < 5000) {
+    pollEvents();
+}
+print("Done");

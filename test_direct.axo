@@ -1,0 +1,2 @@
+var canvas: object = createCanvas(400, 300);
+fillRect(canvas, 50, 50, 200, 150);

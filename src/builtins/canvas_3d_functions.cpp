@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 struct Vec3 { float x, y, z; };
 
@@ -259,6 +260,15 @@ public:
             int a = i * 2, b = a + 1, c = a + 2, d = a + 3;
             mesh.indices.push_back(a); mesh.indices.push_back(c); mesh.indices.push_back(b);
             mesh.indices.push_back(b); mesh.indices.push_back(c); mesh.indices.push_back(d);
+        }
+        int centerTop = mesh.vertices.size();
+        mesh.vertices.push_back({0, halfHeight, 0});
+        int centerBottom = mesh.vertices.size();
+        mesh.vertices.push_back({0, -halfHeight, 0});
+        for (int i = 0; i < radialSegments; i++) {
+            int next = (i + 1) % (radialSegments + 1);
+            mesh.indices.push_back(centerTop); mesh.indices.push_back(next * 2); mesh.indices.push_back(i * 2);
+            mesh.indices.push_back(centerBottom); mesh.indices.push_back(next * 2 + 1); mesh.indices.push_back(i * 2 + 1);
         }
         calcAABB(mesh);
         int id = nextMeshId++; meshes[id] = mesh;
@@ -573,7 +583,20 @@ class RenderSceneBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "render"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("renderer.render(scene, camera)");
+        if (node->args.size() == 0) {
+            if (!node->callee) throw std::runtime_error("render() must be called on canvas");
+            if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
+                Value canvasVal = interp->evaluate(fa->object.get());
+                auto canvas = std::get<std::shared_ptr<ObjectValue>>(canvasVal);
+                int id = std::get<int>(canvas->fields["_id"]);
+                auto ctx = canvases[id];
+                if (ctx->renderer) {
+                    SDL_RenderPresent(ctx->renderer);
+                }
+            }
+            return "";
+        }
+        if (node->args.size() != 2) return "";
         if (!node->callee) throw std::runtime_error("render must be called on canvas");
         auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
         Value canvasVal = interp->evaluate(fa->object.get()); auto canvas = std::get<std::shared_ptr<ObjectValue>>(canvasVal);
@@ -616,18 +639,44 @@ public:
             }
             sceneOrder++;
         }
+        if (!ctx->glContext) {
+            if (ctx->renderer) {
+                SDL_DestroyRenderer(ctx->renderer);
+                ctx->renderer = nullptr;
+            }
+            SDL_DestroyWindow(ctx->window);
+            
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+            
+            ctx->window = SDL_CreateWindow("Axolotl 3D", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, ctx->width, ctx->height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+            if (!ctx->window) return "";
+            
+            ctx->glContext = SDL_GL_CreateContext(ctx->window);
+            if (!ctx->glContext) return "";
+            SDL_GL_SetSwapInterval(1);
+            ctx->useOpenGL = true;
+            ctx->is2D = false;
+        }
         SDL_GL_MakeCurrent(ctx->window, ctx->glContext);
-        int drawW, drawH;
-        SDL_GL_GetDrawableSize(ctx->window, &drawW, &drawH);
-        glViewport(0, 0, drawW, drawH);
+        glViewport(0, 0, ctx->width, ctx->height);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
+        glEnable(GL_MULTISAMPLE);
+        glEnable(GL_LINE_SMOOTH);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+        glEnable(GL_POLYGON_SMOOTH);
+        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
         glClearColor(scene.background.r/255.0f, scene.background.g/255.0f, scene.background.b/255.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        float aspect = (float)drawW / (float)drawH;
+        float aspect = (float)ctx->width / (float)ctx->height;
         float fovRad = cam.fov * M_PI / 180.0f;
         float top = tan(fovRad / 2.0f) * 0.1f;
         float right = top * aspect;
@@ -697,42 +746,11 @@ public:
         }
         glEnd();
         SDL_GL_SwapWindow(ctx->window);
-        
-        if (devMode && devCameraId == camId && ctx->renderer) {
-            SDL_SetRenderDrawColor(ctx->renderer, scene.background.r, scene.background.g, scene.background.b, 255);
-            SDL_RenderClear(ctx->renderer);
-            for (int i = -10; i <= 10; i++) {
-                Vec3 p1 = transformToCamera({(float)i, 0, -10}, cam);
-                Vec3 p2 = transformToCamera({(float)i, 0, 10}, cam);
-                Vec3 s1 = project(p1, cam.fov, ctx->width, ctx->height);
-                Vec3 s2 = project(p2, cam.fov, ctx->width, ctx->height);
-                if (s1.z < 0 && s2.z < 0) {
-                    SDL_SetRenderDrawColor(ctx->renderer, 80, 80, 80, 255);
-                    SDL_RenderDrawLine(ctx->renderer, s1.x, s1.y, s2.x, s2.y);
-                }
-                p1 = transformToCamera({-10, 0, (float)i}, cam);
-                p2 = transformToCamera({10, 0, (float)i}, cam);
-                s1 = project(p1, cam.fov, ctx->width, ctx->height);
-                s2 = project(p2, cam.fov, ctx->width, ctx->height);
-                if (s1.z < 0 && s2.z < 0) {
-                    SDL_SetRenderDrawColor(ctx->renderer, 80, 80, 80, 255);
-                    SDL_RenderDrawLine(ctx->renderer, s1.x, s1.y, s2.x, s2.y);
-                }
-            }
-            Vec3 ox = transformToCamera({0, 0, 0}, cam), ax = transformToCamera({3, 0, 0}, cam);
-            Vec3 oy = transformToCamera({0, 0, 0}, cam), ay = transformToCamera({0, 3, 0}, cam);
-            Vec3 oz = transformToCamera({0, 0, 0}, cam), az = transformToCamera({0, 0, 3}, cam);
-            Vec3 pox = project(ox, cam.fov, ctx->width, ctx->height), pax = project(ax, cam.fov, ctx->width, ctx->height);
-            Vec3 poy = project(oy, cam.fov, ctx->width, ctx->height), pay = project(ay, cam.fov, ctx->width, ctx->height);
-            Vec3 poz = project(oz, cam.fov, ctx->width, ctx->height), paz = project(az, cam.fov, ctx->width, ctx->height);
-            if (pox.z < 0 && pax.z < 0) { SDL_SetRenderDrawColor(ctx->renderer, 255, 0, 0, 255); SDL_RenderDrawLine(ctx->renderer, pox.x, pox.y, pax.x, pax.y); }
-            if (poy.z < 0 && pay.z < 0) { SDL_SetRenderDrawColor(ctx->renderer, 0, 255, 0, 255); SDL_RenderDrawLine(ctx->renderer, poy.x, poy.y, pay.x, pay.y); }
-            if (poz.z < 0 && paz.z < 0) { SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 255, 255); SDL_RenderDrawLine(ctx->renderer, poz.x, poz.y, paz.x, paz.y); }
-        }
-        SDL_RenderPresent(ctx->renderer);
         return "";
     }
 };
+
+
 
 class IsCollidingBuiltin : public BuiltinFunction {
 public:
