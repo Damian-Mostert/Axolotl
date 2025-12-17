@@ -1,0 +1,10 @@
+{
+  "iconDefinitions": {
+    "axolotl-icon": {
+      "iconPath": "../icon.png"
+    }
+  },
+  "fileExtensions": {
+    "axo": "axolotl-icon"
+  }
+}

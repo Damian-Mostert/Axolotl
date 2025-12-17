@@ -1,0 +1,42 @@
+// Filled 3D Meshes Demo
+print("3D Engine - Filled Meshes");
+
+var canvas: object = createCanvas(800, 600, "Filled 3D Meshes");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(75.0);
+camera.setPosition(0.0, 2.0, 8.0);
+
+// Colorful geometries
+var box: object = BoxGeometry(2.0, 2.0, 2.0);
+box.setPosition(-4.0, 0.0, 0.0);
+box.setRotation(0.5, 0.5, 0.0);
+box.setColor("#ff6b6b");
+
+var sphere: object = SphereGeometry(1.5, 20, 16);
+sphere.setPosition(0.0, 0.0, 0.0);
+sphere.setColor("#4ecdc4");
+
+var torus: object = TorusGeometry(1.0, 0.4, 16, 32);
+torus.setPosition(4.0, 0.0, 0.0);
+torus.setRotation(1.0, 0.5, 0.0);
+torus.setColor("#ffe66d");
+
+var plane: object = PlaneGeometry(10.0, 10.0);
+plane.setPosition(0.0, -2.0, 0.0);
+plane.setRotation(1.57, 0.0, 0.0);
+plane.setColor("#95e1d3");
+
+scene.add(box);
+scene.add(sphere);
+scene.add(torus);
+scene.add(plane);
+scene.add(ambientLight);
+canvas.render(scene, camera);
+
+print("Filled 3D meshes rendered!");
+print("Red cube | Cyan sphere | Yellow torus | Green plane");
+
+var running: int = 1;
+while (running == 1) {
+    pollEvents();
+}

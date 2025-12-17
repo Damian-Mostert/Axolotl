@@ -1,0 +1,51 @@
+// Three.js-like Lighting Demo
+print("3D Engine - Lighting Demo");
+
+var canvas: object = createCanvas(800, 600, "3D Lighting");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(75.0);
+camera.setPosition(0.0, 3.0, 10.0);
+
+// Create lights
+var pointLight: object = PointLight("#ffffff", 1.5);
+pointLight.setPosition(5.0, 5.0, 5.0);
+
+var ambientLight: object = AmbientLight("#404040", 0.3);
+
+// Create geometries
+var sphere1: object = SphereGeometry(1.5, 24, 18);
+sphere1.setPosition(-3.0, 0.0, 0.0);
+sphere1.setColor("#ff6b6b");
+
+var sphere2: object = SphereGeometry(1.5, 24, 18);
+sphere2.setPosition(3.0, 0.0, 0.0);
+sphere2.setColor("#4ecdc4");
+
+var box: object = BoxGeometry(2.0, 2.0, 2.0);
+box.setPosition(0.0, 0.0, 0.0);
+box.setRotation(0.5, 0.5, 0);
+box.setColor("#ffe66d");
+
+var plane: object = PlaneGeometry(15.0, 15.0);
+plane.setPosition(0.0, -10, 0.0);
+plane.setRotation(1.57, 0.0, 0.0);
+plane.setColor("#95e1d3");
+
+// Add to scene
+scene.add(ambientLight);
+scene.add(pointLight);
+scene.add(plane);
+
+scene.add(sphere1);
+scene.add(sphere2);
+scene.add(box);
+
+canvas.render(scene, camera);
+
+print("Lighting demo rendered!");
+print("PointLight + AmbientLight with diffuse shading");
+
+var running: int = 1;
+while (running == 1) {
+    pollEvents();
+}

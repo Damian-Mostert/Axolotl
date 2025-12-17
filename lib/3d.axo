@@ -1,0 +1,32 @@
+// 3D Graphics Library for Axolotl
+// NOTE: Full 3D requires C++ implementation due to Axolotl's type system limitations
+
+func Scene() -> object {
+    return {meshes: []};
+}
+
+func PerspectiveCamera(fov: float) -> object {
+    return {fov: fov, position: {x: 0.0, y: 0.0, z: 5.0}};
+}
+
+func BoxGeometry(w: float, h: float, d: float) -> object {
+    return {type: "box"};
+}
+
+func Mesh(geom: object, color: string) -> object {
+    return {geometry: geom, color: color, position: {x: 0.0, y: 0.0, z: 0.0}, rotation: {x: 0.0, y: 0.0, z: 0.0}};
+}
+
+func sceneAdd(scene: object, mesh: object) -> void {
+    print("3D rendering requires C++ implementation");
+}
+
+func WebGLRenderer(canvas: object) -> object {
+    return {canvas: canvas};
+}
+
+func render(renderer: object, scene: object, camera: object) -> void {
+    print("3D rendering requires C++ implementation");
+}
+
+print("3D library loaded (stubs only - full 3D requires C++ implementation)");

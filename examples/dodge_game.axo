@@ -1,0 +1,100 @@
+const canvas: object = createCanvas(800, 600);
+const scene: object = createScene();
+const camera: object = PerspectiveCamera(60);
+
+const ground: object = PlaneGeometry(20, 20);
+ground.setPosition(0, -1, 0);
+ground.setRotation(1.57, 0, 0);
+ground.setColor("#228822");
+scene.add(ground);
+
+const player: object = BoxGeometry(1, 1, 1);
+player.setPosition(0, 0, 0);
+player.setColor("#3388ff");
+scene.add(player);
+
+const obs1: object = SphereGeometry(0.6);
+obs1.setPosition(-3, 8, 0);
+obs1.setColor("#ff3333");
+scene.add(obs1);
+
+const obs2: object = SphereGeometry(0.6);
+obs2.setPosition(2, 12, 0);
+obs2.setColor("#ff3333");
+scene.add(obs2);
+
+const obs3: object = SphereGeometry(0.6);
+obs3.setPosition(0, 15, 0);
+obs3.setColor("#ff3333");
+scene.add(obs3);
+
+const light: object = PointLight("#ffffff", 1.5);
+light.setPosition(5, 10, 5);
+scene.add(light);
+
+var playerX: float = 0.0;
+var playerZ: float = 0.0;
+var score: int = 0;
+var gameOver: int = 0;
+
+while (handleDevInput() == 1) {
+    if (gameOver == 0) {
+        const keys: object = getKeyState();
+        
+        if (keys.left == 1) {
+            playerX = playerX - 0.15;
+        }
+        if (keys.right == 1) {
+            playerX = playerX + 0.15;
+        }
+        if (keys.up == 1) {
+            playerZ = playerZ - 0.15;
+        }
+        if (keys.down == 1) {
+            playerZ = playerZ + 0.15;
+        }
+        
+        if (playerX < -8.0) {
+            playerX = -8.0;
+        }
+        if (playerX > 8.0) {
+            playerX = 8.0;
+        }
+        if (playerZ < -8.0) {
+            playerZ = -8.0;
+        }
+        if (playerZ > 8.0) {
+            playerZ = 8.0;
+        }
+        
+        player.setPosition(playerX, 0, playerZ);
+        camera.setPosition(playerX, 2, playerZ + 5);
+        
+        applyAttractionToMesh(obs1, 0, -0.02, 0);
+        applyAttractionToMesh(obs2, 0, -0.02, 0);
+        applyAttractionToMesh(obs3, 0, -0.02, 0);
+        
+        applyNaturalCollision(player, obs1, obs2, obs3);
+        applyNaturalCollision(obs1, obs2, obs3);
+        
+        if (isColliding(player, obs1) == 1) {
+            gameOver = 1;
+            print("Game Over! Score: ");
+            print(score);
+        }
+        if (isColliding(player, obs2) == 1) {
+            gameOver = 1;
+            print("Game Over! Score: ");
+            print(score);
+        }
+        if (isColliding(player, obs3) == 1) {
+            gameOver = 1;
+            print("Game Over! Score: ");
+            print(score);
+        }
+        
+        score = score + 1;
+    }
+    
+    canvas.render(scene, camera);
+}

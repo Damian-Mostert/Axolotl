@@ -1,0 +1,2 @@
+var x: float = 2.00001;
+print(x);

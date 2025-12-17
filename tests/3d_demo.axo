@@ -1,0 +1,26 @@
+// 3D Simple Test
+
+print("Creating 3D scene...");
+
+var canvas: object = createCanvas(800, 600, "3D Test");
+var box: object = createBox(2.0, 2.0, 2.0);
+var camera: object = createCamera(60.0);
+
+camera.setPosition(0.0, 0.0, 0.0);
+box.setPosition(0.0, 0.0, -5.0);
+box.setRotation(0.0, 0.0, 0.0);
+
+canvas.fillStyle("#000000");
+canvas.fillRect(0, 0, 800, 600);
+canvas.strokeStyle("#00ff00");
+
+print("Rendering box at z=-5...");
+canvas.renderMesh(box, camera);
+canvas.render();
+
+print("Box rendered. Close window to exit.");
+
+var running: int = 1;
+while (running == 1) {
+    pollEvents();
+}

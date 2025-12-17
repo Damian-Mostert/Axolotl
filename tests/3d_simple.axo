@@ -1,0 +1,33 @@
+// Simple 3D Demo
+print("Creating 3D scene...");
+
+var canvas: object = createCanvas(800, 600, "3D Demo");
+var box: object = createBox(2.0, 2.0, 2.0);
+var sphere: object = createSphere(1.5, 20);
+var camera: object = createCamera(60.0);
+
+camera.setPosition(0.0, 0.0, 8.0);
+box.setPosition(-3.0, 0.0, -5.0);
+sphere.setPosition(3.0, 0.0, -5.0);
+
+print("Rendering...");
+
+canvas.fillStyle("#000000");
+canvas.fillRect(0, 0, 800, 600);
+
+canvas.strokeStyle("#00ff00");
+canvas.renderMesh(box, camera);
+
+canvas.strokeStyle("#ff0000");
+canvas.renderMesh(sphere, camera);
+
+canvas.render();
+
+print("Rendered! Close window to exit.");
+
+var start: int = millis();
+while (millis() - start < 5000) {
+    pollEvents();
+}
+
+print("Done");

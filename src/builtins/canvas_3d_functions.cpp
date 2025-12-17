@@ -1,0 +1,881 @@
+#include "include/builtins.h"
+#include <SDL2/SDL.h>
+#include <cmath>
+#include <vector>
+#include <algorithm>
+#include <fstream>
+#include <sstream>
+
+struct Vec3 { float x, y, z; };
+
+struct Mesh {
+    std::vector<Vec3> vertices;
+    std::vector<int> indices;
+    Vec3 position{0, 0, 0};
+    Vec3 rotation{0, 0, 0};
+    Vec3 scale{1, 1, 1};
+    SDL_Color color{100, 200, 255, 255};
+    bool visible = true;
+    bool wireframe = false;
+    bool doubleSided = false;
+    float metallic = 0.0f;
+    Vec3 velocity{0, 0, 0};
+    float mass = 1.0f;
+    Vec3 aabbMin{0, 0, 0};
+    Vec3 aabbMax{0, 0, 0};
+};
+
+struct Camera {
+    Vec3 position{0, 0, 5};
+    float fov = 60.0f;
+    float yaw = 0.0f;
+    float pitch = 0.0f;
+    float distance = 5.0f;
+    Vec3 target{0, 0, 0};
+};
+
+struct Light {
+    Vec3 position{5, 10, 5};
+    SDL_Color color{255, 255, 255, 255};
+    float intensity = 1.0f;
+};
+
+struct Scene {
+    std::vector<int> meshIds;
+    std::vector<int> lightIds;
+    SDL_Color background{20, 20, 30, 255};
+    Vec3 ambientLight{0.3f, 0.3f, 0.3f};
+};
+
+extern std::unordered_map<int, std::shared_ptr<CanvasContext>> canvases;
+static std::unordered_map<int, Mesh> meshes;
+static std::unordered_map<int, Camera> cameras;
+static std::unordered_map<int, Scene> scenes;
+static std::unordered_map<int, Light> lights;
+static int nextMeshId = 1, nextCameraId = 1, nextSceneId = 1, nextLightId = 1;
+static bool devMode = false;
+static int devCameraId = -1;
+static int lastMouseX = 0, lastMouseY = 0;
+static bool mouseDown = false;
+
+Vec3 rotateX(Vec3 v, float a) { float c = cos(a), s = sin(a); return {v.x, v.y * c - v.z * s, v.y * s + v.z * c}; }
+Vec3 rotateY(Vec3 v, float a) { float c = cos(a), s = sin(a); return {v.x * c + v.z * s, v.y, -v.x * s + v.z * c}; }
+Vec3 rotateZ(Vec3 v, float a) { float c = cos(a), s = sin(a); return {v.x * c - v.y * s, v.x * s + v.y * c, v.z}; }
+
+void calcAABB(Mesh& mesh) {
+    if (mesh.vertices.empty()) return;
+    mesh.aabbMin = mesh.aabbMax = mesh.vertices[0];
+    for (const auto& v : mesh.vertices) {
+        if (v.x < mesh.aabbMin.x) mesh.aabbMin.x = v.x;
+        if (v.y < mesh.aabbMin.y) mesh.aabbMin.y = v.y;
+        if (v.z < mesh.aabbMin.z) mesh.aabbMin.z = v.z;
+        if (v.x > mesh.aabbMax.x) mesh.aabbMax.x = v.x;
+        if (v.y > mesh.aabbMax.y) mesh.aabbMax.y = v.y;
+        if (v.z > mesh.aabbMax.z) mesh.aabbMax.z = v.z;
+    }
+}
+
+Vec3 transformVertex(Vec3 v, const Mesh& m) {
+    v.x *= m.scale.x; v.y *= m.scale.y; v.z *= m.scale.z;
+    v = rotateX(v, m.rotation.x);
+    v = rotateY(v, m.rotation.y);
+    v = rotateZ(v, m.rotation.z);
+    v.x += m.position.x; v.y += m.position.y; v.z += m.position.z;
+    return v;
+}
+
+bool triangleIntersect(Vec3 v0, Vec3 v1, Vec3 v2, Vec3 u0, Vec3 u1, Vec3 u2) {
+    auto cross = [](Vec3 a, Vec3 b) { return Vec3{a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x}; };
+    auto dot = [](Vec3 a, Vec3 b) { return a.x*b.x + a.y*b.y + a.z*b.z; };
+    auto sub = [](Vec3 a, Vec3 b) { return Vec3{a.x-b.x, a.y-b.y, a.z-b.z}; };
+    
+    Vec3 e1 = sub(v1, v0), e2 = sub(v2, v0);
+    Vec3 n1 = cross(e1, e2);
+    float d1 = -dot(n1, v0);
+    float du0 = dot(n1, u0) + d1, du1 = dot(n1, u1) + d1, du2 = dot(n1, u2) + d1;
+    if ((du0 > 0 && du1 > 0 && du2 > 0) || (du0 < 0 && du1 < 0 && du2 < 0)) return false;
+    
+    Vec3 f1 = sub(u1, u0), f2 = sub(u2, u0);
+    Vec3 n2 = cross(f1, f2);
+    float d2 = -dot(n2, u0);
+    float dv0 = dot(n2, v0) + d2, dv1 = dot(n2, v1) + d2, dv2 = dot(n2, v2) + d2;
+    if ((dv0 > 0 && dv1 > 0 && dv2 > 0) || (dv0 < 0 && dv1 < 0 && dv2 < 0)) return false;
+    
+    Vec3 dir = cross(n1, n2);
+    float len = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
+    if (len < 0.0001f) return fabs(du0) < 0.0001f;
+    return true;
+}
+
+bool aabbIntersect(Vec3 min1, Vec3 max1, Vec3 min2, Vec3 max2) {
+    return (min1.x <= max2.x && max1.x >= min2.x) &&
+           (min1.y <= max2.y && max1.y >= min2.y) &&
+           (min1.z <= max2.z && max1.z >= min2.z);
+}
+
+Vec3 transformToCamera(Vec3 v, Camera& cam) {
+    Vec3 rel = {v.x - cam.position.x, v.y - cam.position.y, v.z - cam.position.z};
+    Vec3 forward = {cam.target.x - cam.position.x, cam.target.y - cam.position.y, cam.target.z - cam.position.z};
+    float len = sqrt(forward.x*forward.x + forward.y*forward.y + forward.z*forward.z);
+    if (len < 0.001f) return {rel.x, rel.y, -rel.z};
+    forward.x /= len; forward.y /= len; forward.z /= len;
+    Vec3 worldUp = {0, 1, 0};
+    Vec3 right = {worldUp.y * forward.z - worldUp.z * forward.y, worldUp.z * forward.x - worldUp.x * forward.z, worldUp.x * forward.y - worldUp.y * forward.x};
+    len = sqrt(right.x*right.x + right.y*right.y + right.z*right.z);
+    if (len < 0.001f) return {rel.x, rel.y, -rel.z};
+    right.x /= len; right.y /= len; right.z /= len;
+    Vec3 up = {forward.y * right.z - forward.z * right.y, forward.z * right.x - forward.x * right.z, forward.x * right.y - forward.y * right.x};
+    return {right.x * rel.x + right.y * rel.y + right.z * rel.z,
+            up.x * rel.x + up.y * rel.y + up.z * rel.z,
+            -(forward.x * rel.x + forward.y * rel.y + forward.z * rel.z)};
+}
+Vec3 project(Vec3 v, float fov, int w, int h) {
+    if (v.z >= -0.01f) return {-9999, -9999, 9999};
+    float aspect = (float)w / (float)h;
+    float fovRad = fov * M_PI / 180.0f;
+    float f = 1.0f / tan(fovRad / 2.0f);
+    float x = (v.x * f / aspect / -v.z) * (w / 2.0f) + (w / 2.0f);
+    float y = (-v.y * f / -v.z) * (h / 2.0f) + (h / 2.0f);
+    return {x, y, v.z};
+}
+
+class CreateSceneBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "createScene"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        int id = nextSceneId++;
+        scenes[id] = Scene();
+        auto obj = std::make_shared<ObjectValue>();
+        obj->fields["_sceneId"] = id;
+        interp->lastValue = obj;
+        return "{object}";
+    }
+};
+
+class AddToSceneBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "add"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (!node->callee || node->args.size() != 1) throw std::runtime_error("scene.add(mesh)");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value sceneVal = interp->evaluate(fa->object.get());
+        auto sceneObj = std::get<std::shared_ptr<ObjectValue>>(sceneVal);
+        int sceneId = std::get<int>(sceneObj->fields["_sceneId"]);
+        Value meshVal = interp->evaluate(node->args[0].get());
+        auto meshObj = std::get<std::shared_ptr<ObjectValue>>(meshVal);
+        if (meshObj->fields.count("_meshId")) scenes[sceneId].meshIds.push_back(std::get<int>(meshObj->fields["_meshId"]));
+        else if (meshObj->fields.count("_lightId")) scenes[sceneId].lightIds.push_back(std::get<int>(meshObj->fields["_lightId"]));
+        return "";
+    }
+};
+
+class BoxGeometryBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "BoxGeometry"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        float w = 1, h = 1, d = 1;
+        if (node->args.size() >= 1) { auto v = interp->evaluate(node->args[0].get()); w = h = d = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v); }
+        if (node->args.size() >= 3) { auto v1 = interp->evaluate(node->args[1].get()); auto v2 = interp->evaluate(node->args[2].get()); h = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1); d = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2); }
+        Mesh mesh;
+        mesh.vertices = {{-w/2,-h/2,-d/2}, {w/2,-h/2,-d/2}, {w/2,h/2,-d/2}, {-w/2,h/2,-d/2}, {-w/2,-h/2,d/2}, {w/2,-h/2,d/2}, {w/2,h/2,d/2}, {-w/2,h/2,d/2}};
+        mesh.indices = {0,1,2,2,3,0, 1,5,6,6,2,1, 5,4,7,7,6,5, 4,0,3,3,7,4, 3,2,6,6,7,3, 4,5,1,1,0,4};
+        calcAABB(mesh);
+        int id = nextMeshId++; meshes[id] = mesh;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_meshId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class SphereGeometryBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "SphereGeometry"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        float r = 1; int wSeg = 16, hSeg = 12;
+        if (node->args.size() >= 1) { auto v = interp->evaluate(node->args[0].get()); r = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v); }
+        if (node->args.size() >= 2) wSeg = std::get<int>(interp->evaluate(node->args[1].get()));
+        if (node->args.size() >= 3) hSeg = std::get<int>(interp->evaluate(node->args[2].get()));
+        Mesh mesh;
+        for (int i = 0; i <= hSeg; i++) { float theta = i * M_PI / hSeg; for (int j = 0; j <= wSeg; j++) { float phi = j * 2 * M_PI / wSeg; mesh.vertices.push_back({r * sin(theta) * cos(phi), r * cos(theta), r * sin(theta) * sin(phi)}); } }
+        for (int i = 0; i < hSeg; i++) { for (int j = 0; j < wSeg; j++) { int a = i * (wSeg + 1) + j, b = a + wSeg + 1; mesh.indices.push_back(a); mesh.indices.push_back(b); mesh.indices.push_back(a + 1); mesh.indices.push_back(b); mesh.indices.push_back(b + 1); mesh.indices.push_back(a + 1); } }
+        calcAABB(mesh);
+        int id = nextMeshId++; meshes[id] = mesh;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_meshId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class PlaneGeometryBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "PlaneGeometry"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        float w = 1, h = 1;
+        if (node->args.size() >= 2) { auto v0 = interp->evaluate(node->args[0].get()); auto v1 = interp->evaluate(node->args[1].get()); w = std::holds_alternative<int>(v0) ? std::get<int>(v0) : std::get<float>(v0); h = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1); }
+        Mesh mesh; mesh.vertices = {{-w/2,-h/2,0}, {w/2,-h/2,0}, {w/2,h/2,0}, {-w/2,h/2,0}}; mesh.indices = {0,1,2,2,3,0}; mesh.doubleSided = true;
+        calcAABB(mesh);
+        int id = nextMeshId++; meshes[id] = mesh;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_meshId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class TorusGeometryBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "TorusGeometry"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        float radius = 1, tube = 0.4f; int rSeg = 16, tSeg = 32;
+        if (node->args.size() >= 1) { auto v = interp->evaluate(node->args[0].get()); radius = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v); }
+        if (node->args.size() >= 2) { auto v = interp->evaluate(node->args[1].get()); tube = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v); }
+        if (node->args.size() >= 3) rSeg = std::get<int>(interp->evaluate(node->args[2].get()));
+        if (node->args.size() >= 4) tSeg = std::get<int>(interp->evaluate(node->args[3].get()));
+        Mesh mesh;
+        for (int i = 0; i <= rSeg; i++) { float u = i * 2 * M_PI / rSeg; for (int j = 0; j <= tSeg; j++) { float v = j * 2 * M_PI / tSeg; mesh.vertices.push_back({(radius + tube * cos(v)) * cos(u), tube * sin(v), (radius + tube * cos(v)) * sin(u)}); } }
+        for (int i = 0; i < rSeg; i++) { for (int j = 0; j < tSeg; j++) { int a = i * (tSeg + 1) + j, b = a + tSeg + 1; mesh.indices.push_back(a); mesh.indices.push_back(b); mesh.indices.push_back(a + 1); mesh.indices.push_back(b); mesh.indices.push_back(b + 1); mesh.indices.push_back(a + 1); } }
+        calcAABB(mesh);
+        int id = nextMeshId++; meshes[id] = mesh;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_meshId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class CylinderGeometryBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "CylinderGeometry"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        float radiusTop = 1, radiusBottom = 1, height = 2; int radialSegments = 32;
+        if (node->args.size() >= 1) { auto v = interp->evaluate(node->args[0].get()); radiusTop = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v); }
+        if (node->args.size() >= 2) { auto v = interp->evaluate(node->args[1].get()); radiusBottom = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v); }
+        if (node->args.size() >= 3) { auto v = interp->evaluate(node->args[2].get()); height = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v); }
+        if (node->args.size() >= 4) radialSegments = std::get<int>(interp->evaluate(node->args[3].get()));
+        Mesh mesh;
+        float halfHeight = height / 2;
+        for (int i = 0; i <= radialSegments; i++) {
+            float theta = i * 2 * M_PI / radialSegments;
+            float cosT = cos(theta), sinT = sin(theta);
+            mesh.vertices.push_back({radiusTop * cosT, halfHeight, radiusTop * sinT});
+            mesh.vertices.push_back({radiusBottom * cosT, -halfHeight, radiusBottom * sinT});
+        }
+        for (int i = 0; i < radialSegments; i++) {
+            int a = i * 2, b = a + 1, c = a + 2, d = a + 3;
+            mesh.indices.push_back(a); mesh.indices.push_back(b); mesh.indices.push_back(c);
+            mesh.indices.push_back(b); mesh.indices.push_back(d); mesh.indices.push_back(c);
+        }
+        calcAABB(mesh);
+        int id = nextMeshId++; meshes[id] = mesh;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_meshId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class LoadOBJBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "loadOBJ"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 1) throw std::runtime_error("loadOBJ(filepath)");
+        std::string filepath = std::get<std::string>(interp->evaluate(node->args[0].get()));
+        Mesh mesh;
+        std::ifstream file(filepath);
+        if (!file.is_open()) throw std::runtime_error("Failed to open OBJ file: " + filepath);
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.substr(0, 2) == "v ") {
+                std::istringstream s(line.substr(2));
+                Vec3 v; s >> v.x >> v.y >> v.z;
+                mesh.vertices.push_back(v);
+            } else if (line.substr(0, 2) == "f ") {
+                std::istringstream s(line.substr(2));
+                std::string token;
+                std::vector<int> face;
+                while (s >> token) {
+                    int idx = std::stoi(token.substr(0, token.find('/'))) - 1;
+                    face.push_back(idx);
+                }
+                if (face.size() >= 3) {
+                    mesh.indices.push_back(face[0]); mesh.indices.push_back(face[1]); mesh.indices.push_back(face[2]);
+                    if (face.size() == 4) {
+                        mesh.indices.push_back(face[0]); mesh.indices.push_back(face[2]); mesh.indices.push_back(face[3]);
+                    }
+                }
+            }
+        }
+        calcAABB(mesh);
+        int id = nextMeshId++; meshes[id] = mesh;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_meshId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class PerspectiveCameraBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "PerspectiveCamera"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        Camera cam;
+        if (node->args.size() >= 1) { auto v = interp->evaluate(node->args[0].get()); cam.fov = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v); }
+        int id = nextCameraId++; cameras[id] = cam;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_cameraId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class SetPositionBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "setPosition"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 3) throw std::runtime_error("setPosition(x, y, z)");
+        auto v0 = interp->evaluate(node->args[0].get()); auto v1 = interp->evaluate(node->args[1].get()); auto v2 = interp->evaluate(node->args[2].get());
+        float x = std::holds_alternative<int>(v0) ? std::get<int>(v0) : std::get<float>(v0);
+        float y = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        float z = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
+            auto fa = dynamic_cast<FieldAccess*>(node->callee.get()); Value objVal = interp->evaluate(fa->object.get()); auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+            if (obj->fields.count("_meshId")) meshes[std::get<int>(obj->fields["_meshId"])].position = {x, y, z};
+            else if (obj->fields.count("_cameraId")) cameras[std::get<int>(obj->fields["_cameraId"])].position = {x, y, z};
+            else if (obj->fields.count("_lightId")) lights[std::get<int>(obj->fields["_lightId"])].position = {x, y, z};
+        }
+        return "";
+    }
+};
+
+class SetRotationBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "setRotation"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 3) throw std::runtime_error("setRotation(x, y, z)");
+        auto v0 = interp->evaluate(node->args[0].get()); auto v1 = interp->evaluate(node->args[1].get()); auto v2 = interp->evaluate(node->args[2].get());
+        float x = std::holds_alternative<int>(v0) ? std::get<int>(v0) : std::get<float>(v0);
+        float y = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        float z = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
+            auto fa = dynamic_cast<FieldAccess*>(node->callee.get()); Value objVal = interp->evaluate(fa->object.get()); auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+            if (obj->fields.count("_meshId")) meshes[std::get<int>(obj->fields["_meshId"])].rotation = {x, y, z};
+        }
+        return "";
+    }
+};
+
+class SetScaleBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "setScale"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 3) throw std::runtime_error("setScale(x, y, z)");
+        auto v0 = interp->evaluate(node->args[0].get()); auto v1 = interp->evaluate(node->args[1].get()); auto v2 = interp->evaluate(node->args[2].get());
+        float x = std::holds_alternative<int>(v0) ? std::get<int>(v0) : std::get<float>(v0);
+        float y = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        float z = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
+            auto fa = dynamic_cast<FieldAccess*>(node->callee.get()); Value objVal = interp->evaluate(fa->object.get()); auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+            if (obj->fields.count("_meshId")) meshes[std::get<int>(obj->fields["_meshId"])].scale = {x, y, z};
+        }
+        return "";
+    }
+};
+
+class LookAtBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "lookAt"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 3) throw std::runtime_error("lookAt(x, y, z)");
+        if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
+            auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+            Value objVal = interp->evaluate(fa->object.get());
+            auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+            if (obj->fields.count("_cameraId")) {
+                auto v0 = interp->evaluate(node->args[0].get());
+                auto v1 = interp->evaluate(node->args[1].get());
+                auto v2 = interp->evaluate(node->args[2].get());
+                float x = std::holds_alternative<int>(v0) ? std::get<int>(v0) : std::get<float>(v0);
+                float y = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+                float z = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+                int camId = std::holds_alternative<int>(obj->fields.at("_cameraId")) ? 
+                    std::get<int>(obj->fields.at("_cameraId")) : 
+                    (int)std::get<float>(obj->fields.at("_cameraId"));
+                cameras[camId].target = {x, y, z};
+            }
+        }
+        return "";
+    }
+};
+
+class EnableDevModeBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "enableDevMode"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 1) throw std::runtime_error("enableDevMode(camera)");
+        Value camVal = interp->evaluate(node->args[0].get());
+        auto camObj = std::get<std::shared_ptr<ObjectValue>>(camVal);
+        devCameraId = std::get<int>(camObj->fields["_cameraId"]);
+        devMode = true;
+        Camera& cam = cameras[devCameraId];
+        cam.distance = sqrt(cam.position.x*cam.position.x + cam.position.y*cam.position.y + cam.position.z*cam.position.z);
+        cam.yaw = atan2(cam.position.x, cam.position.z);
+        cam.pitch = atan2(cam.position.y, sqrt(cam.position.x*cam.position.x + cam.position.z*cam.position.z));
+        return "";
+    }
+};
+
+class UpdateDevCameraBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "updateDevCamera"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (!devMode || devCameraId < 0) return "";
+        Camera& cam = cameras[devCameraId];
+        cam.position.x = cam.target.x + cam.distance * sin(cam.yaw) * cos(cam.pitch);
+        cam.position.y = cam.target.y + cam.distance * sin(cam.pitch);
+        cam.position.z = cam.target.z + cam.distance * cos(cam.yaw) * cos(cam.pitch);
+        return "";
+    }
+};
+
+class HandleDevInputBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "handleDevInput"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) { interp->lastValue = 0; return "0"; }
+            if (devMode && devCameraId >= 0) {
+                Camera& cam = cameras[devCameraId];
+                if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+                    mouseDown = true;
+                    lastMouseX = event.button.x;
+                    lastMouseY = event.button.y;
+                }
+                if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT) mouseDown = false;
+                if (event.type == SDL_MOUSEMOTION && mouseDown) {
+                    int dx = event.motion.x - lastMouseX;
+                    int dy = event.motion.y - lastMouseY;
+                    cam.yaw += dx * 0.005f;
+                    cam.pitch -= dy * 0.005f;
+                    cam.pitch = fmax(-1.5f, fmin(1.5f, cam.pitch));
+                    lastMouseX = event.motion.x;
+                    lastMouseY = event.motion.y;
+                }
+                if (event.type == SDL_MOUSEWHEEL) {
+                    cam.distance -= event.wheel.y * 0.5f;
+                    cam.distance = fmax(1.0f, fmin(50.0f, cam.distance));
+                }
+            }
+        }
+        if (devMode && devCameraId >= 0) {
+            Camera& cam = cameras[devCameraId];
+            const Uint8* keys = SDL_GetKeyboardState(nullptr);
+            if (keys[SDL_SCANCODE_W]) cam.target.z -= 0.1f;
+            if (keys[SDL_SCANCODE_S]) cam.target.z += 0.1f;
+            if (keys[SDL_SCANCODE_A]) cam.target.x -= 0.1f;
+            if (keys[SDL_SCANCODE_D]) cam.target.x += 0.1f;
+            if (keys[SDL_SCANCODE_Q]) cam.target.y -= 0.1f;
+            if (keys[SDL_SCANCODE_E]) cam.target.y += 0.1f;
+        }
+        SDL_Delay(16);
+        interp->lastValue = 1;
+        return "1";
+    }
+};
+
+class PointLightBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "PointLight"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        Light light;
+        if (node->args.size() >= 1) {
+            std::string color = std::get<std::string>(interp->evaluate(node->args[0].get()));
+            if (color[0] == '#' && color.length() == 7) {
+                light.color.r = std::stoi(color.substr(1, 2), nullptr, 16);
+                light.color.g = std::stoi(color.substr(3, 2), nullptr, 16);
+                light.color.b = std::stoi(color.substr(5, 2), nullptr, 16);
+            }
+        }
+        if (node->args.size() >= 2) {
+            auto v = interp->evaluate(node->args[1].get());
+            light.intensity = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        int id = nextLightId++; lights[id] = light;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_lightId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class AmbientLightBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "AmbientLight"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        Light light; light.intensity = 0.5f;
+        if (node->args.size() >= 1) {
+            std::string color = std::get<std::string>(interp->evaluate(node->args[0].get()));
+            if (color[0] == '#' && color.length() == 7) {
+                light.color.r = std::stoi(color.substr(1, 2), nullptr, 16);
+                light.color.g = std::stoi(color.substr(3, 2), nullptr, 16);
+                light.color.b = std::stoi(color.substr(5, 2), nullptr, 16);
+            }
+        }
+        if (node->args.size() >= 2) {
+            auto v = interp->evaluate(node->args[1].get());
+            light.intensity = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        int id = nextLightId++; lights[id] = light;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_lightId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class DirectionalLightBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "DirectionalLight"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        Light light; light.position = {0, 1, 0};
+        if (node->args.size() >= 1) {
+            std::string color = std::get<std::string>(interp->evaluate(node->args[0].get()));
+            if (color[0] == '#' && color.length() == 7) {
+                light.color.r = std::stoi(color.substr(1, 2), nullptr, 16);
+                light.color.g = std::stoi(color.substr(3, 2), nullptr, 16);
+                light.color.b = std::stoi(color.substr(5, 2), nullptr, 16);
+            }
+        }
+        if (node->args.size() >= 2) {
+            auto v = interp->evaluate(node->args[1].get());
+            light.intensity = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        int id = nextLightId++; lights[id] = light;
+        auto obj = std::make_shared<ObjectValue>(); obj->fields["_lightId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class SetColorBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "setColor"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 1) throw std::runtime_error("setColor(color)");
+        std::string color = std::get<std::string>(interp->evaluate(node->args[0].get()));
+        if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
+            auto fa = dynamic_cast<FieldAccess*>(node->callee.get()); Value objVal = interp->evaluate(fa->object.get()); auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+            if (obj->fields.count("_meshId") && color[0] == '#' && color.length() == 7) {
+                auto& mesh = meshes[std::get<int>(obj->fields["_meshId"])];
+                mesh.color.r = std::stoi(color.substr(1, 2), nullptr, 16);
+                mesh.color.g = std::stoi(color.substr(3, 2), nullptr, 16);
+                mesh.color.b = std::stoi(color.substr(5, 2), nullptr, 16);
+            }
+        }
+        return "";
+    }
+};
+
+class SetMetallicBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "setMetallic"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 1) throw std::runtime_error("setMetallic(value)");
+        auto v = interp->evaluate(node->args[0].get());
+        float metallic = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
+            auto fa = dynamic_cast<FieldAccess*>(node->callee.get()); Value objVal = interp->evaluate(fa->object.get()); auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+            if (obj->fields.count("_meshId")) meshes[std::get<int>(obj->fields["_meshId"])].metallic = metallic;
+        }
+        return "";
+    }
+};
+
+class RenderSceneBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "render"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 2) throw std::runtime_error("renderer.render(scene, camera)");
+        if (!node->callee) throw std::runtime_error("render must be called on canvas");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value canvasVal = interp->evaluate(fa->object.get()); auto canvas = std::get<std::shared_ptr<ObjectValue>>(canvasVal);
+        int canvasId = std::get<int>(canvas->fields["_id"]); auto ctx = canvases[canvasId];
+        Value sceneVal = interp->evaluate(node->args[0].get()); auto sceneObj = std::get<std::shared_ptr<ObjectValue>>(sceneVal);
+        int sceneId = std::get<int>(sceneObj->fields["_sceneId"]); Scene& scene = scenes[sceneId];
+        Value camVal = interp->evaluate(node->args[1].get()); auto camObj = std::get<std::shared_ptr<ObjectValue>>(camVal);
+        int camId = std::get<int>(camObj->fields["_cameraId"]); Camera& cam = cameras[camId];
+        SDL_SetRenderDrawColor(ctx->renderer, scene.background.r, scene.background.g, scene.background.b, 255);
+        SDL_RenderClear(ctx->renderer);
+        std::vector<std::tuple<float, int, size_t, int, Vec3, Vec3, Vec3>> sortedTris;
+        int sceneOrder = 0;
+        for (int meshId : scene.meshIds) {
+            Mesh& mesh = meshes[meshId];
+            if (!mesh.visible) { sceneOrder++; continue; }
+            for (size_t i = 0; i < mesh.indices.size(); i += 3) {
+                Vec3 v[3];
+                float avgZ = 0;
+                for (int j = 0; j < 3; j++) {
+                    Vec3 vert = mesh.vertices[mesh.indices[i + j]];
+                    vert.x *= mesh.scale.x; vert.y *= mesh.scale.y; vert.z *= mesh.scale.z;
+                    vert = rotateX(vert, mesh.rotation.x); vert = rotateY(vert, mesh.rotation.y); vert = rotateZ(vert, mesh.rotation.z);
+                    vert.x += mesh.position.x; vert.y += mesh.position.y; vert.z += mesh.position.z;
+                    v[j] = transformToCamera(vert, cam);
+                    avgZ += v[j].z;
+                }
+                sortedTris.push_back({avgZ / 3, meshId, i, sceneOrder, v[0], v[1], v[2]});
+            }
+            sceneOrder++;
+        }
+        std::sort(sortedTris.begin(), sortedTris.end(), [](auto& a, auto& b) {
+            float diff = std::get<0>(a) - std::get<0>(b);
+            if (fabs(diff) < 0.5f) return std::get<3>(a) < std::get<3>(b);
+            return diff < 0;
+        });
+        for (auto& [depth, meshId, i, order, v0, v1, v2] : sortedTris) {
+            Mesh& mesh = meshes[meshId];
+            if (!mesh.visible) continue;
+            Vec3 v[3] = {v0, v1, v2};
+            Vec3 worldV[3];
+            for (int j = 0; j < 3; j++) {
+                Vec3 vert = mesh.vertices[mesh.indices[i + j]];
+                vert.x *= mesh.scale.x; vert.y *= mesh.scale.y; vert.z *= mesh.scale.z;
+                vert = rotateX(vert, mesh.rotation.x);
+                vert = rotateY(vert, mesh.rotation.y);
+                vert = rotateZ(vert, mesh.rotation.z);
+                vert.x += mesh.position.x; vert.y += mesh.position.y; vert.z += mesh.position.z;
+                worldV[j] = vert;
+            }
+            Vec3 p[3];
+            bool allBehind = true;
+            for (int j = 0; j < 3; j++) {
+                p[j] = project(v[j], cam.fov, ctx->width, ctx->height);
+                if (v[j].z >= -0.1f) allBehind = false;
+            }
+            if (allBehind) {
+                Vec3 worldCenter = {(worldV[0].x + worldV[1].x + worldV[2].x) / 3, (worldV[0].y + worldV[1].y + worldV[2].y) / 3, (worldV[0].z + worldV[1].z + worldV[2].z) / 3};
+                Vec3 e1 = {worldV[1].x - worldV[0].x, worldV[1].y - worldV[0].y, worldV[1].z - worldV[0].z};
+                Vec3 e2 = {worldV[2].x - worldV[0].x, worldV[2].y - worldV[0].y, worldV[2].z - worldV[0].z};
+                Vec3 n = {e1.y * e2.z - e1.z * e2.y, e1.z * e2.x - e1.x * e2.z, e1.x * e2.y - e1.y * e2.x};
+                float len = sqrt(n.x*n.x + n.y*n.y + n.z*n.z);
+                if (len > 0) { n.x /= len; n.y /= len; n.z /= len; }
+                Vec3 viewDir = {cam.position.x - worldCenter.x, cam.position.y - worldCenter.y, cam.position.z - worldCenter.z};
+                float viewLen = sqrt(viewDir.x*viewDir.x + viewDir.y*viewDir.y + viewDir.z*viewDir.z);
+                if (viewLen > 0) { viewDir.x /= viewLen; viewDir.y /= viewLen; viewDir.z /= viewLen; }
+                float dot = n.x * viewDir.x + n.y * viewDir.y + n.z * viewDir.z;
+                if (!mesh.doubleSided && dot <= 0) continue;
+                if (mesh.doubleSided && dot < 0) { n.x = -n.x; n.y = -n.y; n.z = -n.z; }
+                float diffuse = scene.ambientLight.x;
+                Vec3 specular = {0, 0, 0};
+                for (int lightId : scene.lightIds) {
+                    Light& l = lights[lightId];
+                    Vec3 lightDir = {l.position.x - worldCenter.x, l.position.y - worldCenter.y, l.position.z - worldCenter.z};
+                    float dist = sqrt(lightDir.x*lightDir.x + lightDir.y*lightDir.y + lightDir.z*lightDir.z);
+                    if (dist > 0) { lightDir.x /= dist; lightDir.y /= dist; lightDir.z /= dist; }
+                    float diff = fmax(0.0f, n.x * lightDir.x + n.y * lightDir.y + n.z * lightDir.z);
+                    diffuse += diff * l.intensity * (l.color.r / 255.0f);
+                    if (mesh.metallic > 0) {
+                        Vec3 halfDir = {lightDir.x + viewDir.x, lightDir.y + viewDir.y, lightDir.z + viewDir.z};
+                        float hLen = sqrt(halfDir.x*halfDir.x + halfDir.y*halfDir.y + halfDir.z*halfDir.z);
+                        if (hLen > 0) { halfDir.x /= hLen; halfDir.y /= hLen; halfDir.z /= hLen; }
+                        float spec = pow(fmax(0.0f, n.x * halfDir.x + n.y * halfDir.y + n.z * halfDir.z), 128.0f);
+                        float strength = spec * l.intensity * mesh.metallic * 2.0f;
+                        specular.x += strength * (l.color.r / 255.0f);
+                        specular.y += strength * (l.color.g / 255.0f);
+                        specular.z += strength * (l.color.b / 255.0f);
+                    }
+                }
+                diffuse = fmin(1.0f, diffuse);
+                float finalR = fmin(255.0f, mesh.color.r * diffuse + specular.x * 255.0f);
+                float finalG = fmin(255.0f, mesh.color.g * diffuse + specular.y * 255.0f);
+                float finalB = fmin(255.0f, mesh.color.b * diffuse + specular.z * 255.0f);
+                SDL_Vertex verts[3] = {
+                    {{p[0].x, p[0].y}, {(Uint8)finalR, (Uint8)finalG, (Uint8)finalB, 255}, {0, 0}},
+                    {{p[1].x, p[1].y}, {(Uint8)finalR, (Uint8)finalG, (Uint8)finalB, 255}, {0, 0}},
+                    {{p[2].x, p[2].y}, {(Uint8)finalR, (Uint8)finalG, (Uint8)finalB, 255}, {0, 0}}
+                };
+                SDL_RenderGeometry(ctx->renderer, nullptr, verts, 3, nullptr, 0);
+            }
+        }
+        if (devMode && devCameraId == camId) {
+            for (int i = -10; i <= 10; i++) {
+                Vec3 p1 = transformToCamera({(float)i, 0, -10}, cam);
+                Vec3 p2 = transformToCamera({(float)i, 0, 10}, cam);
+                Vec3 s1 = project(p1, cam.fov, ctx->width, ctx->height);
+                Vec3 s2 = project(p2, cam.fov, ctx->width, ctx->height);
+                if (s1.z < 0 && s2.z < 0) {
+                    SDL_SetRenderDrawColor(ctx->renderer, 80, 80, 80, 255);
+                    SDL_RenderDrawLine(ctx->renderer, s1.x, s1.y, s2.x, s2.y);
+                }
+                p1 = transformToCamera({-10, 0, (float)i}, cam);
+                p2 = transformToCamera({10, 0, (float)i}, cam);
+                s1 = project(p1, cam.fov, ctx->width, ctx->height);
+                s2 = project(p2, cam.fov, ctx->width, ctx->height);
+                if (s1.z < 0 && s2.z < 0) {
+                    SDL_SetRenderDrawColor(ctx->renderer, 80, 80, 80, 255);
+                    SDL_RenderDrawLine(ctx->renderer, s1.x, s1.y, s2.x, s2.y);
+                }
+            }
+            Vec3 ox = transformToCamera({0, 0, 0}, cam), ax = transformToCamera({3, 0, 0}, cam);
+            Vec3 oy = transformToCamera({0, 0, 0}, cam), ay = transformToCamera({0, 3, 0}, cam);
+            Vec3 oz = transformToCamera({0, 0, 0}, cam), az = transformToCamera({0, 0, 3}, cam);
+            Vec3 pox = project(ox, cam.fov, ctx->width, ctx->height), pax = project(ax, cam.fov, ctx->width, ctx->height);
+            Vec3 poy = project(oy, cam.fov, ctx->width, ctx->height), pay = project(ay, cam.fov, ctx->width, ctx->height);
+            Vec3 poz = project(oz, cam.fov, ctx->width, ctx->height), paz = project(az, cam.fov, ctx->width, ctx->height);
+            if (pox.z < 0 && pax.z < 0) { SDL_SetRenderDrawColor(ctx->renderer, 255, 0, 0, 255); SDL_RenderDrawLine(ctx->renderer, pox.x, pox.y, pax.x, pax.y); }
+            if (poy.z < 0 && pay.z < 0) { SDL_SetRenderDrawColor(ctx->renderer, 0, 255, 0, 255); SDL_RenderDrawLine(ctx->renderer, poy.x, poy.y, pay.x, pay.y); }
+            if (poz.z < 0 && paz.z < 0) { SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 255, 255); SDL_RenderDrawLine(ctx->renderer, poz.x, poz.y, paz.x, paz.y); }
+        }
+        SDL_RenderPresent(ctx->renderer);
+        return "";
+    }
+};
+
+class IsCollidingBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "isColliding"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        try {
+            if (node->args.size() < 2) throw std::runtime_error("isColliding(mesh1, mesh2, ...)");
+            std::vector<int> meshIds;
+            for (auto& arg : node->args) {
+                Value v = interp->evaluate(arg.get());
+                if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(v)) {
+                    interp->lastValue = 0;
+                    return "0";
+                }
+                auto obj = std::get<std::shared_ptr<ObjectValue>>(v);
+                if (obj && obj->fields.count("_meshId")) {
+                    try {
+                        auto& field = obj->fields.at("_meshId");
+                        if (std::holds_alternative<int>(field)) {
+                            meshIds.push_back(std::get<int>(field));
+                        } else if (std::holds_alternative<float>(field)) {
+                            meshIds.push_back((int)std::get<float>(field));
+                        }
+                    } catch (...) {}
+                }
+            }
+            if (meshIds.size() < 2) {
+                interp->lastValue = 0;
+                return "0";
+            }
+            for (size_t i = 0; i < meshIds.size(); i++) {
+                for (size_t j = i + 1; j < meshIds.size(); j++) {
+                    if (meshes.find(meshIds[i]) == meshes.end() || meshes.find(meshIds[j]) == meshes.end()) continue;
+                    Mesh& m1 = meshes[meshIds[i]];
+                    Mesh& m2 = meshes[meshIds[j]];
+                    Vec3 c1 = {(m1.aabbMin.x + m1.aabbMax.x) * 0.5f, (m1.aabbMin.y + m1.aabbMax.y) * 0.5f, (m1.aabbMin.z + m1.aabbMax.z) * 0.5f};
+                    Vec3 e1 = {(m1.aabbMax.x - m1.aabbMin.x) * 0.5f * m1.scale.x, (m1.aabbMax.y - m1.aabbMin.y) * 0.5f * m1.scale.y, (m1.aabbMax.z - m1.aabbMin.z) * 0.5f * m1.scale.z};
+                    Vec3 c2 = {(m2.aabbMin.x + m2.aabbMax.x) * 0.5f, (m2.aabbMin.y + m2.aabbMax.y) * 0.5f, (m2.aabbMin.z + m2.aabbMax.z) * 0.5f};
+                    Vec3 e2 = {(m2.aabbMax.x - m2.aabbMin.x) * 0.5f * m2.scale.x, (m2.aabbMax.y - m2.aabbMin.y) * 0.5f * m2.scale.y, (m2.aabbMax.z - m2.aabbMin.z) * 0.5f * m2.scale.z};
+                    Vec3 min1 = {m1.position.x + c1.x - e1.x, m1.position.y + c1.y - e1.y, m1.position.z + c1.z - e1.z};
+                    Vec3 max1 = {m1.position.x + c1.x + e1.x, m1.position.y + c1.y + e1.y, m1.position.z + c1.z + e1.z};
+                    Vec3 min2 = {m2.position.x + c2.x - e2.x, m2.position.y + c2.y - e2.y, m2.position.z + c2.z - e2.z};
+                    Vec3 max2 = {m2.position.x + c2.x + e2.x, m2.position.y + c2.y + e2.y, m2.position.z + c2.z + e2.z};
+                    if (aabbIntersect(min1, max1, min2, max2)) {
+                        interp->lastValue = 1;
+                        return "1";
+                    }
+                }
+            }
+            interp->lastValue = 0;
+            return "0";
+        } catch (...) {
+            interp->lastValue = 0;
+            return "0";
+        }
+    }
+};
+
+class ApplyNaturalCollisionBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "applyNaturalCollision"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() < 2) throw std::runtime_error("applyNaturalCollision(mesh1, mesh2, ...)");
+        try {
+            std::vector<int> meshIds;
+            for (auto& arg : node->args) {
+                Value v = interp->evaluate(arg.get());
+                if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(v)) continue;
+                auto obj = std::get<std::shared_ptr<ObjectValue>>(v);
+                if (obj && obj->fields.count("_meshId")) {
+                    auto& field = obj->fields.at("_meshId");
+                    if (std::holds_alternative<int>(field)) {
+                        meshIds.push_back(std::get<int>(field));
+                    } else if (std::holds_alternative<float>(field)) {
+                        meshIds.push_back((int)std::get<float>(field));
+                    }
+                }
+            }
+        for (size_t i = 0; i < meshIds.size(); i++) {
+            for (size_t j = i + 1; j < meshIds.size(); j++) {
+                Mesh& m1 = meshes[meshIds[i]];
+                Mesh& m2 = meshes[meshIds[j]];
+                Vec3 min1 = transformVertex(m1.aabbMin, m1);
+                Vec3 max1 = transformVertex(m1.aabbMax, m1);
+                Vec3 min2 = transformVertex(m2.aabbMin, m2);
+                Vec3 max2 = transformVertex(m2.aabbMax, m2);
+                if (!aabbIntersect(min1, max1, min2, max2)) continue;
+                Vec3 dir = {m2.position.x - m1.position.x, m2.position.y - m1.position.y, m2.position.z - m1.position.z};
+                float dist = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
+                if (dist < 0.001f) continue;
+                dir.x /= dist; dir.y /= dist; dir.z /= dist;
+                float v1 = dir.x * m1.velocity.x + dir.y * m1.velocity.y + dir.z * m1.velocity.z;
+                float v2 = dir.x * m2.velocity.x + dir.y * m2.velocity.y + dir.z * m2.velocity.z;
+                float m1m = m1.mass, m2m = m2.mass;
+                float newV1 = (v1 * (m1m - m2m) + 2 * m2m * v2) / (m1m + m2m);
+                float newV2 = (v2 * (m2m - m1m) + 2 * m1m * v1) / (m1m + m2m);
+                m1.velocity.x += (newV1 - v1) * dir.x * 0.8f;
+                m1.velocity.y += (newV1 - v1) * dir.y * 0.8f;
+                m1.velocity.z += (newV1 - v1) * dir.z * 0.8f;
+                m2.velocity.x += (newV2 - v2) * dir.x * 0.8f;
+                m2.velocity.y += (newV2 - v2) * dir.y * 0.8f;
+                m2.velocity.z += (newV2 - v2) * dir.z * 0.8f;
+                float overlap = (max1.x - min1.x + max2.x - min2.x) * 0.5f - dist;
+                if (overlap > 0) {
+                    m1.position.x -= dir.x * overlap * 0.5f;
+                    m1.position.y -= dir.y * overlap * 0.5f;
+                    m1.position.z -= dir.z * overlap * 0.5f;
+                    m2.position.x += dir.x * overlap * 0.5f;
+                    m2.position.y += dir.y * overlap * 0.5f;
+                    m2.position.z += dir.z * overlap * 0.5f;
+                }
+            }
+        }
+        return "";
+        } catch (...) {
+            return "";
+        }
+    }
+};
+
+class ApplyAttractionToMeshBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "applyAttractionToMesh"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 4) throw std::runtime_error("applyAttractionToMesh(mesh, x, y, z)");
+        try {
+            Value v = interp->evaluate(node->args[0].get());
+            if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(v)) return "";
+            auto obj = std::get<std::shared_ptr<ObjectValue>>(v);
+            if (!obj || !obj->fields.count("_meshId")) return "";
+            auto& field = obj->fields.at("_meshId");
+            int meshId = std::holds_alternative<int>(field) ? std::get<int>(field) : (int)std::get<float>(field);
+        auto v1 = interp->evaluate(node->args[1].get());
+        auto v2 = interp->evaluate(node->args[2].get());
+        auto v3 = interp->evaluate(node->args[3].get());
+        float x = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        float y = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        float z = std::holds_alternative<int>(v3) ? std::get<int>(v3) : std::get<float>(v3);
+        Mesh& m = meshes[meshId];
+        m.velocity.x += x;
+        m.velocity.y += y;
+        m.velocity.z += z;
+        m.position.x += m.velocity.x;
+        m.position.y += m.velocity.y;
+        m.position.z += m.velocity.z;
+        return "";
+        } catch (...) {
+            return "";
+        }
+    }
+};
+
+REGISTER_BUILTIN(CreateSceneBuiltin)
+REGISTER_BUILTIN(AddToSceneBuiltin)
+REGISTER_BUILTIN(BoxGeometryBuiltin)
+REGISTER_BUILTIN(SphereGeometryBuiltin)
+REGISTER_BUILTIN(PlaneGeometryBuiltin)
+REGISTER_BUILTIN(TorusGeometryBuiltin)
+REGISTER_BUILTIN(CylinderGeometryBuiltin)
+REGISTER_BUILTIN(LoadOBJBuiltin)
+REGISTER_BUILTIN(PerspectiveCameraBuiltin)
+REGISTER_BUILTIN(SetPositionBuiltin)
+REGISTER_BUILTIN(SetRotationBuiltin)
+REGISTER_BUILTIN(SetScaleBuiltin)
+REGISTER_BUILTIN(LookAtBuiltin)
+REGISTER_BUILTIN(SetColorBuiltin)
+REGISTER_BUILTIN(SetMetallicBuiltin)
+REGISTER_BUILTIN(PointLightBuiltin)
+REGISTER_BUILTIN(AmbientLightBuiltin)
+REGISTER_BUILTIN(DirectionalLightBuiltin)
+REGISTER_BUILTIN(EnableDevModeBuiltin)
+REGISTER_BUILTIN(UpdateDevCameraBuiltin)
+REGISTER_BUILTIN(HandleDevInputBuiltin)
+REGISTER_BUILTIN(RenderSceneBuiltin)
+REGISTER_BUILTIN(IsCollidingBuiltin)
+REGISTER_BUILTIN(ApplyNaturalCollisionBuiltin)
+REGISTER_BUILTIN(ApplyAttractionToMeshBuiltin)

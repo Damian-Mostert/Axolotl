@@ -4,6 +4,20 @@
 #include "interpreter.h"
 #include "ast.h"
 #include <string>
+#include <memory>
+#include <unordered_map>
+#include <SDL2/SDL.h>
+
+struct CanvasContext {
+    SDL_Window* window;
+    SDL_Renderer* renderer;
+    int width, height;
+    SDL_Color fillColor{0, 0, 0, 255};
+    SDL_Color strokeColor{0, 0, 0, 255};
+    float lineWidth = 1.0f;
+};
+
+extern std::unordered_map<int, std::shared_ptr<CanvasContext>> canvases;
 
 // Base class for built-in functions
 class BuiltinFunction {

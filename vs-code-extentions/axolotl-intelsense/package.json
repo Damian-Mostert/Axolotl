@@ -1,0 +1,44 @@
+{
+  "name": "axolotl-intellisense",
+  "displayName": "Axolotl IntelliSense",
+  "description": "Complete IntelliSense support for Axolotl language with type checking and variable tracking",
+  "version": "2.0.0",
+  "publisher": "axolotl",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": ["Programming Languages"],
+  "main": "./out/extension.js",
+  "activationEvents": ["onLanguage:axolotl"],
+  "contributes": {
+    "languages": [{
+      "id": "axolotl",
+      "extensions": [".axo"],
+      "aliases": ["Axolotl", "axolotl"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "axolotl",
+      "scopeName": "source.axolotl",
+      "path": "./syntaxes/axolotl.tmLanguage.json"
+    }],
+    "iconThemes": [{
+      "id": "axolotl-icons",
+      "label": "Axolotl Icons",
+      "path": "./fileicons/axolotl-icon-theme.json"
+    }]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^16.0.0",
+    "@types/vscode": "^1.60.0",
+    "@vscode/vsce": "^3.2.1",
+    "typescript": "^4.5.0"
+  }
+}

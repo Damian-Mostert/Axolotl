@@ -1,0 +1,37 @@
+// 3D Rotating Cube
+print("Creating rotating 3D scene...");
+
+var canvas: object = createCanvas(800, 600, "3D Rotating");
+var box: object = createBox(2.0, 2.0, 2.0);
+var sphere: object = createSphere(1.5, 20);
+var camera: object = createCamera(60.0);
+
+camera.setPosition(0.0, 0.0, 0.0);
+box.setPosition(-3.0, 0.0, -8.0);
+sphere.setPosition(3.0, 0.0, -8.0);
+
+var rotation: float = 0.0;
+
+print("Starting rotation...");
+
+var running: int = 1;
+while (running == 1) {
+    rotation = rotation + 0.03;
+    
+    box.setRotation(rotation, rotation, rotation);
+    sphere.setRotation(0.0, rotation, 0.0);
+    
+    canvas.fillStyle("#000000");
+    canvas.fillRect(0, 0, 800, 600);
+    
+    canvas.strokeStyle("#00ff00");
+    canvas.renderMesh(box, camera);
+    
+    canvas.strokeStyle("#ff0000");
+    canvas.renderMesh(sphere, camera);
+    
+    canvas.render();
+    pollEvents();
+}
+
+print("Done");

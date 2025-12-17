@@ -1,0 +1,22 @@
+// Test basic 2D canvas first
+print("Creating 2D canvas...");
+
+var canvas: object = createCanvas(400, 300, "2D Test");
+
+print("Setting fill color...");
+canvas.fillStyle("#ff0000");
+
+print("Drawing rectangle...");
+canvas.fillRect(50, 50, 100, 100);
+
+print("Rendering...");
+canvas.render();
+
+print("Window should show red square. Waiting 3 seconds...");
+
+var start: int = millis();
+while (millis() - start < 3000) {
+    pollEvents();
+}
+
+print("Done");

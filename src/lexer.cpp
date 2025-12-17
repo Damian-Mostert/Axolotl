@@ -135,7 +135,8 @@ Token Lexer::readNumber() {
         advance();
     }
     
-    if (currentChar() == '.' && isDigit(peekChar())) {
+    // Check for decimal point
+    if (currentChar() == '.' && peekChar() >= '0' && peekChar() <= '9') {
         isFloat = true;
         value += currentChar();
         advance();

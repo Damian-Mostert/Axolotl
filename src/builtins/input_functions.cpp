@@ -87,9 +87,26 @@ public:
     }
 };
 
+class GetKeyStateBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "getKeyState"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        const Uint8* keys = SDL_GetKeyboardState(nullptr);
+        auto obj = std::make_shared<ObjectValue>();
+        obj->fields["left"] = keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_A] ? 1 : 0;
+        obj->fields["right"] = keys[SDL_SCANCODE_RIGHT] || keys[SDL_SCANCODE_D] ? 1 : 0;
+        obj->fields["up"] = keys[SDL_SCANCODE_UP] || keys[SDL_SCANCODE_W] ? 1 : 0;
+        obj->fields["down"] = keys[SDL_SCANCODE_DOWN] || keys[SDL_SCANCODE_S] ? 1 : 0;
+        obj->fields["space"] = keys[SDL_SCANCODE_SPACE] ? 1 : 0;
+        interp->lastValue = obj;
+        return "{object}";
+    }
+};
+
 REGISTER_BUILTIN(IsKeyDownBuiltin)
 REGISTER_BUILTIN(GetMouseXBuiltin)
 REGISTER_BUILTIN(GetMouseYBuiltin)
 REGISTER_BUILTIN(IsMouseDownBuiltin)
 REGISTER_BUILTIN(WasMouseClickedBuiltin)
 REGISTER_BUILTIN(UpdateInputsBuiltin)
+REGISTER_BUILTIN(GetKeyStateBuiltin)

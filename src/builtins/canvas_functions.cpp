@@ -4,16 +4,7 @@
 #include <unordered_map>
 #include <memory>
 
-struct CanvasContext {
-    SDL_Window* window;
-    SDL_Renderer* renderer;
-    int width, height;
-    SDL_Color fillColor{0, 0, 0, 255};
-    SDL_Color strokeColor{0, 0, 0, 255};
-    float lineWidth = 1.0f;
-};
-
-static std::unordered_map<int, std::shared_ptr<CanvasContext>> canvases;
+std::unordered_map<int, std::shared_ptr<CanvasContext>> canvases;
 static std::unordered_map<int, SDL_Surface*> surfaces;
 static int nextCanvasId = 1;
 static int nextSurfaceId = 1;
@@ -30,19 +21,27 @@ public:
             title = std::get<std::string>(interp->evaluate(node->args[2].get()));
         }
         
-        if (SDL_Init(SDL_INIT_VIDEO) < 0) throw std::runtime_error("SDL init failed");
-        if (!(IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG) & (IMG_INIT_PNG | IMG_INIT_JPG))) {
-            throw std::runtime_error("SDL_image init failed");
+        static bool sdl_initialized = false;
+        if (!sdl_initialized) {
+            if (SDL_Init(SDL_INIT_VIDEO) < 0) throw std::runtime_error("SDL init failed");
+            if (!(IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG) & (IMG_INIT_PNG | IMG_INIT_JPG))) {
+                throw std::runtime_error("SDL_image init failed");
+            }
+            sdl_initialized = true;
         }
         
-        SDL_Window* window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN);
-        if (!window) throw std::runtime_error("Window creation failed");
+        SDL_Window* window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
+        if (!window) throw std::runtime_error(std::string("Window creation failed: ") + SDL_GetError());
         
-        SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
         if (!renderer) {
             SDL_DestroyWindow(window);
-            throw std::runtime_error("Renderer creation failed");
+            throw std::runtime_error(std::string("Renderer creation failed: ") + SDL_GetError());
         }
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderClear(renderer);
+        SDL_RenderPresent(renderer);
         
         auto ctx = std::make_shared<CanvasContext>();
         ctx->window = window;
@@ -221,10 +220,15 @@ public:
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
+                for (auto& pair : canvases) {
+                    SDL_DestroyRenderer(pair.second->renderer);
+                    SDL_DestroyWindow(pair.second->window);
+                }
                 SDL_Quit();
                 std::exit(0);
             }
         }
+        SDL_Delay(16);
         return "";
     }
 };
@@ -297,6 +301,27 @@ public:
     }
 };
 
+class DrawLineBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "drawLine"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (!node->callee || node->args.size() != 4) throw std::runtime_error("drawLine() expects 4 arguments: drawLine(x1, y1, x2, y2)");
+        if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
+            Value canvasVal = interp->evaluate(fa->object.get());
+            auto canvas = std::get<std::shared_ptr<ObjectValue>>(canvasVal);
+            int id = std::get<int>(canvas->fields["_id"]);
+            auto ctx = canvases[id];
+            int x1 = std::get<int>(interp->evaluate(node->args[0].get()));
+            int y1 = std::get<int>(interp->evaluate(node->args[1].get()));
+            int x2 = std::get<int>(interp->evaluate(node->args[2].get()));
+            int y2 = std::get<int>(interp->evaluate(node->args[3].get()));
+            SDL_SetRenderDrawColor(ctx->renderer, ctx->strokeColor.r, ctx->strokeColor.g, ctx->strokeColor.b, ctx->strokeColor.a);
+            SDL_RenderDrawLine(ctx->renderer, x1, y1, x2, y2);
+        }
+        return "";
+    }
+};
+
 REGISTER_BUILTIN(CreateCanvasBuiltin)
 REGISTER_BUILTIN(FillRectBuiltin)
 REGISTER_BUILTIN(StrokeRectBuiltin)
@@ -304,6 +329,7 @@ REGISTER_BUILTIN(ClearRectBuiltin)
 REGISTER_BUILTIN(FillStyleBuiltin)
 REGISTER_BUILTIN(StrokeStyleBuiltin)
 REGISTER_BUILTIN(FillCircleBuiltin)
+REGISTER_BUILTIN(DrawLineBuiltin)
 REGISTER_BUILTIN(RenderBuiltin)
 REGISTER_BUILTIN(LoadImageBuiltin)
 REGISTER_BUILTIN(DrawImageBuiltin)

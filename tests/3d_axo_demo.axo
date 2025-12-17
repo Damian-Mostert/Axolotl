@@ -1,0 +1,43 @@
+// 3D Demo using pure Axolotl 3D library
+
+// Load 3D library
+import "lib/3d.axo";
+
+print("Creating 3D scene with Axolotl 3D library...");
+
+var canvas: object = createCanvas(800, 600, "Axolotl 3D");
+var scene: object = Scene();
+var camera: object = PerspectiveCamera(60.0);
+var renderer: object = WebGLRenderer(canvas);
+
+camera.position.z = 0.0;
+
+var boxGeom: object = BoxGeometry(2.0, 2.0, 2.0);
+var box: object = Mesh(boxGeom, "#00ff00");
+box.position.z = -8.0;
+box.position.x = -3.0;
+
+sceneAdd(scene, box);
+
+var rotation: float = 0.0;
+
+print("Starting render loop...");
+
+var running: int = 1;
+while (running == 1) {
+    rotation = rotation + 0.03;
+    
+    box.rotation.x = rotation;
+    box.rotation.y = rotation;
+    box.rotation.z = rotation;
+    
+    canvas.fillStyle("#000000");
+    canvas.fillRect(0, 0, 800, 600);
+    
+    render(renderer, scene, camera);
+    
+    canvas.render();
+    pollEvents();
+}
+
+print("Done");

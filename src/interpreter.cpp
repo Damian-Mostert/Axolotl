@@ -328,9 +328,8 @@ std::string Interpreter::visit(IntegerLiteral *node)
 
 std::string Interpreter::visit(FloatLiteral *node)
 {
-    std::ostringstream oss;
-    oss << node->value;
-    return oss.str();
+    lastValue = node->value;
+    return "[float]";
 }
 
 std::string Interpreter::visit(StringLiteral *node)
@@ -381,6 +380,10 @@ std::string Interpreter::visit(BinaryOp *node)
     Value left = evaluate(node->left.get());
     Value right = evaluate(node->right.get());
     Value result = performBinaryOp(left, node->op, right);
+    if (std::holds_alternative<float>(result)) {
+        lastValue = result;
+        return "[float]";
+    }
     return valueToString(result);
 }
 
@@ -1365,7 +1368,7 @@ Value Interpreter::evaluate(Expression *expr)
 {
     std::string result = expr->accept(this);
     // Check if a complex value was stored
-    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]" || result == "[bool]" || result == "[int]" || result == "[string]"))
+    if (!result.empty() && (result == "[array]" || result == "{object}" || result == "[function]" || result == "[bool]" || result == "[int]" || result == "[string]" || result == "[float]"))
     {
         return lastValue;
     }
@@ -1407,6 +1410,25 @@ void Interpreter::executeBlock(Block *block)
 
 Value Interpreter::performBinaryOp(const Value &left, BinaryOperator op, const Value &right)
 {
+    // Float operations first (including mixed int/float)
+    if (std::holds_alternative<float>(left) || std::holds_alternative<float>(right)) {
+        float l = std::holds_alternative<float>(left) ? std::get<float>(left) : (std::holds_alternative<int>(left) ? (float)std::get<int>(left) : 0.0f);
+        float r = std::holds_alternative<float>(right) ? std::get<float>(right) : (std::holds_alternative<int>(right) ? (float)std::get<int>(right) : 0.0f);
+        switch (op) {
+            case BinaryOperator::ADD: return l + r;
+            case BinaryOperator::SUBTRACT: return l - r;
+            case BinaryOperator::MULTIPLY: return l * r;
+            case BinaryOperator::DIVIDE: return l / r;
+            case BinaryOperator::LESS: return l < r;
+            case BinaryOperator::GREATER: return l > r;
+            case BinaryOperator::LESS_EQUAL: return l <= r;
+            case BinaryOperator::GREATER_EQUAL: return l >= r;
+            case BinaryOperator::EQUAL: return l == r;
+            case BinaryOperator::NOT_EQUAL: return l != r;
+            default: break;
+        }
+    }
+    
     // Fast path: int operations (most common in loops)
     if (std::holds_alternative<int>(left) && std::holds_alternative<int>(right)) {
         int l = std::get<int>(left);
@@ -1427,24 +1449,7 @@ Value Interpreter::performBinaryOp(const Value &left, BinaryOperator op, const V
         }
     }
     
-    // Float operations
-    if (std::holds_alternative<float>(left) && std::holds_alternative<float>(right)) {
-        float l = std::get<float>(left);
-        float r = std::get<float>(right);
-        switch (op) {
-            case BinaryOperator::ADD: return l + r;
-            case BinaryOperator::SUBTRACT: return l - r;
-            case BinaryOperator::MULTIPLY: return l * r;
-            case BinaryOperator::DIVIDE: return l / r;
-            case BinaryOperator::LESS: return l < r;
-            case BinaryOperator::GREATER: return l > r;
-            case BinaryOperator::LESS_EQUAL: return l <= r;
-            case BinaryOperator::GREATER_EQUAL: return l >= r;
-            case BinaryOperator::EQUAL: return l == r;
-            case BinaryOperator::NOT_EQUAL: return l != r;
-            default: break;
-        }
-    }
+
     
     // String concatenation
     if (op == BinaryOperator::ADD) {

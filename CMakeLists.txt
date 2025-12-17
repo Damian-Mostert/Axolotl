@@ -36,6 +36,7 @@ set(SOURCES
     src/builtins/json_functions.cpp
     src/builtins/http_functions.cpp
     src/builtins/canvas_functions.cpp
+    src/builtins/canvas_3d_functions.cpp
     src/builtins/input_functions.cpp
     src/builtins/env_loader.cpp
 )

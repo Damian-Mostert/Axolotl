@@ -124,15 +124,15 @@ public:
     std::string getName() const override { return "push"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 2) throw std::runtime_error("push() expects 2 arguments");
-        Identifier *arrayId = dynamic_cast<Identifier *>(node->args[0].get());
-        if (!arrayId) throw std::runtime_error("push() requires array variable as first argument");
-        Variable arrayVar = interp->environment.get(arrayId->name);
-        Value arrVal = arrayVar.value;
-        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal)) throw std::runtime_error("push() requires array variable as first argument");
+        Value arrVal = interp->evaluate(node->args[0].get());
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(arrVal)) throw std::runtime_error("push() requires array as first argument");
         auto arr = std::get<std::shared_ptr<ArrayValue>>(arrVal);
         Value val = interp->evaluate(node->args[1].get());
-        arr->elements.push_back(val);
-        return "";
+        auto newArr = std::make_shared<ArrayValue>();
+        newArr->elements = arr->elements;
+        newArr->elements.push_back(val);
+        interp->lastValue = newArr;
+        return "[array]";
     }
 };
 

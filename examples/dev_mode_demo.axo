@@ -1,0 +1,50 @@
+// Dev Mode - Interactive 3D Navigation
+print("3D Dev Mode - Interactive Camera Controls");
+print("Mouse: Left-click + drag to orbit");
+print("Scroll: Zoom in/out");
+print("WASD: Pan camera target");
+print("Q/E: Move target up/down");
+
+var canvas: object = createCanvas(800, 600, "Dev Mode - Interactive 3D");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(75.0);
+camera.setPosition(0.0, 3.0, 10.0);
+
+enableDevMode(camera);
+
+var ambientLight: object = AmbientLight("#404040", 0.3);
+var pointLight: object = PointLight("#ffffff", 1.5);
+pointLight.setPosition(5.0, 5.0, 5.0);
+
+var sphere1: object = SphereGeometry(1.5, 24, 18);
+sphere1.setPosition(-3.0, 0.0, 0.0);
+sphere1.setColor("#ff6b6b");
+
+var sphere2: object = SphereGeometry(1.5, 100, 100);
+sphere2.setPosition(3.0, 0.0, 0.0);
+sphere2.setColor("#4ecdc4");
+sphere2.setMetallic(1);
+
+var box: object = BoxGeometry(2.0, 2.0, 2.0);
+box.setPosition(0.0, 0.0, 0.0);
+box.setRotation(0.5, 0.5, 0.0);
+box.setMetallic(1);
+
+var plane: object = PlaneGeometry(20.0, 20.0);
+plane.setPosition(0.0, -2.0, 0.0);
+plane.setRotation(1.57, 0.0, 0.0);
+plane.setColor("#95e1d3");
+
+scene.add(ambientLight);
+scene.add(pointLight);
+scene.add(plane);
+scene.add(sphere1);
+scene.add(sphere2);
+scene.add(box);
+
+var running: int = 1;
+while (running == 1) {
+    running = handleDevInput();
+    updateDevCamera();
+    canvas.render(scene, camera);
+}
