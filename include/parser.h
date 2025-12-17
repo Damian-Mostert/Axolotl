@@ -57,6 +57,11 @@ private:
     std::unique_ptr<Expression> parsePrimary();
     std::unique_ptr<Expression> parsePostfix();
     
+    // UI template parsing
+    std::unique_ptr<Expression> parseUIElement();
+    std::unique_ptr<Expression> parseUIFragment();
+    bool isUIStart() const;
+    
     // Helper for parsing function types: (type1, type2)->returnType
     std::string parseFunctionType();
     

@@ -1,0 +1,19 @@
+import "styles/menu.css";
+
+func runMenu() -> any {
+    const window:object = CreateWindow("Main Menu", 0, 0, 800, 600);
+    window.render(<>
+        <div className="menu-container">
+            <button className="button-2d" onClick={func() -> void {
+                window.close();
+                import "src/scripts/levels/2d.axo";
+            }}>Start 2D Level</button>
+            <button className="button-3d" onClick={func() -> void {
+                window.close();
+                import "src/scripts/levels/3d.axo";
+            }}>Start 3D Level</button>
+        </div>
+    </>);
+}
+
+runMenu();

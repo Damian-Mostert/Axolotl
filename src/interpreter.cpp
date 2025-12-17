@@ -933,8 +933,8 @@ std::string Interpreter::resolveImportPath(const std::string& requestedPath) {
     // If path has an extension, use it as-is but validate it
     if (requested.has_extension()) {
         std::string ext = requested.extension().string();
-        if (ext != ".axo" && ext != ".json") {
-            throw std::runtime_error("Invalid file extension '" + ext + "'. Only .axo and .json files are allowed.");
+        if (ext != ".axo" && ext != ".json" && ext != ".css") {
+            throw std::runtime_error("Invalid file extension '" + ext + "'. Only .axo, .json, and .css files are allowed.");
         }
         
         // For relative paths, resolve relative to the importing file's directory
@@ -990,7 +990,10 @@ std::string Interpreter::visit(ImportDeclaration *node)
         fs::path filePath(resolvedPath);
         std::string extension = filePath.extension().string();
         
-        if (extension == ".json") {
+        if (extension == ".css") {
+            // CSS files are loaded but not processed yet (GTK integration pending)
+            return "";
+        } else if (extension == ".json") {
             // For JSON files, just read content and make it available as a string
             std::ifstream file(resolvedPath);
             if (!file.is_open()) {

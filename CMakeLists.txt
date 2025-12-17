@@ -39,6 +39,10 @@ set(SOURCES
     src/builtins/canvas_3d_functions.cpp
     src/builtins/input_functions.cpp
     src/builtins/env_loader.cpp
+    src/builtins/ui_functions.cpp
+    src/ui_ast.cpp
+    src/ui_parser.cpp
+    src/ui_interpreter.cpp
 )
 
 # Create executable
@@ -70,6 +74,11 @@ find_path(SDL2_INCLUDE_DIR SDL2/SDL.h PATHS /opt/homebrew/include REQUIRED)
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 
+# Find GTK3
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+include_directories(${GTK3_INCLUDE_DIRS})
+
 if(NOT SDL2_LIBRARY)
     message(FATAL_ERROR "SDL2 not found")
 endif()
@@ -84,6 +93,7 @@ message(STATUS "Found SDL2_image: ${SDL2_IMAGE_LIBRARY}")
 # Link LLVM libraries
 llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
 target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY} ${OPENGL_LIBRARIES})
+target_link_libraries(compiler ${GTK3_LDFLAGS})
 
 # Link stdc++fs for GNU < 9 and also for AppleClang for filesystem support
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

@@ -1142,6 +1142,11 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
         return expr;
     }
     
+    // Check for UI elements
+    if (isUIStart()) {
+        return parseUIElement();
+    }
+    
     throw ParseError("Unexpected token: " + peek().value, peek());
 }
 

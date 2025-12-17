@@ -393,6 +393,11 @@ public:
 
 
 
+class UIElement;  // Forward declaration
+class UIFragment;  // Forward declaration
+class UIText;  // Forward declaration
+class UIExpression;  // Forward declaration
+
 class Program : public ASTNode {
 public:
     std::vector<std::unique_ptr<ASTNode>> declarations;
@@ -442,6 +447,10 @@ public:
     virtual std::string visit(CaseClause* node) = 0;
     virtual std::string visit(SwitchStatement* node) = 0;
     virtual std::string visit(Program* node) = 0;
+    virtual std::string visit(UIElement* node) = 0;
+    virtual std::string visit(UIFragment* node) = 0;
+    virtual std::string visit(UIText* node) = 0;
+    virtual std::string visit(UIExpression* node) = 0;
 };
 
 #endif // AST_H

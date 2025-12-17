@@ -77,6 +77,12 @@ enum class TokenType {
     COLON,
     ARROW,
     
+    // UI template tokens
+    UI_LT,
+    UI_GT,
+    UI_SLASH,
+    UI_TEXT,
+    
     // Special
     EOF_TOKEN,
     NEWLINE,
