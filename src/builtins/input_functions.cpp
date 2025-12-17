@@ -23,7 +23,9 @@ public:
     std::string getName() const override { return "getMouseX"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 0) throw std::runtime_error("getMouseX() expects no arguments");
-        interp->lastValue = mouseX;
+        int x, y;
+        SDL_GetMouseState(&x, &y);
+        interp->lastValue = x;
         return "[int]";
     }
 };
@@ -33,7 +35,9 @@ public:
     std::string getName() const override { return "getMouseY"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 0) throw std::runtime_error("getMouseY() expects no arguments");
-        interp->lastValue = mouseY;
+        int x, y;
+        SDL_GetMouseState(&x, &y);
+        interp->lastValue = y;
         return "[int]";
     }
 };
@@ -67,15 +71,16 @@ public:
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
+                for (auto& pair : canvases) {
+                    if (pair.second->renderer) SDL_DestroyRenderer(pair.second->renderer);
+                    if (pair.second->window) SDL_DestroyWindow(pair.second->window);
+                }
                 SDL_Quit();
                 std::exit(0);
             } else if (event.type == SDL_KEYDOWN) {
                 keyStates[SDL_GetKeyName(event.key.keysym.sym)] = true;
             } else if (event.type == SDL_KEYUP) {
                 keyStates[SDL_GetKeyName(event.key.keysym.sym)] = false;
-            } else if (event.type == SDL_MOUSEMOTION) {
-                mouseX = event.motion.x;
-                mouseY = event.motion.y;
             } else if (event.type == SDL_MOUSEBUTTONDOWN) {
                 mouseDown = true;
                 mouseClicked = true;

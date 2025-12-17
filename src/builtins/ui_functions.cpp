@@ -3,15 +3,25 @@
 #include "include/ui_ast.h"
 #include <gtk/gtk.h>
 #include <map>
+#include <functional>
 
 static bool gtkInitialized = false;
 static std::map<int, GtkWidget*> windows;
+static std::map<GtkWidget*, std::function<void()>> clickHandlers;
 static int nextWindowId = 1;
+static Interpreter* globalInterp = nullptr;
 
 static void ensureGtkInit() {
     if (!gtkInitialized) {
         gtk_init(nullptr, nullptr);
         gtkInitialized = true;
+    }
+}
+
+static void onButtonClick(GtkWidget* widget, gpointer data) {
+    auto it = clickHandlers.find(widget);
+    if (it != clickHandlers.end()) {
+        it->second();
     }
 }
 
@@ -38,6 +48,30 @@ static GtkWidget* buildWidget(Expression* expr, Interpreter* interp) {
                 std::string className = std::get<std::string>(classVal);
                 GtkStyleContext* ctx = gtk_widget_get_style_context(widget);
                 gtk_style_context_add_class(ctx, className.c_str());
+            } else if (key == "onClick") {
+                clickHandlers[widget] = [interp, funcExpr = val.get()]() {
+                    if (auto fe = dynamic_cast<FunctionExpression*>(funcExpr)) {
+                        interp->environment.pushScope();
+                        try {
+                            interp->executeBlock(fe->body.get());
+                        } catch (...) {
+                            interp->environment.popScope();
+                            throw;
+                        }
+                        interp->environment.popScope();
+                    }
+                };
+                if (elem->tagName == "button") {
+                    g_signal_connect(widget, "clicked", G_CALLBACK(onButtonClick), nullptr);
+                } else {
+                    GtkWidget* eventBox = gtk_event_box_new();
+                    gtk_container_add(GTK_CONTAINER(eventBox), widget);
+                    g_signal_connect(eventBox, "button-press-event", G_CALLBACK(+[](GtkWidget* w, GdkEventButton* e, gpointer d) -> gboolean {
+                        onButtonClick(w, d);
+                        return TRUE;
+                    }), nullptr);
+                    widget = eventBox;
+                }
             }
         }
         
@@ -80,6 +114,7 @@ public:
         GtkWidget* window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_window_set_title(GTK_WINDOW(window), title.c_str());
         gtk_window_set_default_size(GTK_WINDOW(window), width, height);
+        gtk_window_set_decorated(GTK_WINDOW(window), TRUE);
         g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), nullptr);
         
         int id = nextWindowId++;
@@ -93,10 +128,35 @@ public:
     }
 };
 
+class LoadCSSBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "loadCSS"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        ensureGtkInit();
+        if (node->args.size() != 1) throw std::runtime_error("loadCSS(path)");
+        std::string path = std::get<std::string>(interp->evaluate(node->args[0].get()));
+        
+        GtkCssProvider* provider = gtk_css_provider_new();
+        GError* error = nullptr;
+        gtk_css_provider_load_from_path(provider, path.c_str(), &error);
+        if (error) {
+            g_error_free(error);
+        }
+        gtk_style_context_add_provider_for_screen(
+            gdk_screen_get_default(),
+            GTK_STYLE_PROVIDER(provider),
+            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
+        g_object_unref(provider);
+        return "";
+    }
+};
+
 class WindowRenderBuiltin : public BuiltinFunction {
 public:
-    std::string getName() const override { return "render"; }
+    std::string getName() const override { return "renderWindow"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
+        globalInterp = interp;
         if (!node->callee) throw std::runtime_error("render must be called on window");
         
         auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
@@ -148,9 +208,11 @@ public:
 static CreateWindowBuiltin createWindowInstance;
 static WindowRenderBuiltin renderInstance;
 static WindowCloseBuiltin closeInstance;
+static LoadCSSBuiltin loadCSSInstance;
 static bool uiBuiltinsRegistered = []() {
     BuiltinRegistry::instance().registerBuiltin(&createWindowInstance);
     BuiltinRegistry::instance().registerBuiltin(&renderInstance);
     BuiltinRegistry::instance().registerBuiltin(&closeInstance);
+    BuiltinRegistry::instance().registerBuiltin(&loadCSSInstance);
     return true;
 }();

@@ -991,7 +991,12 @@ std::string Interpreter::visit(ImportDeclaration *node)
         std::string extension = filePath.extension().string();
         
         if (extension == ".css") {
-            // CSS files are loaded but not processed yet (GTK integration pending)
+            auto builtin = BuiltinRegistry::instance().getBuiltin("loadCSS");
+            if (builtin) {
+                FunctionCall tempCall("");
+                tempCall.args.push_back(std::make_unique<StringLiteral>(resolvedPath));
+                builtin->execute(this, &tempCall);
+            }
             return "";
         } else if (extension == ".json") {
             // For JSON files, just read content and make it available as a string
