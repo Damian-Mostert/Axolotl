@@ -23,6 +23,7 @@ struct Mesh {
     bool doubleSided = false;
     float metallic = 0.0f;
     Vec3 velocity{0, 0, 0};
+    Vec3 angularVelocity{0, 0, 0};
     float mass = 1.0f;
     Vec3 aabbMin{0, 0, 0};
     Vec3 aabbMax{0, 0, 0};
@@ -268,7 +269,7 @@ public:
         for (int i = 0; i < radialSegments; i++) {
             int next = (i + 1) % (radialSegments + 1);
             mesh.indices.push_back(centerTop); mesh.indices.push_back(next * 2); mesh.indices.push_back(i * 2);
-            mesh.indices.push_back(centerBottom); mesh.indices.push_back(next * 2 + 1); mesh.indices.push_back(i * 2 + 1);
+            mesh.indices.push_back(centerBottom); mesh.indices.push_back(i * 2 + 1); mesh.indices.push_back(next * 2 + 1);
         }
         calcAABB(mesh);
         int id = nextMeshId++; meshes[id] = mesh;
@@ -1039,11 +1040,25 @@ public:
         int objId = std::get<int>(objObj->fields["_meshId"]);
         Mesh& obj = meshes[objId];
         
-        obj.position.x += obj.velocity.x;
-        obj.position.y += obj.velocity.y;
-        obj.position.z += obj.velocity.z;
+        float maxVel = 0.3f;
+        float velMag = sqrt(obj.velocity.x*obj.velocity.x + obj.velocity.y*obj.velocity.y + obj.velocity.z*obj.velocity.z);
+        if (velMag > maxVel) {
+            obj.velocity.x *= maxVel / velMag;
+            obj.velocity.y *= maxVel / velMag;
+            obj.velocity.z *= maxVel / velMag;
+        }
         
-        for (size_t i = 1; i < node->args.size(); i++) {
+        int steps = 6;
+        float stepVelX = obj.velocity.x / steps;
+        float stepVelY = obj.velocity.y / steps;
+        float stepVelZ = obj.velocity.z / steps;
+        
+        for (int step = 0; step < steps; step++) {
+            obj.position.x += stepVelX;
+            obj.position.y += stepVelY;
+            obj.position.z += stepVelZ;
+            
+            for (size_t i = 1; i < node->args.size(); i++) {
             Value obstacleVal = interp->evaluate(node->args[i].get());
             auto obstacleObj = std::get<std::shared_ptr<ObjectValue>>(obstacleVal);
             int obstacleId = std::get<int>(obstacleObj->fields["_meshId"]);
@@ -1054,38 +1069,89 @@ public:
             Vec3 c2 = {(obstacle.aabbMin.x + obstacle.aabbMax.x) * 0.5f, (obstacle.aabbMin.y + obstacle.aabbMax.y) * 0.5f, (obstacle.aabbMin.z + obstacle.aabbMax.z) * 0.5f};
             Vec3 e2 = {(obstacle.aabbMax.x - obstacle.aabbMin.x) * 0.5f * obstacle.scale.x, (obstacle.aabbMax.y - obstacle.aabbMin.y) * 0.5f * obstacle.scale.y, (obstacle.aabbMax.z - obstacle.aabbMin.z) * 0.5f * obstacle.scale.z};
             
-            bool isRotated = fabs(obstacle.rotation.x) > 0.01f || fabs(obstacle.rotation.z) > 0.01f;
+            bool isRotated = fabs(obj.rotation.x) > 0.01f || fabs(obj.rotation.z) > 0.01f ||
+                             fabs(obstacle.rotation.x) > 0.01f || fabs(obstacle.rotation.z) > 0.01f;
             
             if (isRotated) {
-                Vec3 normal = {0, 1, 0};
-                normal = rotateX(normal, obstacle.rotation.x);
-                normal = rotateZ(normal, obstacle.rotation.z);
-                float len = sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
-                normal.x /= len; normal.y /= len; normal.z /= len;
+                Vec3 pos1 = {obj.position.x, obj.position.y, obj.position.z};
+                Vec3 pos2 = {obstacle.position.x, obstacle.position.y, obstacle.position.z};
+                Vec3 relPos = {pos1.x - pos2.x, pos1.y - pos2.y, pos1.z - pos2.z};
                 
-                Vec3 relPos = {obj.position.x - obstacle.position.x, obj.position.y - obstacle.position.y, obj.position.z - obstacle.position.z};
-                float distToPlane = relPos.x * normal.x + relPos.y * normal.y + relPos.z * normal.z;
+                Vec3 axes[15];
+                Vec3 ax1[3] = {{1,0,0}, {0,1,0}, {0,0,1}};
+                Vec3 ax2[3] = {{1,0,0}, {0,1,0}, {0,0,1}};
                 
-                float localX = relPos.x * cos(-obstacle.rotation.y) - relPos.z * sin(-obstacle.rotation.y);
-                float localZ = relPos.x * sin(-obstacle.rotation.y) + relPos.z * cos(-obstacle.rotation.y);
+                for (int k = 0; k < 3; k++) {
+                    ax1[k] = rotateX(ax1[k], obj.rotation.x);
+                    ax1[k] = rotateY(ax1[k], obj.rotation.y);
+                    ax1[k] = rotateZ(ax1[k], obj.rotation.z);
+                    ax2[k] = rotateX(ax2[k], obstacle.rotation.x);
+                    ax2[k] = rotateY(ax2[k], obstacle.rotation.y);
+                    ax2[k] = rotateZ(ax2[k], obstacle.rotation.z);
+                }
                 
-                bool inBounds = fabs(localX) < e2.x && fabs(localZ) < e2.z && fabs(relPos.y) < e2.y * 2.0f;
+                for (int k = 0; k < 3; k++) axes[k] = ax1[k];
+                for (int k = 0; k < 3; k++) axes[k+3] = ax2[k];
+                for (int k = 0; k < 3; k++) {
+                    for (int j = 0; j < 3; j++) {
+                        Vec3 cross = {ax1[k].y*ax2[j].z - ax1[k].z*ax2[j].y, ax1[k].z*ax2[j].x - ax1[k].x*ax2[j].z, ax1[k].x*ax2[j].y - ax1[k].y*ax2[j].x};
+                        float len = sqrt(cross.x*cross.x + cross.y*cross.y + cross.z*cross.z);
+                        if (len > 0.001f) { cross.x /= len; cross.y /= len; cross.z /= len; axes[6+k*3+j] = cross; }
+                    }
+                }
                 
-                if (inBounds) {
-                    float penetration = e1.y - distToPlane;
-                    if (penetration > 0.01f) {
-                        obj.position.x += normal.x * penetration;
-                        obj.position.y += normal.y * penetration;
-                        obj.position.z += normal.z * penetration;
-                        
-                        float vDot = obj.velocity.x * normal.x + obj.velocity.y * normal.y + obj.velocity.z * normal.z;
-                        if (vDot < 0) {
-                            obj.velocity.x -= normal.x * vDot;
-                            obj.velocity.y -= normal.y * vDot;
-                            obj.velocity.z -= normal.z * vDot;
-                        }
+                float minPen = 1e9f;
+                Vec3 minAxis = {0,1,0};
+                bool colliding = true;
+                
+                for (int k = 0; k < 15 && colliding; k++) {
+                    Vec3 axis = axes[k];
+                    float len = sqrt(axis.x*axis.x + axis.y*axis.y + axis.z*axis.z);
+                    if (len < 0.001f) continue;
+                    axis.x /= len; axis.y /= len; axis.z /= len;
+                    
+                    float r1 = fabs(e1.x * (ax1[0].x*axis.x + ax1[0].y*axis.y + ax1[0].z*axis.z)) +
+                               fabs(e1.y * (ax1[1].x*axis.x + ax1[1].y*axis.y + ax1[1].z*axis.z)) +
+                               fabs(e1.z * (ax1[2].x*axis.x + ax1[2].y*axis.y + ax1[2].z*axis.z));
+                    float r2 = fabs(e2.x * (ax2[0].x*axis.x + ax2[0].y*axis.y + ax2[0].z*axis.z)) +
+                               fabs(e2.y * (ax2[1].x*axis.x + ax2[1].y*axis.y + ax2[1].z*axis.z)) +
+                               fabs(e2.z * (ax2[2].x*axis.x + ax2[2].y*axis.y + ax2[2].z*axis.z));
+                    float dist = fabs(relPos.x*axis.x + relPos.y*axis.y + relPos.z*axis.z);
+                    
+                    if (dist > r1 + r2) { colliding = false; }
+                    else {
+                        float pen = r1 + r2 - dist;
+                        if (pen < minPen) { minPen = pen; minAxis = axis; }
+                    }
+                }
+                
+                if (colliding && minPen < 1e8f) {
+                    if (relPos.x*minAxis.x + relPos.y*minAxis.y + relPos.z*minAxis.z < 0) {
+                        minAxis.x = -minAxis.x; minAxis.y = -minAxis.y; minAxis.z = -minAxis.z;
+                    }
+                    float margin = 0.01f;
+                    obj.position.x += minAxis.x * (minPen + margin);
+                    obj.position.y += minAxis.y * (minPen + margin);
+                    obj.position.z += minAxis.z * (minPen + margin);
+                    
+                    float vDot = obj.velocity.x*minAxis.x + obj.velocity.y*minAxis.y + obj.velocity.z*minAxis.z;
+                    if (vDot < 0) {
+                        obj.velocity.x -= minAxis.x * vDot * (1.0f + obstacle.bounciness);
+                        obj.velocity.y -= minAxis.y * vDot * (1.0f + obstacle.bounciness);
+                        obj.velocity.z -= minAxis.z * vDot * (1.0f + obstacle.bounciness);
+                    }
+                    if (fabs(minAxis.y) > 0.5f) {
                         obj.velocity.x *= (1.0f - obstacle.friction);
                         obj.velocity.z *= (1.0f - obstacle.friction);
+                    }
+                    Vec3 tangentVel = {obj.velocity.x - minAxis.x * vDot, obj.velocity.y - minAxis.y * vDot, obj.velocity.z - minAxis.z * vDot};
+                    float tangentSpeed = sqrt(tangentVel.x*tangentVel.x + tangentVel.y*tangentVel.y + tangentVel.z*tangentVel.z);
+                    if (tangentSpeed > 0.01f) {
+                        Vec3 rollAxis = {minAxis.y*tangentVel.z - minAxis.z*tangentVel.y, minAxis.z*tangentVel.x - minAxis.x*tangentVel.z, minAxis.x*tangentVel.y - minAxis.y*tangentVel.x};
+                        float rollSpeed = tangentSpeed / fmax(e1.x, fmax(e1.y, e1.z));
+                        obj.angularVelocity.x += rollAxis.x * rollSpeed * 0.1f;
+                        obj.angularVelocity.y += rollAxis.y * rollSpeed * 0.1f;
+                        obj.angularVelocity.z += rollAxis.z * rollSpeed * 0.1f;
                     }
                 }
             } else {
@@ -1099,28 +1165,52 @@ public:
                     float overlapY = fmin(max1.y, max2.y) - fmax(min1.y, min2.y);
                     float overlapZ = fmin(max1.z, max2.z) - fmax(min1.z, min2.z);
                     
-                    if (overlapY < overlapX && overlapY < overlapZ) {
+                    if (overlapY <= overlapX && overlapY <= overlapZ) {
                         if (obj.position.y > obstacle.position.y) {
                             obj.position.y += overlapY;
-                            if (obj.velocity.y < 0) obj.velocity.y = 0;
+                            if (obj.velocity.y < 0) obj.velocity.y *= -obstacle.bounciness;
+                            float tangentSpeed = sqrt(obj.velocity.x*obj.velocity.x + obj.velocity.z*obj.velocity.z);
+                            if (tangentSpeed > 0.01f) {
+                                float radius = fmax(e1.x, fmax(e1.y, e1.z));
+                                obj.angularVelocity.x += obj.velocity.z / radius * 0.1f;
+                                obj.angularVelocity.z -= obj.velocity.x / radius * 0.1f;
+                            }
                             obj.velocity.x *= (1.0f - obstacle.friction);
                             obj.velocity.z *= (1.0f - obstacle.friction);
                         } else {
                             obj.position.y -= overlapY;
-                            if (obj.velocity.y > 0) obj.velocity.y = 0;
+                            if (obj.velocity.y > 0) obj.velocity.y *= -obstacle.bounciness;
                         }
-                    } else if (overlapX < overlapZ) {
+                    } else if (overlapX <= overlapZ) {
                         if (obj.position.x > obstacle.position.x) obj.position.x += overlapX;
                         else obj.position.x -= overlapX;
+                        if (obj.velocity.x != 0) {
+                            float radius = fmax(e1.x, fmax(e1.y, e1.z));
+                            obj.angularVelocity.y += obj.velocity.x / radius * 0.2f;
+                            obj.angularVelocity.z += obj.velocity.y / radius * 0.1f;
+                        }
                         obj.velocity.x = 0;
                     } else {
                         if (obj.position.z > obstacle.position.z) obj.position.z += overlapZ;
                         else obj.position.z -= overlapZ;
+                        if (obj.velocity.z != 0) {
+                            float radius = fmax(e1.x, fmax(e1.y, e1.z));
+                            obj.angularVelocity.y -= obj.velocity.z / radius * 0.2f;
+                            obj.angularVelocity.x += obj.velocity.y / radius * 0.1f;
+                        }
                         obj.velocity.z = 0;
                     }
                 }
             }
+            }
         }
+        
+        obj.angularVelocity.x *= 0.98f;
+        obj.angularVelocity.y *= 0.98f;
+        obj.angularVelocity.z *= 0.98f;
+        obj.rotation.x += obj.angularVelocity.x;
+        obj.rotation.y += obj.angularVelocity.y;
+        obj.rotation.z += obj.angularVelocity.z;
         
         interp->lastValue = 0;
         return "0";
