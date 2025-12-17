@@ -3,12 +3,6 @@ const scene: object = createScene();
 const camera: object = PerspectiveCamera(60);
 camera.setPosition(0, 4, 25);
 
-const ground: object = PlaneGeometry(50, 50);
-ground.setPosition(0, 0, 0);
-ground.setRotation(1.57, 0, 0);
-ground.setColor("#556633");
-scene.add(ground);
-
 const building1: object = BoxGeometry(5, 8, 5);
 building1.setPosition(-10, 4, -10);
 building1.setColor("#8899aa");
@@ -44,13 +38,44 @@ tree2.setPosition(-8, 2, 8);
 tree2.setColor("#664422");
 scene.add(tree2);
 
-const leaves2: object = SphereGeometry(2);
+const leaves2: object = SphereGeometry(2,50,50);
 leaves2.setPosition(-8, 5, 8);
 leaves2.setColor("#228844");
+leaves2.setMetallic(1.0);
 scene.add(leaves2);
 
+const stair1: object = BoxGeometry(4, 1, 4);
+stair1.setPosition(0, 0.5, 10);
+stair1.setColor("#999999");
+stair1.setMetallic(1.0);
+scene.add(stair1);
+
+const stair2: object = BoxGeometry(4, 2, 4);
+stair2.setPosition(0, 1, 6);
+stair2.setColor("#999999");
+stair2.setMetallic(1.0);
+scene.add(stair2);
+
+const stair3: object = BoxGeometry(4, 3, 4);
+stair3.setPosition(0, 1.5, 2);
+stair3.setColor("#999999");
+stair3.setMetallic(1.0);
+scene.add(stair3);
+
+const stair4: object = BoxGeometry(4, 4, 4);
+stair4.setPosition(0, 2, -2);
+stair4.setColor("#999999");
+stair4.setMetallic(1.0);
+scene.add(stair4);
+
+const stair5: object = BoxGeometry(4, 5, 4);
+stair5.setPosition(0, 2.5, -6);
+stair5.setColor("#999999");
+stair5.setMetallic(1.0);
+scene.add(stair5);
+
 const player: object = BoxGeometry(1, 2, 1);
-player.setPosition(0, 1, 20);
+player.setPosition(10, 3, 20);
 player.setColor("#3388ff");
 scene.add(player);
 
@@ -58,52 +83,51 @@ const sun: object = PointLight("#ffeeaa", 2);
 sun.setPosition(20, 30, 10);
 scene.add(sun);
 
-var posX: float = 0.0;
-var posZ: float = 20.0;
+const ground: object = BoxGeometry(100, 1, 100);
+ground.setPosition(0, -0.5, 0);
+ground.setColor("#556633");
+scene.add(ground);
+
+const slope: object = BoxGeometry(8, 1, 20);
+slope.setPosition(-20, 0, 0);
+slope.setRotation(0, 0, 0.4);
+slope.setColor("#aa9966");
+scene.add(slope);
+
 var angle: float = 0.0;
-var speed: float = 0.2;
+var canJump: int = 1;
 
 while (handleDevInput() == 1) {
     const keys: object = getKeyState();
     
-    var newX: float = 0.0;
-    var newZ: float = 0.0;
-    
-    newX = posX;
-    newZ = posZ;
+    if (keys.left == 1) { angle = angle - 0.05; }
+    if (keys.right == 1) { angle = angle + 0.05; }
     
     if (keys.up == 1) {
-        newX = posX + sin(angle) * speed;
-        newZ = posZ + cos(angle) * speed;
+        player.moveBy(sin(angle) * 0.2, 0, cos(angle) * 0.2);
+        handleCollision(player, ground, slope, building1, building2, building3, tower, tree1, tree2, stair1, stair2, stair3, stair4, stair5);
     }
     if (keys.down == 1) {
-        newX = posX - sin(angle) * speed;
-        newZ = posZ - cos(angle) * speed;
+        player.moveBy(0.0 - sin(angle) * 0.2, 0, 0.0 - cos(angle) * 0.2);
+        handleCollision(player, ground, slope, building1, building2, building3, tower, tree1, tree2, stair1, stair2, stair3, stair4, stair5);
     }
-    if (keys.left == 1) {
-        angle = angle - 0.05;
+    if (keys.space == 1) {
+        if (canJump == 1) {
+            player.addVelocity(0, 0.3, 0);
+            canJump = 0;
+        }
     }
-    if (keys.right == 1) {
-        angle = angle + 0.05;
-    }
-    
-    player.setPosition(newX, 1, newZ);
-    
-    if (isColliding(player, building1, building2, building3, tower, tree1, tree2) == 0) {
-        posX = newX;
-        posZ = newZ;
+    if (keys.space == 0) {
+        canJump = 1;
     }
     
-    player.setPosition(posX, 1, posZ);
+    applyAttractionToMesh(player, ground);
+    handleCollision(player, ground, slope, building1, building2, building3, tower, tree1, tree2, stair1, stair2, stair3, stair4, stair5);
+    
     player.setRotation(0, angle, 0);
-    
-    const camDist: float = 6.0;
-    const camHeight: float = 4.0;
-    const camX: float = posX - sin(angle) * camDist;
-    const camZ: float = posZ - cos(angle) * camDist;
-    camera.setPosition(camX, camHeight, camZ);
-    camera.lookAt(posX, 1.5, posZ);
-    sun.setPosition(posX + 20, 30, posZ + 10);
+    followTarget(camera, player, 6.0, 2.5);
+    const pos: object = player.getPosition();
+    sun.setPosition(pos.x + 20, 30, pos.z + 10);
     
     canvas.render(scene, camera);
 }

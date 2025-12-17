@@ -1,0 +1,71 @@
+const canvas: object = createCanvas(800, 600);
+const scene: object = createScene();
+const camera: object = PerspectiveCamera(60);
+camera.setPosition(0, 10, 25);
+camera.lookAt(0, 0, 0);
+enableDevMode(camera);
+
+const sun: object = PointLight("#ffeeaa", 2);
+sun.setPosition(20, 30, 10);
+scene.add(sun);
+
+const ground: object = BoxGeometry(50, 1, 50);
+ground.setPosition(0, -0.5, 0);
+ground.setColor("#556633");
+ground.setFriction(0.1);
+ground.setBounciness(10);
+scene.add(ground);
+
+const slope: object = BoxGeometry(20, 1, 30);
+slope.setPosition(0, 5, 0);
+slope.setRotation(0, 0, 0.3);
+slope.setColor("#aa9966");
+slope.setFriction(0.1);
+slope.setBounciness(0.4);
+scene.add(slope);
+
+const box1: object = BoxGeometry(1, 1, 1);
+box1.setPosition(-5, 20, -10);
+box1.setColor("#ff6666");
+scene.add(box1);
+
+const box2: object = BoxGeometry(1, 1, 1);
+box2.setPosition(0, 23, -8);
+box2.setColor("#66ff66");
+scene.add(box2);
+
+const box3: object = BoxGeometry(1, 1, 1);
+box3.setPosition(5, 25, -12);
+box3.setColor("#6666ff");
+scene.add(box3);
+
+const sphere1: object = SphereGeometry(0.8);
+sphere1.setPosition(-3, 27, -5);
+sphere1.setColor("#ffff66");
+scene.add(sphere1);
+
+const sphere2: object = SphereGeometry(0.8);
+sphere2.setPosition(3, 30, -7);
+sphere2.setColor("#ff66ff");
+scene.add(sphere2);
+
+while (handleDevInput() == 1) {
+    updateDevCamera();
+    
+    applyAttractionToMesh(box1, ground);
+    handleCollision(box1, ground, slope);
+    
+    applyAttractionToMesh(box2, ground);
+    handleCollision(box2, ground, slope);
+    
+    applyAttractionToMesh(box3, ground);
+    handleCollision(box3, ground, slope);
+    
+    applyAttractionToMesh(sphere1, ground);
+    handleCollision(sphere1, ground, slope);
+    
+    applyAttractionToMesh(sphere2, ground);
+    handleCollision(sphere2, ground, slope);
+    
+    canvas.render(scene, camera);
+}

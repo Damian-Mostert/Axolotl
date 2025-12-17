@@ -66,6 +66,10 @@ find_library(SDL2_LIBRARY SDL2 PATHS /opt/homebrew/lib REQUIRED)
 find_library(SDL2_IMAGE_LIBRARY SDL2_image PATHS /opt/homebrew/lib REQUIRED)
 find_path(SDL2_INCLUDE_DIR SDL2/SDL.h PATHS /opt/homebrew/include REQUIRED)
 
+# Find OpenGL
+find_package(OpenGL REQUIRED)
+include_directories(${OPENGL_INCLUDE_DIR})
+
 if(NOT SDL2_LIBRARY)
     message(FATAL_ERROR "SDL2 not found")
 endif()
@@ -79,7 +83,7 @@ message(STATUS "Found SDL2_image: ${SDL2_IMAGE_LIBRARY}")
 
 # Link LLVM libraries
 llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
-target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY})
+target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY} ${OPENGL_LIBRARIES})
 
 # Link stdc++fs for GNU < 9 and also for AppleClang for filesystem support
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

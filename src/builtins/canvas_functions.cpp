@@ -1,6 +1,7 @@
 #include "include/builtins.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <OpenGL/gl.h>
 #include <unordered_map>
 #include <memory>
 
@@ -30,24 +31,40 @@ public:
             sdl_initialized = true;
         }
         
-        SDL_Window* window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        
+        SDL_Window* window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
         if (!window) throw std::runtime_error(std::string("Window creation failed: ") + SDL_GetError());
         
-        SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-        if (!renderer) {
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+        SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+        
+        SDL_GLContext glContext = SDL_GL_CreateContext(window);
+        if (!glContext) {
             SDL_DestroyWindow(window);
-            throw std::runtime_error(std::string("Renderer creation failed: ") + SDL_GetError());
+            throw std::runtime_error(std::string("OpenGL context creation failed: ") + SDL_GetError());
         }
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderClear(renderer);
-        SDL_RenderPresent(renderer);
+        SDL_GL_MakeCurrent(window, glContext);
+        SDL_GL_SetSwapInterval(1);
+        
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        SDL_GL_SwapWindow(window);
+        
+        SDL_Renderer* renderer = nullptr;
         
         auto ctx = std::make_shared<CanvasContext>();
         ctx->window = window;
         ctx->renderer = renderer;
+        ctx->glContext = glContext;
         ctx->width = width;
         ctx->height = height;
+        ctx->useOpenGL = true;
         
         int id = nextCanvasId++;
         canvases[id] = ctx;
@@ -72,6 +89,11 @@ public:
             auto canvas = std::get<std::shared_ptr<ObjectValue>>(canvasVal);
             int id = std::get<int>(canvas->fields["_id"]);
             auto ctx = canvases[id];
+            if (!ctx->renderer) {
+                ctx->renderer = SDL_CreateRenderer(ctx->window, -1, SDL_RENDERER_ACCELERATED);
+                if (ctx->renderer) SDL_SetRenderDrawBlendMode(ctx->renderer, SDL_BLENDMODE_BLEND);
+            }
+            if (!ctx->renderer) return "";
             int x = std::get<int>(interp->evaluate(node->args[0].get()));
             int y = std::get<int>(interp->evaluate(node->args[1].get()));
             int w = std::get<int>(interp->evaluate(node->args[2].get()));
@@ -180,7 +202,7 @@ public:
             auto canvas = std::get<std::shared_ptr<ObjectValue>>(canvasVal);
             int id = std::get<int>(canvas->fields["_id"]);
             auto ctx = canvases[id];
-            SDL_RenderPresent(ctx->renderer);
+            if (ctx->renderer) SDL_RenderPresent(ctx->renderer);
         }
         return "";
     }
