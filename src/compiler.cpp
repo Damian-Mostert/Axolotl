@@ -11,8 +11,11 @@
 #include <set>
 #include <map>
 #include <regex>
+#include <filesystem>
 #include <sys/stat.h>
+#ifndef _WIN32
 #include <libgen.h>
+#endif
 #include <algorithm>
 
 std::string escapeForC(const std::string& str) {
@@ -96,10 +99,9 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
     std::cout << "🔨 Building standalone executable...\n";
     
     std::string root = getAxolotlRoot();
-    char* sourceCopy = strdup(outputFile.c_str());
-    std::string baseDir = dirname(sourceCopy);
-    free(sourceCopy);
-    if (baseDir == ".") baseDir = "";
+    std::filesystem::path outPath(outputFile);
+    std::string baseDir = outPath.parent_path().string();
+    if (baseDir.empty()) baseDir = ".";
     
     std::set<std::string> importedFiles;
     std::map<std::string, std::string> fileContents;
@@ -130,20 +132,10 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
     cpp << "#include \"" << root << "/include/lexer.h\"\n";
     cpp << "#include \"" << root << "/include/parser.h\"\n";
     cpp << "#include \"" << root << "/include/interpreter.h\"\n";
-    cpp << "#include <fstream>\n#include <sys/stat.h>\n\n";
+    cpp << "#include <fstream>\n#include <sys/stat.h>\n";
+    cpp << "#include <SDL2/SDL.h>\n\n";
     
-    cpp << "void writeEmbeddedFiles() {\n";
-    cpp << "    for (const auto& [path, content] : EMBEDDED_FILES) {\n";
-    cpp << "        size_t pos = path.find_last_of(\"/\");\n";
-    cpp << "        if (pos != std::string::npos) {\n";
-    cpp << "            std::string dir = path.substr(0, pos);\n";
-    cpp << "            system((\"mkdir -p \" + dir).c_str());\n";
-    cpp << "        }\n";
-    cpp << "        std::ofstream f(path);\n";
-    cpp << "        f << content;\n";
-    cpp << "    }\n";
-    cpp << "}\n\n";
-    
+    cpp << "void writeEmbeddedFiles() {}\n\n";
     cpp << "int main(int argc, char* argv[]) {\n";
     cpp << "    writeEmbeddedFiles();\n";
     cpp << "    try {\n";
@@ -154,9 +146,19 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
     cpp << "        auto ast = parser.parse();\n";
     cpp << "        Interpreter interpreter;\n";
     cpp << "        interpreter.interpret(ast.get());\n";
+    cpp << "        std::cout.flush();\n";
+    cpp << "        SDL_Event e;\n";
+    cpp << "        bool quit = false;\n";
+    cpp << "        while (!quit) {\n";
+    cpp << "            while (SDL_PollEvent(&e)) {\n";
+    cpp << "                if (e.type == SDL_QUIT) quit = true;\n";
+    cpp << "            }\n";
+    cpp << "            SDL_Delay(16);\n";
+    cpp << "        }\n";
     cpp << "        return 0;\n";
     cpp << "    } catch (const std::exception& e) {\n";
     cpp << "        std::cerr << \"Error: \" << e.what() << \"\\n\";\n";
+    cpp << "        std::cerr.flush();\n";
     cpp << "        return 1;\n";
     cpp << "    }\n";
     cpp << "}\n";
@@ -168,7 +170,11 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
     std::cout << "📦 Embedding interpreter...\n";
     
     std::stringstream compileCmd;
+#ifdef _WIN32
+    compileCmd << "g++ -std=c++17 -O3 -fexceptions ";
+#else
     compileCmd << "c++ -std=c++17 -O3 -fexceptions ";
+#endif
     
     // Add include paths
     struct stat buffer;
@@ -177,17 +183,28 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
     } else {
         compileCmd << "-I" << root << " ";
     }
+    compileCmd << "-I/opt/homebrew/include ";
     
     compileCmd << cppFile << " ";
     
     // Link prebuilt library or object files with force-load to include all builtins
+#ifdef _WIN32
+    if (stat((root + "/build/libaxolotl_static.a").c_str(), &buffer) == 0) {
+        compileCmd << "-Wl,--whole-archive " << root << "/build/libaxolotl_static.a -Wl,--no-whole-archive ";
+    }
+#elif __APPLE__
     if (stat("/usr/local/lib/axolotl/libaxolotl.a", &buffer) == 0) {
         compileCmd << "-Wl,-force_load,/usr/local/lib/axolotl/libaxolotl.a ";
     } else if (stat((root + "/build/libaxolotl_static.a").c_str(), &buffer) == 0) {
         compileCmd << "-Wl,-force_load," << root << "/build/libaxolotl_static.a ";
-    } else {
-        compileCmd << root << "/build/CMakeFiles/compiler.dir/src/*.o ";
     }
+#else
+    if (stat("/usr/local/lib/axolotl/libaxolotl.a", &buffer) == 0) {
+        compileCmd << "-Wl,--whole-archive /usr/local/lib/axolotl/libaxolotl.a -Wl,--no-whole-archive ";
+    } else if (stat((root + "/build/libaxolotl_static.a").c_str(), &buffer) == 0) {
+        compileCmd << "-Wl,--whole-archive " << root << "/build/libaxolotl_static.a -Wl,--no-whole-archive ";
+    }
+#endif
     
     // Add LLVM libraries from config or llvm-config
     std::string llvm_flags;
@@ -253,41 +270,37 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
     if (result == 0) {
         std::cout << "✅ Successfully compiled to: " << outputFile << "\n";
         
-        // Copy runtime files alongside executable
-        std::string exeDir = outputFile.substr(0, outputFile.find_last_of('/'));
-        if (exeDir.empty() || exeDir == outputFile) exeDir = ".";
-        std::system(("mkdir -p " + exeDir + "/.axolotl_runtime").c_str());
+        // No runtime files needed - everything is embedded
         
-        if (stat("/usr/local/share/axolotl/src", &buffer) == 0) {
-            std::system(("cp -r /usr/local/share/axolotl/src " + exeDir + "/.axolotl_runtime/ 2>/dev/null").c_str());
-            std::system(("cp -r /usr/local/share/axolotl/include " + exeDir + "/.axolotl_runtime/ 2>/dev/null").c_str());
-        } else if (stat((root + "/src").c_str(), &buffer) == 0) {
-            std::system(("cp -r " + root + "/src " + exeDir + "/.axolotl_runtime/ 2>/dev/null").c_str());
-            std::system(("cp -r " + root + "/include " + exeDir + "/.axolotl_runtime/ 2>/dev/null").c_str());
-        }
-        
-        // Add icon if available
-        std::string iconPath = "sample/icon.png";
-        struct stat buffer;
+        // Add icon if available in current directory
+        std::string iconPath = "icon.png";
         if (stat(iconPath.c_str(), &buffer) == 0) {
             std::cout << "🎨 Adding application icon...\n";
             
 #ifdef __APPLE__
             // Create macOS app bundle
+            std::filesystem::path outPath(outputFile);
+            std::string exeName = outPath.filename().string();
             std::string appName = outputFile + ".app";
-            std::system(("mkdir -p " + appName + "/Contents/MacOS").c_str());
-            std::system(("mkdir -p " + appName + "/Contents/Resources").c_str());
-            std::system(("mv " + outputFile + " " + appName + "/Contents/MacOS/").c_str());
-            std::system(("cp " + iconPath + " " + appName + "/Contents/Resources/icon.png").c_str());
+            std::string bundleExePath = appName + "/Contents/MacOS/" + exeName;
+            
+            std::filesystem::create_directories(appName + "/Contents/MacOS");
+            std::filesystem::create_directories(appName + "/Contents/Resources");
+            std::filesystem::rename(outputFile, bundleExePath);
+            std::filesystem::copy_file(iconPath, appName + "/Contents/Resources/icon.png", std::filesystem::copy_options::overwrite_existing);
+            
+            // Make executable
+            std::system(("chmod +x \"" + bundleExePath + "\"").c_str());
             
             // Create Info.plist
             std::ofstream plist(appName + "/Contents/Info.plist");
             plist << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
             plist << "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n";
             plist << "<plist version=\"1.0\">\n<dict>\n";
-            plist << "  <key>CFBundleExecutable</key>\n  <string>" << outputFile << "</string>\n";
+            plist << "  <key>CFBundleExecutable</key>\n  <string>" << exeName << "</string>\n";
             plist << "  <key>CFBundleIconFile</key>\n  <string>icon.png</string>\n";
-            plist << "  <key>CFBundleName</key>\n  <string>" << outputFile << "</string>\n";
+            plist << "  <key>CFBundleName</key>\n  <string>" << exeName << "</string>\n";
+            plist << "  <key>CFBundleIdentifier</key>\n  <string>com.axolotl." << exeName << "</string>\n";
             plist << "</dict>\n</plist>\n";
             plist.close();
             
@@ -297,14 +310,25 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
             std::cout << "💡 To add icon on Windows, use: rcedit " << outputFile << ".exe --set-icon " << iconPath << "\n";
 #else
             // Linux: copy icon alongside executable
-            std::system(("cp " + iconPath + " " + outputFile + ".png").c_str());
+            std::filesystem::copy_file(iconPath, outputFile + ".png", std::filesystem::copy_options::overwrite_existing);
             std::cout << "🐧 Icon copied as: " << outputFile << ".png\n";
 #endif
         }
         
+        // Clean up temporary files
         std::remove(cppFile.c_str());
+        
+#ifdef __APPLE__
+        if (stat(iconPath.c_str(), &buffer) == 0) {
+            std::cout << "\n🎉 Done! Open with: open " << outputFile << ".app\n";
+        } else {
+            std::cout << "\n🎉 Done! Run with: ./" << outputFile << "\n";
+        }
+#else
         std::cout << "\n🎉 Done! Run with: ./" << outputFile << "\n";
+#endif
     } else {
+        std::remove(cppFile.c_str());
         std::cerr << "❌ Compilation failed\n";
         std::cerr << "💡 Make sure all dependencies are installed\n";
     }
