@@ -489,6 +489,12 @@ std::string Interpreter::visit(FunctionCall *node)
                     throw std::runtime_error("Function argument count mismatch");
                 }
 
+                std::string savedModulePath = currentModulePath;
+                auto moduleIt = functionSourceModules.find(idCallee->name);
+                if (moduleIt != functionSourceModules.end()) {
+                    currentModulePath = moduleIt->second;
+                }
+
                 environment.pushScope();
 
                 for (size_t i = 0; i < node->args.size(); ++i)
@@ -505,6 +511,7 @@ std::string Interpreter::visit(FunctionCall *node)
                 catch (const ReturnException &e)
                 {
                     environment.popScope();
+                    currentModulePath = savedModulePath;
                     if (std::holds_alternative<std::shared_ptr<ArrayValue>>(e.value) ||
                         std::holds_alternative<std::shared_ptr<ObjectValue>>(e.value) ||
                         std::holds_alternative<FunctionDeclaration*>(e.value) ||
@@ -521,6 +528,7 @@ std::string Interpreter::visit(FunctionCall *node)
                 }
 
                 environment.popScope();
+                currentModulePath = savedModulePath;
                 return "";
             }
             
@@ -905,6 +913,7 @@ std::string Interpreter::visit(ReturnStatement *node)
 std::string Interpreter::visit(FunctionDeclaration *node)
 {
     functions[node->name] = node;
+    functionSourceModules[node->name] = currentModulePath;
     // Also store in environment so typeof can access it
     environment.define(node->name, Variable(node, "function", false));
     return "";

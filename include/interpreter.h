@@ -149,6 +149,7 @@ public:
     
 private:
     std::unordered_map<std::string, FunctionDeclaration*> functions;
+    std::unordered_map<std::string, std::string> functionSourceModules;  // Track which module each function came from
     std::unordered_map<std::string, ProgramDeclaration*> programs;
     std::unordered_map<std::string, std::future<void>> runningPrograms;
     std::mutex programsMutex;

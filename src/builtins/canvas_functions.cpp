@@ -340,6 +340,26 @@ public:
     }
 };
 
+class CloseCanvasBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "close"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (!node->callee) throw std::runtime_error("close() must be called on canvas");
+        if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
+            Value canvasVal = interp->evaluate(fa->object.get());
+            auto canvas = std::get<std::shared_ptr<ObjectValue>>(canvasVal);
+            int id = std::get<int>(canvas->fields["_id"]);
+            auto it = canvases.find(id);
+            if (it != canvases.end()) {
+                if (it->second->renderer) SDL_DestroyRenderer(it->second->renderer);
+                if (it->second->window) SDL_DestroyWindow(it->second->window);
+                canvases.erase(it);
+            }
+        }
+        return "";
+    }
+};
+
 REGISTER_BUILTIN(CreateCanvasBuiltin)
 REGISTER_BUILTIN(FillRectBuiltin)
 REGISTER_BUILTIN(StrokeRectBuiltin)
@@ -352,3 +372,4 @@ REGISTER_BUILTIN(LoadImageBuiltin)
 REGISTER_BUILTIN(DrawImageBuiltin)
 REGISTER_BUILTIN(PollEventsBuiltin)
 REGISTER_BUILTIN(RenderBuiltin)
+REGISTER_BUILTIN(CloseCanvasBuiltin)

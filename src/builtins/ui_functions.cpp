@@ -115,7 +115,9 @@ public:
         gtk_window_set_title(GTK_WINDOW(window), title.c_str());
         gtk_window_set_default_size(GTK_WINDOW(window), width, height);
         gtk_window_set_decorated(GTK_WINDOW(window), TRUE);
-        g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), nullptr);
+        g_signal_connect(window, "destroy", G_CALLBACK(+[](GtkWidget* w, gpointer d) {
+            gtk_main_quit();
+        }), nullptr);
         
         int id = nextWindowId++;
         windows[id] = window;
@@ -197,6 +199,7 @@ public:
         
         GtkWidget* window = windows[id];
         if (window) {
+            gtk_main_quit();
             gtk_widget_destroy(window);
             windows.erase(id);
         }
