@@ -23,6 +23,7 @@ set(SOURCES
     src/ast.cpp
     src/parser.cpp
     src/interpreter.cpp
+    src/compiler.cpp
     src/operators.cpp
     src/jit.cpp
     src/error_handler.cpp
@@ -44,6 +45,11 @@ set(SOURCES
     src/ui_parser.cpp
     src/ui_interpreter.cpp
 )
+
+# Create static library (without main.cpp)
+set(LIB_SOURCES ${SOURCES})
+list(REMOVE_ITEM LIB_SOURCES src/main.cpp)
+add_library(axolotl_static STATIC ${LIB_SOURCES})
 
 # Create executable
 add_executable(compiler ${SOURCES})
@@ -112,6 +118,7 @@ endif()
 
 # Install targets
 install(TARGETS compiler DESTINATION bin RENAME axolotl)
+install(TARGETS axolotl_static DESTINATION lib/axolotl ARCHIVE DESTINATION lib/axolotl)
 install(DIRECTORY modules DESTINATION lib/axolotl OPTIONAL)
 install(DIRECTORY env DESTINATION lib/axolotl OPTIONAL)
 install(FILES README.md DESTINATION share/axolotl)

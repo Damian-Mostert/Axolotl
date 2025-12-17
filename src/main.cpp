@@ -1,6 +1,7 @@
 #include "include/lexer.h"
 #include "include/parser.h"
 #include "include/interpreter.h"
+#include "include/compiler.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -47,6 +48,7 @@ void printHelp() {
     std::cout << "  init [name]          Create new project from template\n";
     std::cout << "  run <file>           Run a program (explicit)\n";
     std::cout << "  check <file>         Check syntax without running\n";
+    std::cout << "  compile <file> [out] Compile to standalone executable\n";
     std::cout << "  examples             List available examples\n";
     std::cout << "  examples <name>      Copy example to current directory\n";
     std::cout << "  -h, --help           Show this help message\n";
@@ -63,30 +65,26 @@ void printVersion() {
 }
 
 void initProject(const std::string& name) {
-    std::string dirName = name.empty() ? "my-axolotl-project" : name;
-    std::string cmd = "mkdir -p " + dirName;
-    system(cmd.c_str());
+    std::string dirName = name;
+    if (dirName.empty()) {
+        std::cout << "Enter project name: ";
+        std::getline(std::cin, dirName);
+        if (dirName.empty()) dirName = "my-axolotl-project";
+    }
     
-    std::ofstream indexFile(dirName + "/index.axo");
-    indexFile << "// " << dirName << "\n";
-    indexFile << "// Created with Axolotl v" << VERSION << "\n\n";
-    indexFile << "print(\"Hello from " << dirName << "!\");\n";
-    indexFile.close();
+    std::string sampleDir = std::string(INSTALL_DIR) + "/sample";
+    std::string cmd = "cp -r " + sampleDir + " " + dirName + " 2>/dev/null";
+    int result = system(cmd.c_str());
     
-    std::ofstream readmeFile(dirName + "/README.md");
-    readmeFile << "# " << dirName << "\n\n";
-    readmeFile << "An Axolotl project.\n\n";
-    readmeFile << "## Run\n\n";
-    readmeFile << "```bash\n";
-    readmeFile << "cd " << dirName << "\n";
-    readmeFile << "axolotl index.axo\n";
-    readmeFile << "```\n";
-    readmeFile.close();
+    if (result != 0) {
+        std::cerr << RED << "✗" << RESET << " Failed to copy sample directory\n";
+        return;
+    }
     
     std::cout << GREEN << "✓" << RESET << " Created project: " << BOLD << dirName << RESET << "\n";
     std::cout << "\nNext steps:\n";
     std::cout << "  cd " << dirName << "\n";
-    std::cout << "  axolotl index.axo\n";
+    std::cout << "  axolotl\n";
 }
 
 void listExamples() {
@@ -162,6 +160,18 @@ int main(int argc, char* argv[]) {
                 Parser parser(tokens);
                 parser.parse();
                 std::cout << GREEN << "✓" << RESET << " Syntax OK: " << filename << "\n";
+                return 0;
+            }
+            if (arg1 == "compile" && argc >= 3) {
+                std::string filename = argv[2];
+                std::string outputFile = argc >= 4 ? argv[3] : "a.out";
+                source = readFile(filename);
+                Lexer lexer(source);
+                auto tokens = lexer.tokenize();
+                Parser parser(tokens);
+                auto ast = parser.parse();
+                Compiler compiler;
+                compiler.compile(ast.get(), outputFile, source);
                 return 0;
             }
         }

@@ -6,10 +6,36 @@ INSTALL_PREFIX="${INSTALL_PREFIX:-/usr/local}"
 BIN_DIR="$INSTALL_PREFIX/bin"
 LIB_DIR="$INSTALL_PREFIX/lib/axolotl"
 SHARE_DIR="$INSTALL_PREFIX/share/axolotl"
+TEMP_INSTALLED=""
 
-echo "╔════════════════════════════════════════╗"
-echo "║   Axolotl Language Installer v$VERSION   ║"
-echo "╚════════════════════════════════════════╝"
+# Dependencies are now permanently installed
+
+# Colors
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+progress_bar() {
+    local current=$1
+    local total=$2
+    local width=40
+    local percent=$((current * 100 / total))
+    local filled=$((current * width / total))
+    printf "\r${CYAN}[${RESET}"
+    printf "%${filled}s" | tr ' ' '█'
+    printf "%$((width - filled))s" | tr ' ' '░'
+    printf "${CYAN}]${RESET} ${BOLD}%3d%%${RESET}" $percent
+}
+
+clear
+echo ""
+echo "${CYAN}╔════════════════════════════════════════╗${RESET}"
+echo "${CYAN}║${RESET}  ${BOLD}Axolotl Language Installer v$VERSION${RESET}  ${CYAN}║${RESET}"
+echo "${CYAN}╚════════════════════════════════════════╝${RESET}"
 echo ""
 
 # Detect OS
@@ -20,61 +46,162 @@ case "$OS" in
     MINGW*|MSYS*|CYGWIN*) OS_TYPE=Windows;;
     *)          OS_TYPE="Unknown";;
 esac
-echo "Detected OS: $OS_TYPE"
+echo "${BLUE}►${RESET} Detected OS: ${BOLD}$OS_TYPE${RESET}"
 echo ""
 
-# Check prerequisites
-echo "Checking dependencies..."
-command -v cmake >/dev/null 2>&1 || { echo "✗ cmake not found. Install: https://cmake.org/download/"; exit 1; }
-command -v g++ >/dev/null 2>&1 || command -v clang++ >/dev/null 2>&1 || { echo "✗ C++ compiler not found"; exit 1; }
+# Check and install dependencies
+echo "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo "${BOLD}Checking dependencies...${RESET}"
+echo ""
+
+# CMake
+if ! command -v cmake >/dev/null 2>&1; then
+    echo "${YELLOW}⚠${RESET}  cmake not found, installing temporarily..."
+    if [ "$OS_TYPE" = "Mac" ]; then
+        brew install cmake
+        TEMP_INSTALLED="$TEMP_INSTALLED cmake"
+    elif [ "$OS_TYPE" = "Linux" ]; then
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y cmake
+            TEMP_INSTALLED="$TEMP_INSTALLED cmake"
+        elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y cmake
+            TEMP_INSTALLED="$TEMP_INSTALLED cmake"
+        fi
+    fi
+fi
+
+# LLVM
+LLVM_FOUND=0
+if command -v llvm-config >/dev/null 2>&1; then
+    LLVM_FOUND=1
+elif [ "$OS_TYPE" = "Mac" ] && brew list llvm >/dev/null 2>&1; then
+    LLVM_FOUND=1
+    export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+fi
+
+if [ $LLVM_FOUND -eq 0 ]; then
+    echo "${YELLOW}⚠${RESET}  LLVM not found, installing..."
+    if [ "$OS_TYPE" = "Mac" ]; then
+        brew install llvm
+        export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+    elif [ "$OS_TYPE" = "Linux" ]; then
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get install -y llvm-dev
+        elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y llvm-devel
+        fi
+    fi
+fi
+
+# C++ compiler
+if ! command -v g++ >/dev/null 2>&1 && ! command -v clang++ >/dev/null 2>&1; then
+    echo "${YELLOW}⚠${RESET}  C++ compiler not found, installing temporarily..."
+    if [ "$OS_TYPE" = "Mac" ]; then
+        xcode-select --install 2>/dev/null || true
+    elif [ "$OS_TYPE" = "Linux" ]; then
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get install -y g++
+            TEMP_INSTALLED="$TEMP_INSTALLED g++"
+        elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y gcc-c++
+            TEMP_INSTALLED="$TEMP_INSTALLED gcc-c++"
+        fi
+    fi
+fi
 
 if [ "$OS_TYPE" = "Linux" ]; then
     if ! pkg-config --exists sdl2 2>/dev/null; then
-        echo "✗ SDL2 not found. Install: sudo apt-get install libsdl2-dev (Ubuntu/Debian) or sudo dnf install SDL2-devel (Fedora)"
-        exit 1
+        echo "${YELLOW}⚠${RESET}  SDL2 not found, installing temporarily..."
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get install -y libsdl2-dev
+            TEMP_INSTALLED="$TEMP_INSTALLED libsdl2-dev"
+        elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y SDL2-devel
+            TEMP_INSTALLED="$TEMP_INSTALLED SDL2-devel"
+        fi
     fi
     if ! pkg-config --exists gtk+-3.0 2>/dev/null; then
-        echo "✗ GTK3 not found. Install: sudo apt-get install libgtk-3-dev (Ubuntu/Debian) or sudo dnf install gtk3-devel (Fedora)"
-        exit 1
+        echo "${YELLOW}⚠${RESET}  GTK3 not found, installing temporarily..."
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get install -y libgtk-3-dev
+            TEMP_INSTALLED="$TEMP_INSTALLED libgtk-3-dev"
+        elif command -v dnf >/dev/null 2>&1; then
+            sudo dnf install -y gtk3-devel
+            TEMP_INSTALLED="$TEMP_INSTALLED gtk3-devel"
+        fi
     fi
 elif [ "$OS_TYPE" = "Mac" ]; then
     if ! brew list sdl2 >/dev/null 2>&1; then
-        echo "✗ SDL2 not found. Install: brew install sdl2"
-        exit 1
+        echo "${YELLOW}⚠${RESET}  SDL2 not found, installing temporarily..."
+        brew install sdl2
+        TEMP_INSTALLED="$TEMP_INSTALLED sdl2"
     fi
     if ! brew list gtk+3 >/dev/null 2>&1; then
-        echo "✗ GTK3 not found. Install: brew install gtk+3"
-        exit 1
+        echo "${YELLOW}⚠${RESET}  GTK3 not found, installing temporarily..."
+        brew install gtk+3
+        TEMP_INSTALLED="$TEMP_INSTALLED gtk+3"
     fi
 fi
-echo "✓ All dependencies found"
+echo "${GREEN}✓${RESET} All dependencies ready"
 echo ""
 
-echo "[1/5] Building Axolotl compiler..."
+echo "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo "${BOLD}Building Axolotl...${RESET}"
+echo ""
+progress_bar 1 5
+echo " Configuring build..."
 NUM_CORES=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" >/dev/null 2>&1
+progress_bar 2 5
+echo " Compiling source..."
 cmake --build build -j$NUM_CORES >/dev/null 2>&1
 
-echo "[2/5] Installing binaries..."
+progress_bar 3 5
+echo " Installing binaries..."
 if [ -w "$INSTALL_PREFIX" ]; then
     mkdir -p "$BIN_DIR" "$LIB_DIR" "$SHARE_DIR"
     cp build/compiler "$BIN_DIR/axolotl"
     chmod +x "$BIN_DIR/axolotl"
+    [ -f build/libaxolotl_static.a ] && cp build/libaxolotl_static.a "$LIB_DIR/libaxolotl.a"
 else
     sudo mkdir -p "$BIN_DIR" "$LIB_DIR" "$SHARE_DIR"
     sudo cp build/compiler "$BIN_DIR/axolotl"
     sudo chmod +x "$BIN_DIR/axolotl"
+    [ -f build/libaxolotl_static.a ] && sudo cp build/libaxolotl_static.a "$LIB_DIR/libaxolotl.a"
 fi
 
-echo "[3/5] Installing examples..."
+progress_bar 4 5
+echo " Installing source files..."
+[ -w "$SHARE_DIR" ] && cp -r src "$SHARE_DIR/" || sudo cp -r src "$SHARE_DIR/"
+[ -w "$SHARE_DIR" ] && cp -r include "$SHARE_DIR/" || sudo cp -r include "$SHARE_DIR/"
+
+# Store LLVM flags for compiler
+LLVM_CONFIG="llvm-config"
+if [ "$OS_TYPE" = "Mac" ] && [ -f "/opt/homebrew/opt/llvm/bin/llvm-config" ]; then
+    LLVM_CONFIG="/opt/homebrew/opt/llvm/bin/llvm-config"
+fi
+
+if command -v $LLVM_CONFIG >/dev/null 2>&1 || [ -f "$LLVM_CONFIG" ]; then
+    LLVM_FLAGS=$($LLVM_CONFIG --cxxflags --ldflags --libs core native ExecutionEngine MCJIT RuntimeDyld AArch64 AArch64AsmParser AArch64CodeGen AArch64Desc AArch64Info 2>/dev/null || echo "")
+    if [ -w "$LIB_DIR" ]; then
+        echo "$LLVM_FLAGS" > "$LIB_DIR/llvm_flags.txt"
+    else
+        echo "$LLVM_FLAGS" | sudo tee "$LIB_DIR/llvm_flags.txt" >/dev/null
+    fi
+fi
+
 if [ -d "examples" ]; then
     [ -w "$SHARE_DIR" ] && cp -r examples "$SHARE_DIR/" || sudo cp -r examples "$SHARE_DIR/"
 fi
+if [ -d "sample" ]; then
+    [ -w "$SHARE_DIR" ] && cp -r sample "$SHARE_DIR/" || sudo cp -r sample "$SHARE_DIR/"
+fi
 
-echo "[4/5] Installing documentation..."
 [ -w "$SHARE_DIR" ] && cp README.md "$SHARE_DIR/" || sudo cp README.md "$SHARE_DIR/"
 
-echo "[5/5] Installing VS Code extension..."
+progress_bar 5 5
+echo " Installing VS Code extension..."
 if command -v code >/dev/null 2>&1 && [ -d "lang-ext" ]; then
     LATEST_VSIX=$(ls -t lang-ext/*.vsix 2>/dev/null | head -1)
     if [ -n "$LATEST_VSIX" ]; then
@@ -87,11 +214,16 @@ else
 fi
 
 echo ""
-echo "✓ Installation complete!"
 echo ""
-echo "Usage:"
-echo "  axolotl <file.axo>    # Run a program"
-echo "  axolotl               # Start REPL"
+echo "${GREEN}╔════════════════════════════════════════╗${RESET}"
+echo "${GREEN}║${RESET}     ${BOLD}✓ Installation Complete!${RESET}        ${GREEN}║${RESET}"
+echo "${GREEN}╚════════════════════════════════════════╝${RESET}"
 echo ""
-echo "Installed to: $INSTALL_PREFIX"
-echo "Uninstall: sudo ./uninstall.sh"
+echo "${BOLD}Usage:${RESET}"
+echo "  ${CYAN}axolotl${RESET} ${YELLOW}<file.axo>${RESET}    ${BLUE}# Run a program${RESET}"
+echo "  ${CYAN}axolotl init${RESET}           ${BLUE}# Create new project${RESET}"
+echo "  ${CYAN}axolotl examples${RESET}       ${BLUE}# List examples${RESET}"
+echo ""
+echo "${BOLD}Installed to:${RESET} ${CYAN}$INSTALL_PREFIX${RESET}"
+echo "${BOLD}Uninstall:${RESET} ${YELLOW}sudo ./uninstall.sh${RESET}"
+echo ""

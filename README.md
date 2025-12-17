@@ -74,6 +74,10 @@ cmake --build build -j$(nproc)
 # run an example
 ./build/compiler examples/test.axo
 
+# compile to standalone executable
+./build/compiler compile examples/test.axo myprogram
+./myprogram
+
 # interactive REPL mode
 ./build/compiler
 ```
@@ -126,6 +130,13 @@ Run the example suite to try small programs in `examples/`:
 
 ```bash
 ./build/compiler examples/test.axo
+```
+
+Compile an example to a standalone executable:
+
+```bash
+./build/compiler compile examples/test.axo test_program
+./test_program
 ```
 
 Open `examples/test.axo` and `examples/showcase.axo` to see language features.
