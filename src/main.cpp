@@ -34,16 +34,140 @@ std::string readFile(const std::string& filename) {
     return buffer.str();
 }
 
-void printUsage(const char* programName) {
-    std::cout << "Usage: " << programName << " <script.axo>" << std::endl;
-    std::cout << "   or: " << programName << " (runs index.axo if present)" << std::endl;
+const char* VERSION = "1.0.0";
+const char* INSTALL_DIR = "/usr/local/share/axolotl";
+
+void printHelp() {
+    std::cout << BOLD_CYAN << "Axolotl Programming Language v" << VERSION << RESET << "\n\n";
+    std::cout << BOLD << "USAGE:" << RESET << "\n";
+    std::cout << "  axolotl [command] [options]\n\n";
+    std::cout << BOLD << "COMMANDS:" << RESET << "\n";
+    std::cout << "  <file.axo>           Run an Axolotl program\n";
+    std::cout << "  (no args)            Start REPL or run index.axo\n";
+    std::cout << "  init [name]          Create new project from template\n";
+    std::cout << "  run <file>           Run a program (explicit)\n";
+    std::cout << "  check <file>         Check syntax without running\n";
+    std::cout << "  examples             List available examples\n";
+    std::cout << "  examples <name>      Copy example to current directory\n";
+    std::cout << "  -h, --help           Show this help message\n";
+    std::cout << "  -v, --version        Show version information\n\n";
+    std::cout << BOLD << "EXAMPLES:" << RESET << "\n";
+    std::cout << "  axolotl hello.axo    # Run hello.axo\n";
+    std::cout << "  axolotl init myapp   # Create new project\n";
+    std::cout << "  axolotl examples     # List examples\n";
+    std::cout << "\nDocumentation: " << INSTALL_DIR << "/README.md\n";
+}
+
+void printVersion() {
+    std::cout << "Axolotl v" << VERSION << "\n";
+}
+
+void initProject(const std::string& name) {
+    std::string dirName = name.empty() ? "my-axolotl-project" : name;
+    std::string cmd = "mkdir -p " + dirName;
+    system(cmd.c_str());
+    
+    std::ofstream indexFile(dirName + "/index.axo");
+    indexFile << "// " << dirName << "\n";
+    indexFile << "// Created with Axolotl v" << VERSION << "\n\n";
+    indexFile << "print(\"Hello from " << dirName << "!\");\n";
+    indexFile.close();
+    
+    std::ofstream readmeFile(dirName + "/README.md");
+    readmeFile << "# " << dirName << "\n\n";
+    readmeFile << "An Axolotl project.\n\n";
+    readmeFile << "## Run\n\n";
+    readmeFile << "```bash\n";
+    readmeFile << "cd " << dirName << "\n";
+    readmeFile << "axolotl index.axo\n";
+    readmeFile << "```\n";
+    readmeFile.close();
+    
+    std::cout << GREEN << "✓" << RESET << " Created project: " << BOLD << dirName << RESET << "\n";
+    std::cout << "\nNext steps:\n";
+    std::cout << "  cd " << dirName << "\n";
+    std::cout << "  axolotl index.axo\n";
+}
+
+void listExamples() {
+    std::string examplesDir = std::string(INSTALL_DIR) + "/examples";
+    std::string cmd = "ls -1 " + examplesDir + " 2>/dev/null | grep .axo";
+    std::cout << BOLD << "Available examples:" << RESET << "\n\n";
+    system(cmd.c_str());
+    std::cout << "\nCopy example: axolotl examples <name>\n";
+    std::cout << "Example path: " << examplesDir << "\n";
+}
+
+void copyExample(const std::string& name) {
+    std::string examplesDir = std::string(INSTALL_DIR) + "/examples";
+    std::string srcFile = examplesDir + "/" + name;
+    if (name.find(".axo") == std::string::npos) srcFile += ".axo";
+    
+    std::ifstream src(srcFile);
+    if (!src.good()) {
+        std::cerr << RED << "✗" << RESET << " Example not found: " << name << "\n";
+        std::cerr << "Run 'axolotl examples' to see available examples\n";
+        return;
+    }
+    
+    std::string destName = name;
+    if (destName.find(".axo") == std::string::npos) destName += ".axo";
+    
+    std::ofstream dest(destName);
+    dest << src.rdbuf();
+    src.close();
+    dest.close();
+    
+    std::cout << GREEN << "✓" << RESET << " Copied " << BOLD << destName << RESET << " to current directory\n";
+    std::cout << "Run: axolotl " << destName << "\n";
 }
 
 int main(int argc, char* argv[]) {
     std::string source;
     try {
+        // Handle commands
+        if (argc >= 2) {
+            std::string arg1 = argv[1];
+            
+            if (arg1 == "-h" || arg1 == "--help") {
+                printHelp();
+                return 0;
+            }
+            if (arg1 == "-v" || arg1 == "--version") {
+                printVersion();
+                return 0;
+            }
+            if (arg1 == "init") {
+                std::string name = argc >= 3 ? argv[2] : "";
+                initProject(name);
+                return 0;
+            }
+            if (arg1 == "examples") {
+                if (argc >= 3) {
+                    copyExample(argv[2]);
+                } else {
+                    listExamples();
+                }
+                return 0;
+            }
+            if (arg1 == "run" && argc >= 3) {
+                argv[1] = argv[2]; // Shift argument
+                argc = 2;
+            }
+            if (arg1 == "check" && argc >= 3) {
+                std::string filename = argv[2];
+                source = readFile(filename);
+                Lexer lexer(source);
+                auto tokens = lexer.tokenize();
+                Parser parser(tokens);
+                parser.parse();
+                std::cout << GREEN << "✓" << RESET << " Syntax OK: " << filename << "\n";
+                return 0;
+            }
+        }
+        
         if (argc > 2) {
-            printUsage(argv[0]);
+            std::cerr << "Unknown command. Use 'axolotl --help' for usage\n";
             return 1;
         }
 

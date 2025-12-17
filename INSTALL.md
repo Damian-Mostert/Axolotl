@@ -1,102 +1,179 @@
 # Axolotl Installation Guide
 
-## Quick Install (macOS/Linux)
+## Quick Install
 
+### macOS / Linux
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-Or using Make:
+### Windows
+Right-click `install.bat` → **Run as administrator**
 
+---
+
+## Prerequisites
+
+### macOS
 ```bash
-make install
+# Install Homebrew (if not installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install dependencies
+brew install cmake sdl2 gtk+3
 ```
 
-This will:
-- Build the Axolotl compiler
-- Install `axolotl` command to `/usr/local/bin`
-- Install standard library to `/usr/local/lib/axolotl`
-- Install examples to `/usr/local/share/axolotl`
-- Install VS Code extension (if VS Code is installed)
+### Ubuntu / Debian
+```bash
+sudo apt-get update
+sudo apt-get install build-essential cmake libsdl2-dev libgtk-3-dev
+```
 
-## Custom Install Location
+### Fedora / RHEL
+```bash
+sudo dnf install gcc-c++ cmake SDL2-devel gtk3-devel
+```
 
+### Arch Linux
+```bash
+sudo pacman -S base-devel cmake sdl2 gtk3
+```
+
+### Windows
+1. Install [Visual Studio 2019+](https://visualstudio.microsoft.com/) with C++ tools, OR
+2. Install [MinGW-w64](https://www.mingw-w64.org/)
+3. Install [CMake](https://cmake.org/download/)
+4. (Optional) Install SDL2 and GTK3 via [vcpkg](https://vcpkg.io/):
+   ```cmd
+   vcpkg install sdl2:x64-windows gtk:x64-windows
+   ```
+
+---
+
+## Manual Build
+
+If the install script doesn't work, build manually:
+
+```bash
+# Configure
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+# Build
+cmake --build build -j$(nproc)
+
+# Run
+./build/compiler examples/test.axo
+```
+
+---
+
+## Installation Locations
+
+### Unix-like (macOS/Linux)
+- Binary: `/usr/local/bin/axolotl`
+- Examples: `/usr/local/share/axolotl/examples/`
+- Docs: `/usr/local/share/axolotl/README.md`
+
+### Windows
+- Binary: `C:\Program Files\Axolotl\bin\axolotl.exe`
+- Examples: `C:\Program Files\Axolotl\examples\`
+- Docs: `C:\Program Files\Axolotl\README.md`
+
+---
+
+## VS Code Extension
+
+The installer automatically installs the Axolotl VS Code extension if VS Code is detected.
+
+### Manual Installation
+1. Open VS Code
+2. Press `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
+3. Type "Extensions: Install from VSIX"
+4. Select `lang-ext/*.vsix`
+
+### Features
+- Syntax highlighting for `.axo` files
+- Custom file icons
+- Code snippets
+
+---
+
+## Uninstall
+
+### macOS / Linux
+```bash
+chmod +x uninstall.sh
+./uninstall.sh
+```
+
+### Windows
+Right-click `uninstall.bat` → **Run as administrator**
+
+---
+
+## Troubleshooting
+
+### "cmake not found"
+Install CMake from https://cmake.org/download/
+
+### "SDL2 not found" (Linux)
+```bash
+sudo apt-get install libsdl2-dev  # Ubuntu/Debian
+sudo dnf install SDL2-devel       # Fedora
+```
+
+### "GTK3 not found" (Linux)
+```bash
+sudo apt-get install libgtk-3-dev  # Ubuntu/Debian
+sudo dnf install gtk3-devel        # Fedora
+```
+
+### Build fails on Windows
+- Ensure Visual Studio C++ tools are installed
+- Try running from "Developer Command Prompt for VS"
+- Or use MinGW and ensure `g++` is in PATH
+
+### Permission denied (macOS/Linux)
+The installer will prompt for `sudo` when needed. If it fails:
+```bash
+sudo ./install.sh
+```
+
+### PATH not updated (Windows)
+Restart your terminal or computer after installation.
+
+---
+
+## Custom Installation Directory
+
+### Unix-like
 ```bash
 INSTALL_PREFIX=$HOME/.local ./install.sh
 ```
 
-Then add to your `~/.bashrc` or `~/.zshrc`:
-
+### Verify Installation
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
-export AXOLOTL_LIB="$HOME/.local/lib/axolotl"
+axolotl --version  # Should show version info
+axolotl            # Start REPL
 ```
 
-## Manual Build
+---
+
+## Getting Started
+
+After installation:
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(nproc)
-sudo cmake --install build
+# Run an example
+axolotl /usr/local/share/axolotl/examples/test.axo
+
+# Start REPL
+axolotl
+
+# Create your first program
+echo 'print("Hello, Axolotl!");' > hello.axo
+axolotl hello.axo
 ```
 
-## Uninstall
-
-```bash
-sudo ./uninstall.sh
-```
-
-Or:
-
-```bash
-make uninstall
-```
-
-## Verify Installation
-
-```bash
-axolotl --version
-axolotl tests/minimal.axo
-```
-
-## VS Code Extension
-
-The installer automatically installs the VS Code extension. To manually install:
-
-```bash
-code --install-extension lang-ext/axo-syntax-*.vsix
-```
-
-Enable the icon theme:
-1. Open Command Palette (Cmd+Shift+P)
-2. Type "File Icon Theme"
-3. Select "Axolotl Icons"
-
-## Requirements
-
-- CMake 3.10+
-- C++17 compiler (GCC/Clang/AppleClang)
-- LLVM (for JIT support)
-- libcurl (for HTTP functions)
-- SDL2 + SDL2_image (for canvas functions)
-
-### macOS
-
-```bash
-brew install cmake llvm curl sdl2 sdl2_image
-```
-
-### Ubuntu/Debian
-
-```bash
-sudo apt install cmake clang llvm-dev libcurl4-openssl-dev libsdl2-dev libsdl2-image-dev
-```
-
-## Troubleshooting
-
-**Permission denied**: Run with `sudo` or change `INSTALL_PREFIX`
-
-**Command not found**: Ensure `/usr/local/bin` is in your PATH
-
-**VS Code extension not working**: Manually install from `lang-ext/` folder
+See [README.md](README.md) for language documentation.
