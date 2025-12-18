@@ -29,6 +29,11 @@ struct Mesh {
     Vec3 aabbMax{0, 0, 0};
     float friction = 0.5f;
     float bounciness = 0.3f;
+    bool castShadow = true;
+    bool receiveShadow = true;
+    int collisionShape = 0;
+    float collisionRadius = 1.0f;
+    Vec3 groundNormal{0, 1, 0};
 };
 
 struct Camera {
@@ -51,6 +56,15 @@ struct Scene {
     std::vector<int> lightIds;
     SDL_Color background{20, 20, 30, 255};
     Vec3 ambientLight{0.3f, 0.3f, 0.3f};
+    bool enableMSAA = true;
+    int msaaSamples = 4;
+    bool enableDepthTest = true;
+    bool enableSmoothing = true;
+    bool enableShadows = false;
+    float shadowIntensity = 0.5f;
+    bool enableFog = false;
+    float fogDensity = 0.02f;
+    SDL_Color fogColor{128, 128, 128, 255};
 };
 
 extern std::unordered_map<int, std::shared_ptr<CanvasContext>> canvases;
@@ -272,6 +286,8 @@ public:
             mesh.indices.push_back(centerBottom); mesh.indices.push_back(i * 2 + 1); mesh.indices.push_back(next * 2 + 1);
         }
         calcAABB(mesh);
+        mesh.collisionShape = 1;
+        mesh.collisionRadius = fmax(radiusTop, radiusBottom);
         int id = nextMeshId++; meshes[id] = mesh;
         auto obj = std::make_shared<ObjectValue>(); obj->fields["_meshId"] = id; interp->lastValue = obj; return "{object}";
     }
@@ -651,8 +667,10 @@ public:
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
             SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+            if (scene.enableMSAA) {
+                SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+                SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, scene.msaaSamples);
+            }
             
             ctx->window = SDL_CreateWindow("Axolotl 3D", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, ctx->width, ctx->height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
             if (!ctx->window) return "";
@@ -665,13 +683,23 @@ public:
         }
         SDL_GL_MakeCurrent(ctx->window, ctx->glContext);
         glViewport(0, 0, ctx->width, ctx->height);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-        glEnable(GL_MULTISAMPLE);
-        glEnable(GL_LINE_SMOOTH);
-        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-        glEnable(GL_POLYGON_SMOOTH);
-        glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+        if (scene.enableDepthTest) {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+        } else {
+            glDisable(GL_DEPTH_TEST);
+        }
+        if (scene.enableMSAA) glEnable(GL_MULTISAMPLE);
+        else glDisable(GL_MULTISAMPLE);
+        if (scene.enableSmoothing) {
+            glEnable(GL_LINE_SMOOTH);
+            glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+            glEnable(GL_POLYGON_SMOOTH);
+            glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+        } else {
+            glDisable(GL_LINE_SMOOTH);
+            glDisable(GL_POLYGON_SMOOTH);
+        }
         glClearColor(scene.background.r/255.0f, scene.background.g/255.0f, scene.background.b/255.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
@@ -722,23 +750,59 @@ public:
             }
             float diffuse = scene.ambientLight.x;
             float specular = 0.0f;
+            float shadow = 1.0f;
             if (!scene.lightIds.empty()) {
                 Light& l = lights[scene.lightIds[0]];
                 Vec3 lightDir = {l.position.x - worldCenter.x, l.position.y - worldCenter.y, l.position.z - worldCenter.z};
                 float dist = sqrt(lightDir.x*lightDir.x + lightDir.y*lightDir.y + lightDir.z*lightDir.z);
                 if (dist > 0) { lightDir.x /= dist; lightDir.y /= dist; lightDir.z /= dist; }
                 float diff = fmax(0.0f, n.x * lightDir.x + n.y * lightDir.y + n.z * lightDir.z);
-                diffuse += diff * l.intensity * (l.color.r / 255.0f);
+                if (scene.enableShadows && diff > 0.01f) {
+                    Vec3 shadowRay = {worldCenter.x + n.x * 0.01f, worldCenter.y + n.y * 0.01f, worldCenter.z + n.z * 0.01f};
+                    for (int shadowMeshId : scene.meshIds) {
+                        if (shadowMeshId == meshId) continue;
+                        Mesh& sm = meshes[shadowMeshId];
+                        if (!sm.visible) continue;
+                        Vec3 sc = {(sm.aabbMin.x + sm.aabbMax.x) * 0.5f, (sm.aabbMin.y + sm.aabbMax.y) * 0.5f, (sm.aabbMin.z + sm.aabbMax.z) * 0.5f};
+                        Vec3 se = {(sm.aabbMax.x - sm.aabbMin.x) * 0.5f * sm.scale.x, (sm.aabbMax.y - sm.aabbMin.y) * 0.5f * sm.scale.y, (sm.aabbMax.z - sm.aabbMin.z) * 0.5f * sm.scale.z};
+                        Vec3 smin = {sm.position.x + sc.x - se.x, sm.position.y + sc.y - se.y, sm.position.z + sc.z - se.z};
+                        Vec3 smax = {sm.position.x + sc.x + se.x, sm.position.y + sc.y + se.y, sm.position.z + sc.z + se.z};
+                        float tmin = 0, tmax = dist;
+                        for (int axis = 0; axis < 3; axis++) {
+                            float o = axis == 0 ? shadowRay.x : (axis == 1 ? shadowRay.y : shadowRay.z);
+                            float d = axis == 0 ? lightDir.x : (axis == 1 ? lightDir.y : lightDir.z);
+                            float bmin = axis == 0 ? smin.x : (axis == 1 ? smin.y : smin.z);
+                            float bmax = axis == 0 ? smax.x : (axis == 1 ? smax.y : smax.z);
+                            if (fabs(d) > 0.0001f) {
+                                float t1 = (bmin - o) / d, t2 = (bmax - o) / d;
+                                if (t1 > t2) { float tmp = t1; t1 = t2; t2 = tmp; }
+                                tmin = fmax(tmin, t1); tmax = fmin(tmax, t2);
+                                if (tmin > tmax) break;
+                            }
+                        }
+                        if (tmin <= tmax && tmin < dist) { shadow = 1.0f - scene.shadowIntensity; break; }
+                    }
+                }
+                diffuse += diff * l.intensity * (l.color.r / 255.0f) * shadow;
                 if (mesh.metallic > 0.01f) {
                     Vec3 reflectDir = {lightDir.x - 2.0f * diff * n.x, lightDir.y - 2.0f * diff * n.y, lightDir.z - 2.0f * diff * n.z};
                     float spec = fmax(0.0f, reflectDir.x * viewDir.x + reflectDir.y * viewDir.y + reflectDir.z * viewDir.z);
-                    specular = pow(spec, 32.0f) * mesh.metallic * l.intensity;
+                    specular = pow(spec, 32.0f) * mesh.metallic * l.intensity * shadow;
                 }
             }
             diffuse = fmin(1.0f, diffuse);
-            float r = fmin(1.0f, mesh.color.r/255.0f * diffuse + specular);
-            float g = fmin(1.0f, mesh.color.g/255.0f * diffuse + specular);
-            float b = fmin(1.0f, mesh.color.b/255.0f * diffuse + specular);
+            float r = mesh.color.r/255.0f * diffuse + specular;
+            float g = mesh.color.g/255.0f * diffuse + specular;
+            float b = mesh.color.b/255.0f * diffuse + specular;
+            if (scene.enableFog) {
+                float fogDist = sqrt((worldCenter.x - cam.position.x) * (worldCenter.x - cam.position.x) + (worldCenter.y - cam.position.y) * (worldCenter.y - cam.position.y) + (worldCenter.z - cam.position.z) * (worldCenter.z - cam.position.z));
+                float fogFactor = 1.0f - exp(-scene.fogDensity * fogDist);
+                fogFactor = fmin(1.0f, fmax(0.0f, fogFactor));
+                r = r * (1.0f - fogFactor) + (scene.fogColor.r / 255.0f) * fogFactor;
+                g = g * (1.0f - fogFactor) + (scene.fogColor.g / 255.0f) * fogFactor;
+                b = b * (1.0f - fogFactor) + (scene.fogColor.b / 255.0f) * fogFactor;
+            }
+            r = fmin(1.0f, r); g = fmin(1.0f, g); b = fmin(1.0f, b);
             glColor3f(r, g, b);
             glNormal3f(n.x, n.y, n.z);
             glVertex3f(worldV[0].x, worldV[0].y, worldV[0].z);
@@ -1160,12 +1224,39 @@ public:
                 Vec3 min2 = {obstacle.position.x + c2.x - e2.x, obstacle.position.y + c2.y - e2.y, obstacle.position.z + c2.z - e2.z};
                 Vec3 max2 = {obstacle.position.x + c2.x + e2.x, obstacle.position.y + c2.y + e2.y, obstacle.position.z + c2.z + e2.z};
                 
-                if (aabbIntersect(min1, max1, min2, max2)) {
+                bool colliding = false;
+                if (obstacle.collisionShape == 1) {
+                    float dx = obj.position.x - obstacle.position.x;
+                    float dz = obj.position.z - obstacle.position.z;
+                    float dist2d = sqrt(dx*dx + dz*dz);
+                    float combinedRadius = (e1.x + e1.z) * 0.5f + obstacle.collisionRadius * fmax(obstacle.scale.x, obstacle.scale.z);
+                    if (dist2d < combinedRadius && min1.y < max2.y && max1.y > min2.y) colliding = true;
+                } else {
+                    colliding = aabbIntersect(min1, max1, min2, max2);
+                }
+                
+                if (colliding) {
                     float overlapX = fmin(max1.x, max2.x) - fmax(min1.x, min2.x);
                     float overlapY = fmin(max1.y, max2.y) - fmax(min1.y, min2.y);
                     float overlapZ = fmin(max1.z, max2.z) - fmax(min1.z, min2.z);
                     
-                    if (overlapY <= overlapX && overlapY <= overlapZ) {
+                    if (obstacle.collisionShape == 1) {
+                        float dx = obj.position.x - obstacle.position.x;
+                        float dz = obj.position.z - obstacle.position.z;
+                        float dist2d = sqrt(dx*dx + dz*dz);
+                        if (dist2d > 0.001f) {
+                            float nx = dx / dist2d, nz = dz / dist2d;
+                            float combinedRadius = (e1.x + e1.z) * 0.5f + obstacle.collisionRadius * fmax(obstacle.scale.x, obstacle.scale.z);
+                            float penetration = combinedRadius - dist2d;
+                            obj.position.x += nx * penetration;
+                            obj.position.z += nz * penetration;
+                            float vDot = obj.velocity.x * nx + obj.velocity.z * nz;
+                            if (vDot < 0) {
+                                obj.velocity.x -= nx * vDot * (1.0f + obstacle.bounciness);
+                                obj.velocity.z -= nz * vDot * (1.0f + obstacle.bounciness);
+                            }
+                        }
+                    } else if (overlapY <= overlapX && overlapY <= overlapZ) {
                         if (obj.position.y > obstacle.position.y) {
                             obj.position.y += overlapY;
                             if (obj.velocity.y < 0) obj.velocity.y *= -obstacle.bounciness;
@@ -1177,6 +1268,15 @@ public:
                             }
                             obj.velocity.x *= (1.0f - obstacle.friction);
                             obj.velocity.z *= (1.0f - obstacle.friction);
+                            if (fabs(obstacle.rotation.x) > 0.01f || fabs(obstacle.rotation.z) > 0.01f) {
+                                Vec3 up = {0, 1, 0};
+                                up = rotateX(up, obstacle.rotation.x);
+                                up = rotateY(up, obstacle.rotation.y);
+                                up = rotateZ(up, obstacle.rotation.z);
+                                obj.groundNormal = up;
+                            } else {
+                                obj.groundNormal = {0, 1, 0};
+                            }
                         } else {
                             obj.position.y -= overlapY;
                             if (obj.velocity.y > 0) obj.velocity.y *= -obstacle.bounciness;
@@ -1365,4 +1465,85 @@ public:
 };
 
 REGISTER_BUILTIN(DeformVerticesBuiltin)
+
+class SetGraphicsBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "setGraphics"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 2) throw std::runtime_error("setGraphics(scene, settings)");
+        Value sceneVal = interp->evaluate(node->args[0].get());
+        auto sceneObj = std::get<std::shared_ptr<ObjectValue>>(sceneVal);
+        int sceneId = std::get<int>(sceneObj->fields["_sceneId"]);
+        Scene& scene = scenes[sceneId];
+        Value settingsVal = interp->evaluate(node->args[1].get());
+        auto settings = std::get<std::shared_ptr<ObjectValue>>(settingsVal);
+        if (settings->fields.count("msaa")) {
+            auto v = settings->fields["msaa"];
+            scene.enableMSAA = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("msaaSamples")) {
+            auto v = settings->fields["msaaSamples"];
+            scene.msaaSamples = std::holds_alternative<int>(v) ? std::get<int>(v) : (int)std::get<float>(v);
+        }
+        if (settings->fields.count("depthTest")) {
+            auto v = settings->fields["depthTest"];
+            scene.enableDepthTest = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("smoothing")) {
+            auto v = settings->fields["smoothing"];
+            scene.enableSmoothing = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("shadows")) {
+            auto v = settings->fields["shadows"];
+            scene.enableShadows = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("shadowIntensity")) {
+            auto v = settings->fields["shadowIntensity"];
+            scene.shadowIntensity = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        if (settings->fields.count("fog")) {
+            auto v = settings->fields["fog"];
+            scene.enableFog = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("fogDensity")) {
+            auto v = settings->fields["fogDensity"];
+            scene.fogDensity = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        if (settings->fields.count("fogColor")) {
+            std::string color = std::get<std::string>(settings->fields["fogColor"]);
+            if (color[0] == '#' && color.length() == 7) {
+                scene.fogColor.r = std::stoi(color.substr(1, 2), nullptr, 16);
+                scene.fogColor.g = std::stoi(color.substr(3, 2), nullptr, 16);
+                scene.fogColor.b = std::stoi(color.substr(5, 2), nullptr, 16);
+            }
+        }
+        return "";
+    }
+};
+
+REGISTER_BUILTIN(SetGraphicsBuiltin)
+
+class GetGroundNormalBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "getGroundNormal"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (!node->callee) throw std::runtime_error("getGroundNormal must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value objVal = interp->evaluate(fa->object.get());
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (obj->fields.count("_meshId")) {
+            int meshId = std::get<int>(obj->fields["_meshId"]);
+            Mesh& mesh = meshes[meshId];
+            auto result = std::make_shared<ObjectValue>();
+            result->fields["x"] = mesh.groundNormal.x;
+            result->fields["y"] = mesh.groundNormal.y;
+            result->fields["z"] = mesh.groundNormal.z;
+            interp->lastValue = result;
+            return "{object}";
+        }
+        throw std::runtime_error("getGroundNormal requires mesh object");
+    }
+};
+
+REGISTER_BUILTIN(GetGroundNormalBuiltin)
 

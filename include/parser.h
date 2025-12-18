@@ -23,6 +23,7 @@ private:
     bool check(TokenType type) const;
     bool match(const std::vector<TokenType>& types);
     Token consume(TokenType type, const std::string& message);
+    void consumeSemicolonOptional();
     bool isAtEnd() const;
     
     // Parsing methods

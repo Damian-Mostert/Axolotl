@@ -41,6 +41,20 @@ public:
     }
 };
 
+class Atan2Builtin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "atan2"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 2) throw std::runtime_error("atan2() expects 2 arguments");
+        Value y = interp->evaluate(node->args[0].get());
+        Value x = interp->evaluate(node->args[1].get());
+        float yf = std::holds_alternative<float>(y) ? std::get<float>(y) : static_cast<float>(std::get<int>(y));
+        float xf = std::holds_alternative<float>(x) ? std::get<float>(x) : static_cast<float>(std::get<int>(x));
+        interp->lastValue = std::atan2(yf, xf);
+        return "[float]";
+    }
+};
+
 class RandomBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "random"; }
@@ -58,4 +72,5 @@ public:
 };
 
 REGISTER_BUILTIN(PowBuiltin)
+REGISTER_BUILTIN(Atan2Builtin)
 REGISTER_BUILTIN(RandomBuiltin)

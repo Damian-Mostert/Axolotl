@@ -147,13 +147,15 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
     cpp << "        Interpreter interpreter;\n";
     cpp << "        interpreter.interpret(ast.get());\n";
     cpp << "        std::cout.flush();\n";
-    cpp << "        SDL_Event e;\n";
-    cpp << "        bool quit = false;\n";
-    cpp << "        while (!quit) {\n";
-    cpp << "            while (SDL_PollEvent(&e)) {\n";
-    cpp << "                if (e.type == SDL_QUIT) quit = true;\n";
+    cpp << "        if (SDL_WasInit(SDL_INIT_VIDEO)) {\n";
+    cpp << "            SDL_Event e;\n";
+    cpp << "            bool quit = false;\n";
+    cpp << "            while (!quit) {\n";
+    cpp << "                while (SDL_PollEvent(&e)) {\n";
+    cpp << "                    if (e.type == SDL_QUIT) quit = true;\n";
+    cpp << "                }\n";
+    cpp << "                SDL_Delay(16);\n";
     cpp << "            }\n";
-    cpp << "            SDL_Delay(16);\n";
     cpp << "        }\n";
     cpp << "        return 0;\n";
     cpp << "    } catch (const std::exception& e) {\n";
@@ -233,7 +235,7 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
     // Add platform-specific libraries
 #ifdef __APPLE__
     compileCmd << "-framework CoreFoundation -framework OpenGL ";
-    compileCmd << "-L/opt/homebrew/lib -lSDL2 -lSDL2_image -lcurl ";
+    compileCmd << "-L/opt/homebrew/lib -Wl,-rpath,/opt/homebrew/lib -lSDL2 -lSDL2_image -lcurl ";
     FILE* gtk_pipe = popen("pkg-config --cflags --libs gtk+-3.0 2>/dev/null", "r");
     if (gtk_pipe) {
         char gtk_buf[2048];
@@ -301,8 +303,13 @@ void Compiler::compile(Program*, const std::string& outputFile, const std::strin
             plist << "  <key>CFBundleIconFile</key>\n  <string>icon.png</string>\n";
             plist << "  <key>CFBundleName</key>\n  <string>" << exeName << "</string>\n";
             plist << "  <key>CFBundleIdentifier</key>\n  <string>com.axolotl." << exeName << "</string>\n";
+            plist << "  <key>CFBundlePackageType</key>\n  <string>APPL</string>\n";
+            plist << "  <key>NSHighResolutionCapable</key>\n  <true/>\n";
             plist << "</dict>\n</plist>\n";
             plist.close();
+            
+            std::system(("codesign --force --deep --sign - \"" + appName + "\" 2>/dev/null").c_str());
+            std::system(("xattr -cr \"" + appName + "\" 2>/dev/null").c_str());
             
             std::cout << "📱 Created macOS app bundle: " << appName << "\n";
 #elif _WIN32

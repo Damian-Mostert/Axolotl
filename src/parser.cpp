@@ -63,6 +63,10 @@ Token Parser::consume(TokenType type, const std::string& message) {
     throw ParseError(locMsg, peek());
 }
 
+void Parser::consumeSemicolonOptional() {
+    if (check(TokenType::SEMICOLON)) advance();
+}
+
 bool Parser::isAtEnd() const {
     return peek().type == TokenType::EOF_TOKEN;
 }
@@ -146,7 +150,7 @@ std::unique_ptr<ASTNode> Parser::parseImportDeclaration() {
         throw ParseError("Expected import pattern", peek());
     }
     
-    consume(TokenType::SEMICOLON, "Expected ';' after import");
+    consumeSemicolonOptional();
     return importDecl;
 }
 
@@ -157,7 +161,7 @@ std::unique_ptr<ASTNode> Parser::parseUseDeclaration() {
     Token pathTok = consume(TokenType::STRING, "Expected string path after 'use'");
     auto useDecl = std::make_unique<UseDeclaration>(pathTok.value);
     
-    consume(TokenType::SEMICOLON, "Expected ';' after use");
+    consumeSemicolonOptional();
     return useDecl;
 }
 
@@ -184,7 +188,7 @@ std::unique_ptr<ASTNode> Parser::parseExportDeclaration() {
             exports.push_back(name.value);
         } while (match({TokenType::COMMA}));
         consume(TokenType::RBRACE, "Expected '}' after export names");
-        consume(TokenType::SEMICOLON, "Expected ';' after export");
+        consumeSemicolonOptional();
         return std::make_unique<ExportDeclaration>(exports);
     } else {
         // Export declaration: export func name() { ... } or export var x = 5;
@@ -201,7 +205,7 @@ std::unique_ptr<TypeDeclaration> Parser::parseTypeDeclaration() {
     // Parse the type specification - this can be complex
     std::string typeSpec = parseComplexTypeSpec();
     
-    consume(TokenType::SEMICOLON, "Expected ';' after type declaration");
+    consumeSemicolonOptional();
     return std::make_unique<TypeDeclaration>(name.value, typeSpec);
 }
 
@@ -514,7 +518,7 @@ std::unique_ptr<Statement> Parser::parseStatement() {
     
     // Try to parse assignment or expression statement
     auto expr = parseExpression();
-    consume(TokenType::SEMICOLON, "Expected ';' after expression");
+    consumeSemicolonOptional();
     return std::make_unique<ExpressionStatement>(std::move(expr));
 }
 
@@ -539,17 +543,27 @@ std::unique_ptr<Statement> Parser::parseIfStatement() {
     auto condition = parseExpression();
     consume(TokenType::RPAREN, "Expected ')' after condition");
     
-    auto thenBlock = parseBlock();
-    std::unique_ptr<Block> elseBlock = nullptr;
+    std::unique_ptr<Block> thenBlock;
+    if (check(TokenType::LBRACE)) {
+        thenBlock = parseBlock();
+    } else {
+        thenBlock = std::make_unique<Block>();
+        auto stmt = parseStatement();
+        thenBlock->statements.push_back(std::move(stmt));
+    }
     
+    std::unique_ptr<Block> elseBlock = nullptr;
     if (match({TokenType::KW_ELSE})) {
         if (check(TokenType::KW_IF)) {
-            // else if
             auto elseIf = parseIfStatement();
             elseBlock = std::make_unique<Block>();
             elseBlock->statements.push_back(std::move(elseIf));
-        } else {
+        } else if (check(TokenType::LBRACE)) {
             elseBlock = parseBlock();
+        } else {
+            elseBlock = std::make_unique<Block>();
+            auto stmt = parseStatement();
+            elseBlock->statements.push_back(std::move(stmt));
         }
     }
     
@@ -562,7 +576,14 @@ std::unique_ptr<Statement> Parser::parseWhileStatement() {
     auto condition = parseExpression();
     consume(TokenType::RPAREN, "Expected ')' after condition");
     
-    auto body = parseBlock();
+    std::unique_ptr<Block> body;
+    if (check(TokenType::LBRACE)) {
+        body = parseBlock();
+    } else {
+        body = std::make_unique<Block>();
+        auto stmt = parseStatement();
+        body->statements.push_back(std::move(stmt));
+    }
     return std::make_unique<WhileStatement>(std::move(condition), std::move(body));
 }
 
@@ -611,7 +632,14 @@ std::unique_ptr<Statement> Parser::parseForStatement() {
     auto update = parseExpression();
     consume(TokenType::RPAREN, "Expected ')' after for clauses");
     
-    auto body = parseBlock();
+    std::unique_ptr<Block> body;
+    if (check(TokenType::LBRACE)) {
+        body = parseBlock();
+    } else {
+        body = std::make_unique<Block>();
+        auto stmt = parseStatement();
+        body->statements.push_back(std::move(stmt));
+    }
     
     return std::make_unique<ForStatement>(std::move(init), std::move(condition), 
                                           std::move(update), std::move(body));
@@ -625,26 +653,26 @@ std::unique_ptr<Statement> Parser::parseReturnStatement() {
         value = parseExpression();
     }
     
-    consume(TokenType::SEMICOLON, "Expected ';' after return");
+    consumeSemicolonOptional();
     return std::make_unique<ReturnStatement>(std::move(value));
 }
 
 std::unique_ptr<Statement> Parser::parseThrowStatement() {
     consume(TokenType::KW_THROW, "Expected 'throw'");
     auto expression = parseExpression();
-    consume(TokenType::SEMICOLON, "Expected ';' after throw");
+    consumeSemicolonOptional();
     return std::make_unique<ThrowStatement>(std::move(expression));
 }
 
 std::unique_ptr<Statement> Parser::parseBreakStatement() {
     consume(TokenType::KW_BREAK, "Expected 'break'");
-    consume(TokenType::SEMICOLON, "Expected ';' after break");
+    consumeSemicolonOptional();
     return std::make_unique<BreakStatement>();
 }
 
 std::unique_ptr<Statement> Parser::parseContinueStatement() {
     consume(TokenType::KW_CONTINUE, "Expected 'continue'");
-    consume(TokenType::SEMICOLON, "Expected ';' after continue");
+    consumeSemicolonOptional();
     return std::make_unique<ContinueStatement>();
 }
 
@@ -783,7 +811,7 @@ std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
         initializer = parseExpression();
     }
     
-    consume(TokenType::SEMICOLON, "Expected ';' after variable declaration");
+    consumeSemicolonOptional();
     
     return std::make_unique<VariableDeclaration>(name.value, typeStr, std::move(initializer));
 }
