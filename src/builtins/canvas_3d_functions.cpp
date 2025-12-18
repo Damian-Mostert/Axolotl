@@ -1,5 +1,6 @@
 #include "include/builtins.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_opengl.h>
 #include <OpenGL/gl.h>
 #include <cmath>
@@ -10,6 +11,20 @@
 #include <iostream>
 
 struct Vec3 { float x, y, z; };
+
+struct Bone {
+    std::string name;
+    Vec3 position{0, 0, 0};
+    Vec3 rotation{0, 0, 0};
+    int parentId = -1;
+};
+
+struct Animation {
+    std::string name;
+    std::unordered_map<std::string, std::vector<std::pair<float, Vec3>>> positionKeys;
+    std::unordered_map<std::string, std::vector<std::pair<float, Vec3>>> rotationKeys;
+    float duration = 0.0f;
+};
 
 struct Mesh {
     std::vector<Vec3> vertices;
@@ -33,6 +48,7 @@ struct Mesh {
     bool receiveShadow = true;
     int collisionShape = 0;
     float collisionRadius = 1.0f;
+    GLuint textureId = 0;
     Vec3 groundNormal{0, 1, 0};
 };
 
@@ -72,6 +88,9 @@ static std::unordered_map<int, Mesh> meshes;
 static std::unordered_map<int, Camera> cameras;
 static std::unordered_map<int, Scene> scenes;
 static std::unordered_map<int, Light> lights;
+static std::unordered_map<int, std::vector<Bone>> skeletons;
+static std::unordered_map<int, std::vector<Animation>> animations;
+static std::unordered_map<int, std::pair<int, float>> animationStates;
 static int nextMeshId = 1, nextCameraId = 1, nextSceneId = 1, nextLightId = 1;
 static bool devMode = false;
 static int devCameraId = -1;
@@ -1644,3 +1663,225 @@ public:
 
 REGISTER_BUILTIN(GetGroundNormalBuiltin)
 
+class SetTextureBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "setTexture"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 1) throw std::runtime_error("mesh.setTexture(filepath)");
+        if (!node->callee) throw std::runtime_error("setTexture must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value objVal = interp->evaluate(fa->object.get());
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj->fields.count("_meshId")) throw std::runtime_error("setTexture requires mesh object");
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        Mesh& mesh = meshes[meshId];
+        std::string filepath = std::get<std::string>(interp->evaluate(node->args[0].get()));
+        SDL_Surface* surface = IMG_Load(filepath.c_str());
+        if (!surface) throw std::runtime_error("Failed to load texture: " + filepath);
+        GLuint texId;
+        glGenTextures(1, &texId);
+        glBindTexture(GL_TEXTURE_2D, texId);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, surface->w, surface->h, 0, surface->format->BytesPerPixel == 4 ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        SDL_FreeSurface(surface);
+        if (mesh.textureId) glDeleteTextures(1, &mesh.textureId);
+        mesh.textureId = texId;
+        return "";
+    }
+};
+
+REGISTER_BUILTIN(SetTextureBuiltin)
+
+class CreateBoneBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "createBone"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() < 1) throw std::runtime_error("mesh.createBone(name, [parentBoneIndex])");
+        if (!node->callee) throw std::runtime_error("createBone must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        if (!fa) throw std::runtime_error("createBone must be called on mesh");
+        Value objVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal)) throw std::runtime_error("createBone requires mesh object");
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj || !obj->fields.count("_meshId")) throw std::runtime_error("createBone requires mesh object");
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        std::string name = std::get<std::string>(interp->evaluate(node->args[0].get()));
+        Bone bone;
+        bone.name = name;
+        if (node->args.size() >= 2) {
+            auto v = interp->evaluate(node->args[1].get());
+            bone.parentId = std::holds_alternative<int>(v) ? std::get<int>(v) : (int)std::get<float>(v);
+        }
+        skeletons[meshId].push_back(bone);
+        interp->lastValue = (int)skeletons[meshId].size() - 1;
+        return std::to_string(skeletons[meshId].size() - 1);
+    }
+};
+
+class SetBonePoseBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "setBonePose"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 7) throw std::runtime_error("mesh.setBonePose(boneIndex, px, py, pz, rx, ry, rz)");
+        if (!node->callee) throw std::runtime_error("setBonePose must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        if (!fa) return "";
+        Value objVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal)) return "";
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj || !obj->fields.count("_meshId")) return "";
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        if (!skeletons.count(meshId)) return "";
+        auto v0 = interp->evaluate(node->args[0].get());
+        int boneIdx = std::holds_alternative<int>(v0) ? std::get<int>(v0) : (int)std::get<float>(v0);
+        if (boneIdx < 0 || boneIdx >= (int)skeletons[meshId].size()) return "";
+        Bone& bone = skeletons[meshId][boneIdx];
+        auto v1 = interp->evaluate(node->args[1].get());
+        auto v2 = interp->evaluate(node->args[2].get());
+        auto v3 = interp->evaluate(node->args[3].get());
+        auto v4 = interp->evaluate(node->args[4].get());
+        auto v5 = interp->evaluate(node->args[5].get());
+        auto v6 = interp->evaluate(node->args[6].get());
+        bone.position.x = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        bone.position.y = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        bone.position.z = std::holds_alternative<int>(v3) ? std::get<int>(v3) : std::get<float>(v3);
+        bone.rotation.x = std::holds_alternative<int>(v4) ? std::get<int>(v4) : std::get<float>(v4);
+        bone.rotation.y = std::holds_alternative<int>(v5) ? std::get<int>(v5) : std::get<float>(v5);
+        bone.rotation.z = std::holds_alternative<int>(v6) ? std::get<int>(v6) : std::get<float>(v6);
+        return "";
+    }
+};
+
+class CreateAnimationBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "createAnimation"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 2) throw std::runtime_error("mesh.createAnimation(name, duration)");
+        if (!node->callee) throw std::runtime_error("createAnimation must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value objVal = interp->evaluate(fa->object.get());
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj->fields.count("_meshId")) throw std::runtime_error("createAnimation requires mesh object");
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        std::string name = std::get<std::string>(interp->evaluate(node->args[0].get()));
+        auto v = interp->evaluate(node->args[1].get());
+        float duration = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        Animation anim;
+        anim.name = name;
+        anim.duration = duration;
+        animations[meshId].push_back(anim);
+        interp->lastValue = (int)animations[meshId].size() - 1;
+        return std::to_string(animations[meshId].size() - 1);
+    }
+};
+
+class AddAnimKeyBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "addAnimKey"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() < 6) throw std::runtime_error("mesh.addAnimKey(animIdx, boneName, time, x, y, z, [isRotation])");
+        if (!node->callee) throw std::runtime_error("addAnimKey must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value objVal = interp->evaluate(fa->object.get());
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj->fields.count("_meshId")) throw std::runtime_error("addAnimKey requires mesh object");
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        auto v0 = interp->evaluate(node->args[0].get());
+        int animIdx = std::holds_alternative<int>(v0) ? std::get<int>(v0) : (int)std::get<float>(v0);
+        std::string boneName = std::get<std::string>(interp->evaluate(node->args[1].get()));
+        auto v2 = interp->evaluate(node->args[2].get());
+        float time = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        auto v3 = interp->evaluate(node->args[3].get());
+        auto v4 = interp->evaluate(node->args[4].get());
+        auto v5 = interp->evaluate(node->args[5].get());
+        Vec3 value;
+        value.x = std::holds_alternative<int>(v3) ? std::get<int>(v3) : std::get<float>(v3);
+        value.y = std::holds_alternative<int>(v4) ? std::get<int>(v4) : std::get<float>(v4);
+        value.z = std::holds_alternative<int>(v5) ? std::get<int>(v5) : std::get<float>(v5);
+        bool isRotation = node->args.size() >= 7 && std::get<int>(interp->evaluate(node->args[6].get())) != 0;
+        if (isRotation) animations[meshId][animIdx].rotationKeys[boneName].push_back({time, value});
+        else animations[meshId][animIdx].positionKeys[boneName].push_back({time, value});
+        return "";
+    }
+};
+
+class PlayAnimationBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "playAnimation"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 1) throw std::runtime_error("mesh.playAnimation(animIndex)");
+        if (!node->callee) throw std::runtime_error("playAnimation must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value objVal = interp->evaluate(fa->object.get());
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj->fields.count("_meshId")) throw std::runtime_error("playAnimation requires mesh object");
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        auto v = interp->evaluate(node->args[0].get());
+        int animIdx = std::holds_alternative<int>(v) ? std::get<int>(v) : (int)std::get<float>(v);
+        animationStates[meshId] = {animIdx, 0.0f};
+        return "";
+    }
+};
+
+class UpdateAnimationBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "updateAnimation"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 1) throw std::runtime_error("mesh.updateAnimation(deltaTime)");
+        if (!node->callee) throw std::runtime_error("updateAnimation must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        if (!fa) return "";
+        Value objVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal)) return "";
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj || !obj->fields.count("_meshId")) return "";
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        if (!animationStates.count(meshId)) return "";
+        if (!animations.count(meshId)) return "";
+        auto v = interp->evaluate(node->args[0].get());
+        float dt = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        auto& [animIdx, time] = animationStates[meshId];
+        if (animIdx < 0 || animIdx >= (int)animations[meshId].size()) return "";
+        if (!skeletons.count(meshId)) return "";
+        Animation& anim = animations[meshId][animIdx];
+        time += dt;
+        if (time > anim.duration) time = fmod(time, anim.duration);
+        for (size_t i = 0; i < skeletons[meshId].size(); i++) {
+            Bone& bone = skeletons[meshId][i];
+            if (anim.positionKeys.count(bone.name) && anim.positionKeys[bone.name].size() > 1) {
+                auto& keys = anim.positionKeys[bone.name];
+                for (size_t k = 0; k < keys.size() - 1; k++) {
+                    if (time >= keys[k].first && time <= keys[k + 1].first) {
+                        float t = (time - keys[k].first) / (keys[k + 1].first - keys[k].first);
+                        bone.position.x = keys[k].second.x + t * (keys[k + 1].second.x - keys[k].second.x);
+                        bone.position.y = keys[k].second.y + t * (keys[k + 1].second.y - keys[k].second.y);
+                        bone.position.z = keys[k].second.z + t * (keys[k + 1].second.z - keys[k].second.z);
+                        break;
+                    }
+                }
+            }
+            if (anim.rotationKeys.count(bone.name)) {
+                auto& keys = anim.rotationKeys[bone.name];
+                for (size_t k = 0; k < keys.size() - 1; k++) {
+                    if (time >= keys[k].first && time <= keys[k + 1].first) {
+                        float t = (time - keys[k].first) / (keys[k + 1].first - keys[k].first);
+                        bone.rotation.x = keys[k].second.x + t * (keys[k + 1].second.x - keys[k].second.x);
+                        bone.rotation.y = keys[k].second.y + t * (keys[k + 1].second.y - keys[k].second.y);
+                        bone.rotation.z = keys[k].second.z + t * (keys[k + 1].second.z - keys[k].second.z);
+                        break;
+                    }
+                }
+            }
+        }
+        animationStates[meshId].second = time;
+        return "";
+    }
+};
+
+REGISTER_BUILTIN(CreateBoneBuiltin)
+REGISTER_BUILTIN(SetBonePoseBuiltin)
+REGISTER_BUILTIN(CreateAnimationBuiltin)
+REGISTER_BUILTIN(AddAnimKeyBuiltin)
+REGISTER_BUILTIN(PlayAnimationBuiltin)
+REGISTER_BUILTIN(UpdateAnimationBuiltin)
