@@ -1,0 +1,50 @@
+// Mesh Properties Example
+// Demonstrates all mesh configuration options
+
+const canvas: object = createCanvas(800, 600, "Mesh Properties Demo");
+const scene: object = createScene();
+const camera: object = PerspectiveCamera(75);
+camera.setPosition(0, 5, 15);
+camera.lookAt(0, 0, 0);
+
+// Create mesh
+const box: object = BoxGeometry(2);
+
+// Position, rotation, scale
+box.setPosition(0, 2, 0);
+box.setRotation(0.5, 0.5, 0);
+box.setScale(1, 1, 1);
+
+// Visual properties
+box.setColor("#ff6b6b");
+box.setMetallic(0.8);
+
+// Physics properties
+box.addVelocity(0.1, 0, 0);
+box.setFriction(0.5);
+box.setBounciness(0.3);
+
+scene.add(box);
+
+// Ground
+const ground: object = PlaneGeometry(20, 20);
+ground.setRotation(1.57, 0, 0);
+ground.setColor("#2d3436");
+ground.setFriction(0.8);
+ground.setBounciness(0.2);
+scene.add(ground);
+
+// Light
+const light: object = PointLight("#ffffff", 1.5);
+light.setPosition(5, 10, 5);
+scene.add(light);
+
+// Animation loop
+var running: int = 1;
+while (running == 1) {
+    running = handleDevInput();
+    applyGravity(box, -0.01, ground);
+    handleCollision(box, ground);
+    
+    canvas.render(scene, camera);
+}

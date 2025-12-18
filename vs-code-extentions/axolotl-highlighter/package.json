@@ -7,7 +7,7 @@
   "engines": {
     "vscode": "^1.60.0"
   },
-  "categories": ["Programming Languages"],
+  "categories": ["Programming Languages", "Themes"],
   "contributes": {
     "languages": [{
       "id": "axolotl",
@@ -20,20 +20,23 @@
       "scopeName": "source.axolotl",
       "path": "./syntaxes/axolotl.tmLanguage.json"
     }],
+    "themes": [{
+      "label": "Axolotl",
+      "uiTheme": "vs-dark",
+      "path": "./themes/axolotl-color-theme.json"
+    }],
     "configurationDefaults": {
-      "[axolotl]": {
-        "editor.tokenColorCustomizations": {
-          "textMateRules": [
-            {
-              "scope": ["storage.type.primitive.axolotl", "entity.name.type.axolotl"],
-              "settings": {"foreground": "#ff69b4", "fontStyle": "bold"}
-            },
-            {
-              "scope": "support.function.builtin.axolotl",
-              "settings": {"foreground": "#4ec9b0", "fontStyle": "italic"}
-            }
-          ]
-        }
+      "editor.tokenColorCustomizations": {
+        "textMateRules": [
+          {
+            "scope": ["storage.type.primitive.axolotl", "entity.name.type.axolotl"],
+            "settings": {"foreground": "#ff69b4", "fontStyle": "bold"}
+          },
+          {
+            "scope": "support.function.builtin.axolotl",
+            "settings": {"foreground": "#4ec9b0", "fontStyle": "italic"}
+          }
+        ]
       }
     }
   }

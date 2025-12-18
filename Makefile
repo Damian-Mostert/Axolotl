@@ -1,4 +1,4 @@
-.PHONY: all build install uninstall clean test extensions update-extensions
+.PHONY: all build install uninstall clean test extensions update-extensions install-extensions
 
 all: build
 
@@ -23,3 +23,6 @@ extensions:
 
 update-extensions:
 	@./update_extensions.sh
+
+install-extensions:
+	@./install_extensions.sh

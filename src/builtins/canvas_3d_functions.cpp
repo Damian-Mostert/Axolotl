@@ -105,27 +105,24 @@ Vec3 transformVertex(Vec3 v, const Mesh& m) {
     return v;
 }
 
-bool triangleIntersect(Vec3 v0, Vec3 v1, Vec3 v2, Vec3 u0, Vec3 u1, Vec3 u2) {
-    auto cross = [](Vec3 a, Vec3 b) { return Vec3{a.y*b.z - a.z*b.y, a.z*b.x - a.x*b.z, a.x*b.y - a.y*b.x}; };
-    auto dot = [](Vec3 a, Vec3 b) { return a.x*b.x + a.y*b.y + a.z*b.z; };
-    auto sub = [](Vec3 a, Vec3 b) { return Vec3{a.x-b.x, a.y-b.y, a.z-b.z}; };
-    
-    Vec3 e1 = sub(v1, v0), e2 = sub(v2, v0);
-    Vec3 n1 = cross(e1, e2);
-    float d1 = -dot(n1, v0);
-    float du0 = dot(n1, u0) + d1, du1 = dot(n1, u1) + d1, du2 = dot(n1, u2) + d1;
-    if ((du0 > 0 && du1 > 0 && du2 > 0) || (du0 < 0 && du1 < 0 && du2 < 0)) return false;
-    
-    Vec3 f1 = sub(u1, u0), f2 = sub(u2, u0);
-    Vec3 n2 = cross(f1, f2);
-    float d2 = -dot(n2, u0);
-    float dv0 = dot(n2, v0) + d2, dv1 = dot(n2, v1) + d2, dv2 = dot(n2, v2) + d2;
-    if ((dv0 > 0 && dv1 > 0 && dv2 > 0) || (dv0 < 0 && dv1 < 0 && dv2 < 0)) return false;
-    
-    Vec3 dir = cross(n1, n2);
-    float len = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
-    if (len < 0.0001f) return fabs(du0) < 0.0001f;
-    return true;
+bool rayTriangleIntersect(Vec3 origin, Vec3 dir, Vec3 v0, Vec3 v1, Vec3 v2, float& t, Vec3& normal) {
+    Vec3 e1 = {v1.x - v0.x, v1.y - v0.y, v1.z - v0.z};
+    Vec3 e2 = {v2.x - v0.x, v2.y - v0.y, v2.z - v0.z};
+    Vec3 h = {dir.y*e2.z - dir.z*e2.y, dir.z*e2.x - dir.x*e2.z, dir.x*e2.y - dir.y*e2.x};
+    float a = e1.x*h.x + e1.y*h.y + e1.z*h.z;
+    if (fabs(a) < 0.0001f) return false;
+    float f = 1.0f / a;
+    Vec3 s = {origin.x - v0.x, origin.y - v0.y, origin.z - v0.z};
+    float u = f * (s.x*h.x + s.y*h.y + s.z*h.z);
+    if (u < 0.0f || u > 1.0f) return false;
+    Vec3 q = {s.y*e1.z - s.z*e1.y, s.z*e1.x - s.x*e1.z, s.x*e1.y - s.y*e1.x};
+    float v = f * (dir.x*q.x + dir.y*q.y + dir.z*q.z);
+    if (v < 0.0f || u + v > 1.0f) return false;
+    t = f * (e2.x*q.x + e2.y*q.y + e2.z*q.z);
+    normal = {e1.y*e2.z - e1.z*e2.y, e1.z*e2.x - e1.x*e2.z, e1.x*e2.y - e1.y*e2.x};
+    float len = sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+    if (len > 0.0001f) { normal.x /= len; normal.y /= len; normal.z /= len; }
+    return t >= 0.0f;
 }
 
 bool aabbIntersect(Vec3 min1, Vec3 max1, Vec3 min2, Vec3 max2) {
@@ -186,6 +183,30 @@ public:
         auto meshObj = std::get<std::shared_ptr<ObjectValue>>(meshVal);
         if (meshObj->fields.count("_meshId")) scenes[sceneId].meshIds.push_back(std::get<int>(meshObj->fields["_meshId"]));
         else if (meshObj->fields.count("_lightId")) scenes[sceneId].lightIds.push_back(std::get<int>(meshObj->fields["_lightId"]));
+        return "";
+    }
+};
+
+class RemoveMeshBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "removeMesh"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (!node->callee || node->args.size() != 1) throw std::runtime_error("scene.removeMesh(mesh)");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value sceneVal = interp->evaluate(fa->object.get());
+        auto sceneObj = std::get<std::shared_ptr<ObjectValue>>(sceneVal);
+        int sceneId = std::get<int>(sceneObj->fields["_sceneId"]);
+        Value meshVal = interp->evaluate(node->args[0].get());
+        auto meshObj = std::get<std::shared_ptr<ObjectValue>>(meshVal);
+        if (meshObj->fields.count("_meshId")) {
+            int meshId = std::get<int>(meshObj->fields["_meshId"]);
+            auto& meshIds = scenes[sceneId].meshIds;
+            meshIds.erase(std::remove(meshIds.begin(), meshIds.end(), meshId), meshIds.end());
+        } else if (meshObj->fields.count("_lightId")) {
+            int lightId = std::get<int>(meshObj->fields["_lightId"]);
+            auto& lightIds = scenes[sceneId].lightIds;
+            lightIds.erase(std::remove(lightIds.begin(), lightIds.end(), lightId), lightIds.end());
+        }
         return "";
     }
 };
@@ -302,9 +323,15 @@ public:
         Mesh mesh;
         std::ifstream file(filepath);
         if (!file.is_open()) throw std::runtime_error("Failed to open OBJ file: " + filepath);
-        std::string line;
+        std::string line, mtlFile, usemtl;
         while (std::getline(file, line)) {
-            if (line.substr(0, 2) == "v ") {
+            if (line.substr(0, 7) == "mtllib ") {
+                mtlFile = line.substr(7);
+                while (!mtlFile.empty() && (mtlFile.back() == ' ' || mtlFile.back() == '\r' || mtlFile.back() == '\n')) mtlFile.pop_back();
+            } else if (line.substr(0, 7) == "usemtl " && usemtl.empty()) {
+                usemtl = line.substr(7);
+                while (!usemtl.empty() && (usemtl.back() == ' ' || usemtl.back() == '\r' || usemtl.back() == '\n')) usemtl.pop_back();
+            } else if (line.substr(0, 2) == "v ") {
                 std::istringstream s(line.substr(2));
                 Vec3 v; s >> v.x >> v.y >> v.z;
                 mesh.vertices.push_back(v);
@@ -326,7 +353,87 @@ public:
         }
         calcAABB(mesh);
         int id = nextMeshId++; meshes[id] = mesh;
+        if (!mtlFile.empty() && !usemtl.empty()) {
+            std::string dir = filepath.substr(0, filepath.find_last_of("/\\") + 1);
+            std::string mtlPath = dir + mtlFile;
+            std::ifstream mtl(mtlPath);
+            if (mtl.is_open()) {
+                std::string mline, curMat;
+                bool found = false;
+                while (std::getline(mtl, mline)) {
+                    if (mline.substr(0, 7) == "newmtl ") {
+                        curMat = mline.substr(7);
+                        while (!curMat.empty() && (curMat.back() == ' ' || curMat.back() == '\r' || curMat.back() == '\n')) curMat.pop_back();
+                    } else if (curMat == usemtl && mline.substr(0, 3) == "Kd ") {
+                        std::istringstream s(mline.substr(3));
+                        float r, g, b;
+                        if (s >> r >> g >> b) {
+                            mesh.color.r = (Uint8)(r * 255);
+                            mesh.color.g = (Uint8)(g * 255);
+                            mesh.color.b = (Uint8)(b * 255);
+                            meshes[id] = mesh;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
         auto obj = std::make_shared<ObjectValue>(); obj->fields["_meshId"] = id; interp->lastValue = obj; return "{object}";
+    }
+};
+
+class ApplyMTLBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "applyMTL"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() < 1 || node->args.size() > 2) throw std::runtime_error("mesh.applyMTL(mtlFilepath, [materialName])");
+        if (!node->callee) throw std::runtime_error("applyMTL must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value objVal = interp->evaluate(fa->object.get());
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj->fields.count("_meshId")) throw std::runtime_error("applyMTL requires mesh object");
+        
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        Mesh& mesh = meshes[meshId];
+        std::string mtlPath = std::get<std::string>(interp->evaluate(node->args[0].get()));
+        std::string targetMat = node->args.size() == 2 ? std::get<std::string>(interp->evaluate(node->args[1].get())) : "";
+        
+        std::ifstream mtl(mtlPath);
+        if (!mtl.is_open()) throw std::runtime_error("Failed to open MTL file: " + mtlPath);
+        
+        std::string line, currentMat;
+        bool inTargetMat = targetMat.empty();
+        bool foundKd = false;
+        while (std::getline(mtl, line)) {
+            if (line.empty() || line[0] == '#') continue;
+            if (line.substr(0, 7) == "newmtl ") {
+                currentMat = line.substr(7);
+                while (!currentMat.empty() && (currentMat.back() == ' ' || currentMat.back() == '\r' || currentMat.back() == '\n')) currentMat.pop_back();
+                inTargetMat = targetMat.empty() || currentMat == targetMat;
+            } else if (inTargetMat) {
+                if (line.substr(0, 3) == "Kd ") {
+                    std::istringstream s(line.substr(3));
+                    float r, g, b;
+                    if (s >> r >> g >> b) {
+                        mesh.color.r = (Uint8)(r * 255);
+                        mesh.color.g = (Uint8)(g * 255);
+                        mesh.color.b = (Uint8)(b * 255);
+                        foundKd = true;
+                    }
+                } else if (line.substr(0, 3) == "Ns ") {
+                    std::istringstream s(line.substr(3));
+                    float ns;
+                    if (s >> ns) mesh.metallic = fmin(1.0f, ns / 1000.0f);
+                } else if (line.substr(0, 2) == "d ") {
+                    std::istringstream s(line.substr(2));
+                    float d;
+                    if (s >> d) mesh.color.a = (Uint8)(d * 255);
+                }
+                if (!targetMat.empty() && foundKd) break;
+            }
+        }
+        return "";
     }
 };
 
@@ -388,7 +495,11 @@ public:
         float z = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
         if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
             auto fa = dynamic_cast<FieldAccess*>(node->callee.get()); Value objVal = interp->evaluate(fa->object.get()); auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-            if (obj->fields.count("_meshId")) meshes[std::get<int>(obj->fields["_meshId"])].scale = {x, y, z};
+            if (obj->fields.count("_meshId")) {
+                Mesh& mesh = meshes[std::get<int>(obj->fields["_meshId"])];
+                mesh.scale = {x, y, z};
+                calcAABB(mesh);
+            }
         }
         return "";
     }
@@ -982,12 +1093,14 @@ public:
 
 REGISTER_BUILTIN(CreateSceneBuiltin)
 REGISTER_BUILTIN(AddToSceneBuiltin)
+REGISTER_BUILTIN(RemoveMeshBuiltin)
 REGISTER_BUILTIN(BoxGeometryBuiltin)
 REGISTER_BUILTIN(SphereGeometryBuiltin)
 REGISTER_BUILTIN(PlaneGeometryBuiltin)
 REGISTER_BUILTIN(TorusGeometryBuiltin)
 REGISTER_BUILTIN(CylinderGeometryBuiltin)
 REGISTER_BUILTIN(LoadOBJBuiltin)
+REGISTER_BUILTIN(ApplyMTLBuiltin)
 REGISTER_BUILTIN(PerspectiveCameraBuiltin)
 REGISTER_BUILTIN(SetPositionBuiltin)
 REGISTER_BUILTIN(SetRotationBuiltin)
@@ -1063,7 +1176,121 @@ public:
     }
 };
 
+class GetVelocityBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "getVelocity"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (!node->callee) throw std::runtime_error("getVelocity must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
+        Value objVal = interp->evaluate(fa->object.get());
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        
+        if (obj->fields.count("_meshId")) {
+            int meshId = std::get<int>(obj->fields["_meshId"]);
+            Mesh& mesh = meshes[meshId];
+            auto result = std::make_shared<ObjectValue>();
+            result->fields["x"] = mesh.velocity.x;
+            result->fields["y"] = mesh.velocity.y;
+            result->fields["z"] = mesh.velocity.z;
+            interp->lastValue = result;
+            return "{object}";
+        }
+        throw std::runtime_error("getVelocity requires mesh object");
+    }
+};
+
+class ApplyPhysicsBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "applyPhysics"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() < 3) throw std::runtime_error("applyPhysics(object, gravity, obstacle1, ...)");
+        
+        Value objVal = interp->evaluate(node->args[0].get());
+        auto objObj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        int objId = std::get<int>(objObj->fields["_meshId"]);
+        Mesh& obj = meshes[objId];
+        
+        auto v1 = interp->evaluate(node->args[1].get());
+        float gravity = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        
+        obj.velocity.y += gravity;
+        obj.position.x += obj.velocity.x;
+        obj.position.y += obj.velocity.y;
+        obj.position.z += obj.velocity.z;
+        
+        Vec3 c1 = {(obj.aabbMin.x + obj.aabbMax.x) * 0.5f, (obj.aabbMin.y + obj.aabbMax.y) * 0.5f, (obj.aabbMin.z + obj.aabbMax.z) * 0.5f};
+        Vec3 e1 = {(obj.aabbMax.x - obj.aabbMin.x) * 0.5f * obj.scale.x, (obj.aabbMax.y - obj.aabbMin.y) * 0.5f * obj.scale.y, (obj.aabbMax.z - obj.aabbMin.z) * 0.5f * obj.scale.z};
+        
+        int grounded = 0;
+        
+        for (size_t i = 2; i < node->args.size(); i++) {
+            Value obstacleVal = interp->evaluate(node->args[i].get());
+            auto obstacleObj = std::get<std::shared_ptr<ObjectValue>>(obstacleVal);
+            int obstacleId = std::get<int>(obstacleObj->fields["_meshId"]);
+            Mesh& obstacle = meshes[obstacleId];
+            
+            Vec3 c2 = {(obstacle.aabbMin.x + obstacle.aabbMax.x) * 0.5f, (obstacle.aabbMin.y + obstacle.aabbMax.y) * 0.5f, (obstacle.aabbMin.z + obstacle.aabbMax.z) * 0.5f};
+            Vec3 e2 = {(obstacle.aabbMax.x - obstacle.aabbMin.x) * 0.5f * obstacle.scale.x, (obstacle.aabbMax.y - obstacle.aabbMin.y) * 0.5f * obstacle.scale.y, (obstacle.aabbMax.z - obstacle.aabbMin.z) * 0.5f * obstacle.scale.z};
+            
+            Vec3 min1 = {obj.position.x + c1.x * obj.scale.x - e1.x, obj.position.y + c1.y * obj.scale.y - e1.y, obj.position.z + c1.z * obj.scale.z - e1.z};
+            Vec3 max1 = {obj.position.x + c1.x * obj.scale.x + e1.x, obj.position.y + c1.y * obj.scale.y + e1.y, obj.position.z + c1.z * obj.scale.z + e1.z};
+            Vec3 min2 = {obstacle.position.x + c2.x * obstacle.scale.x - e2.x, obstacle.position.y + c2.y * obstacle.scale.y - e2.y, obstacle.position.z + c2.z * obstacle.scale.z - e2.z};
+            Vec3 max2 = {obstacle.position.x + c2.x * obstacle.scale.x + e2.x, obstacle.position.y + c2.y * obstacle.scale.y + e2.y, obstacle.position.z + c2.z * obstacle.scale.z + e2.z};
+            
+            if (!aabbIntersect(min1, max1, min2, max2)) continue;
+            
+            float minDist = 1e9f;
+            Vec3 bestNormal = {0, 1, 0};
+            bool hasCollision = false;
+            
+            for (size_t ti = 0; ti < obstacle.indices.size(); ti += 3) {
+                Vec3 tv[3];
+                for (int j = 0; j < 3; j++) tv[j] = transformVertex(obstacle.vertices[obstacle.indices[ti + j]], obstacle);
+                
+                Vec3 dirs[6] = {{0,-1,0}, {0,1,0}, {-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1}};
+                for (auto& dir : dirs) {
+                    float t; Vec3 n;
+                    if (rayTriangleIntersect(obj.position, dir, tv[0], tv[1], tv[2], t, n) && t < e1.y * 2.0f) {
+                        if (t < minDist) { minDist = t; bestNormal = n; hasCollision = true; }
+                    }
+                }
+            }
+            
+            if (hasCollision && minDist < e1.y * 1.5f) {
+                obj.position.x += bestNormal.x * (e1.y * 1.5f - minDist);
+                obj.position.y += bestNormal.y * (e1.y * 1.5f - minDist);
+                obj.position.z += bestNormal.z * (e1.y * 1.5f - minDist);
+                
+                float vDot = obj.velocity.x*bestNormal.x + obj.velocity.y*bestNormal.y + obj.velocity.z*bestNormal.z;
+                if (vDot < 0) {
+                    obj.velocity.x -= bestNormal.x * vDot * (1.0f + obstacle.bounciness);
+                    obj.velocity.y -= bestNormal.y * vDot * (1.0f + obstacle.bounciness);
+                    obj.velocity.z -= bestNormal.z * vDot * (1.0f + obstacle.bounciness);
+                }
+                if (fabs(bestNormal.y) > 0.5f && vDot < 0) {
+                    obj.velocity.x *= (1.0f - obstacle.friction);
+                    obj.velocity.z *= (1.0f - obstacle.friction);
+                    obj.groundNormal = bestNormal;
+                    grounded = 1;
+                }
+            }
+        }
+        
+        obj.angularVelocity.x *= 0.98f;
+        obj.angularVelocity.y *= 0.98f;
+        obj.angularVelocity.z *= 0.98f;
+        obj.rotation.x += obj.angularVelocity.x;
+        obj.rotation.y += obj.angularVelocity.y;
+        obj.rotation.z += obj.angularVelocity.z;
+        
+        interp->lastValue = grounded;
+        return grounded ? "1" : "0";
+    }
+};
+
 REGISTER_BUILTIN(GetPositionBuiltin)
+REGISTER_BUILTIN(GetVelocityBuiltin)
+REGISTER_BUILTIN(ApplyPhysicsBuiltin)
 
 class MoveByBuiltin : public BuiltinFunction {
 public:
@@ -1104,204 +1331,62 @@ public:
         int objId = std::get<int>(objObj->fields["_meshId"]);
         Mesh& obj = meshes[objId];
         
-        float maxVel = 0.3f;
-        float velMag = sqrt(obj.velocity.x*obj.velocity.x + obj.velocity.y*obj.velocity.y + obj.velocity.z*obj.velocity.z);
-        if (velMag > maxVel) {
-            obj.velocity.x *= maxVel / velMag;
-            obj.velocity.y *= maxVel / velMag;
-            obj.velocity.z *= maxVel / velMag;
-        }
+        Vec3 c1 = {(obj.aabbMin.x + obj.aabbMax.x) * 0.5f, (obj.aabbMin.y + obj.aabbMax.y) * 0.5f, (obj.aabbMin.z + obj.aabbMax.z) * 0.5f};
+        Vec3 e1 = {(obj.aabbMax.x - obj.aabbMin.x) * 0.5f * obj.scale.x, (obj.aabbMax.y - obj.aabbMin.y) * 0.5f * obj.scale.y, (obj.aabbMax.z - obj.aabbMin.z) * 0.5f * obj.scale.z};
         
-        int steps = 6;
-        float stepVelX = obj.velocity.x / steps;
-        float stepVelY = obj.velocity.y / steps;
-        float stepVelZ = obj.velocity.z / steps;
+        obj.position.x += obj.velocity.x;
+        obj.position.y += obj.velocity.y;
+        obj.position.z += obj.velocity.z;
         
-        for (int step = 0; step < steps; step++) {
-            obj.position.x += stepVelX;
-            obj.position.y += stepVelY;
-            obj.position.z += stepVelZ;
-            
-            for (size_t i = 1; i < node->args.size(); i++) {
+        for (size_t i = 1; i < node->args.size(); i++) {
             Value obstacleVal = interp->evaluate(node->args[i].get());
             auto obstacleObj = std::get<std::shared_ptr<ObjectValue>>(obstacleVal);
             int obstacleId = std::get<int>(obstacleObj->fields["_meshId"]);
             Mesh& obstacle = meshes[obstacleId];
             
-            Vec3 c1 = {(obj.aabbMin.x + obj.aabbMax.x) * 0.5f, (obj.aabbMin.y + obj.aabbMax.y) * 0.5f, (obj.aabbMin.z + obj.aabbMax.z) * 0.5f};
-            Vec3 e1 = {(obj.aabbMax.x - obj.aabbMin.x) * 0.5f * obj.scale.x, (obj.aabbMax.y - obj.aabbMin.y) * 0.5f * obj.scale.y, (obj.aabbMax.z - obj.aabbMin.z) * 0.5f * obj.scale.z};
             Vec3 c2 = {(obstacle.aabbMin.x + obstacle.aabbMax.x) * 0.5f, (obstacle.aabbMin.y + obstacle.aabbMax.y) * 0.5f, (obstacle.aabbMin.z + obstacle.aabbMax.z) * 0.5f};
             Vec3 e2 = {(obstacle.aabbMax.x - obstacle.aabbMin.x) * 0.5f * obstacle.scale.x, (obstacle.aabbMax.y - obstacle.aabbMin.y) * 0.5f * obstacle.scale.y, (obstacle.aabbMax.z - obstacle.aabbMin.z) * 0.5f * obstacle.scale.z};
             
-            bool isRotated = fabs(obj.rotation.x) > 0.01f || fabs(obj.rotation.z) > 0.01f ||
-                             fabs(obstacle.rotation.x) > 0.01f || fabs(obstacle.rotation.z) > 0.01f;
+            Vec3 min1 = {obj.position.x + c1.x * obj.scale.x - e1.x, obj.position.y + c1.y * obj.scale.y - e1.y, obj.position.z + c1.z * obj.scale.z - e1.z};
+            Vec3 max1 = {obj.position.x + c1.x * obj.scale.x + e1.x, obj.position.y + c1.y * obj.scale.y + e1.y, obj.position.z + c1.z * obj.scale.z + e1.z};
+            Vec3 min2 = {obstacle.position.x + c2.x * obstacle.scale.x - e2.x, obstacle.position.y + c2.y * obstacle.scale.y - e2.y, obstacle.position.z + c2.z * obstacle.scale.z - e2.z};
+            Vec3 max2 = {obstacle.position.x + c2.x * obstacle.scale.x + e2.x, obstacle.position.y + c2.y * obstacle.scale.y + e2.y, obstacle.position.z + c2.z * obstacle.scale.z + e2.z};
             
-            if (isRotated) {
-                Vec3 pos1 = {obj.position.x, obj.position.y, obj.position.z};
-                Vec3 pos2 = {obstacle.position.x, obstacle.position.y, obstacle.position.z};
-                Vec3 relPos = {pos1.x - pos2.x, pos1.y - pos2.y, pos1.z - pos2.z};
+            if (!aabbIntersect(min1, max1, min2, max2)) continue;
+            
+            float minDist = 1e9f;
+            Vec3 bestNormal = {0, 1, 0};
+            bool hasCollision = false;
+            
+            for (size_t ti = 0; ti < obstacle.indices.size(); ti += 3) {
+                Vec3 tv[3];
+                for (int j = 0; j < 3; j++) tv[j] = transformVertex(obstacle.vertices[obstacle.indices[ti + j]], obstacle);
                 
-                Vec3 axes[15];
-                Vec3 ax1[3] = {{1,0,0}, {0,1,0}, {0,0,1}};
-                Vec3 ax2[3] = {{1,0,0}, {0,1,0}, {0,0,1}};
-                
-                for (int k = 0; k < 3; k++) {
-                    ax1[k] = rotateX(ax1[k], obj.rotation.x);
-                    ax1[k] = rotateY(ax1[k], obj.rotation.y);
-                    ax1[k] = rotateZ(ax1[k], obj.rotation.z);
-                    ax2[k] = rotateX(ax2[k], obstacle.rotation.x);
-                    ax2[k] = rotateY(ax2[k], obstacle.rotation.y);
-                    ax2[k] = rotateZ(ax2[k], obstacle.rotation.z);
-                }
-                
-                for (int k = 0; k < 3; k++) axes[k] = ax1[k];
-                for (int k = 0; k < 3; k++) axes[k+3] = ax2[k];
-                for (int k = 0; k < 3; k++) {
-                    for (int j = 0; j < 3; j++) {
-                        Vec3 cross = {ax1[k].y*ax2[j].z - ax1[k].z*ax2[j].y, ax1[k].z*ax2[j].x - ax1[k].x*ax2[j].z, ax1[k].x*ax2[j].y - ax1[k].y*ax2[j].x};
-                        float len = sqrt(cross.x*cross.x + cross.y*cross.y + cross.z*cross.z);
-                        if (len > 0.001f) { cross.x /= len; cross.y /= len; cross.z /= len; axes[6+k*3+j] = cross; }
-                    }
-                }
-                
-                float minPen = 1e9f;
-                Vec3 minAxis = {0,1,0};
-                bool colliding = true;
-                
-                for (int k = 0; k < 15 && colliding; k++) {
-                    Vec3 axis = axes[k];
-                    float len = sqrt(axis.x*axis.x + axis.y*axis.y + axis.z*axis.z);
-                    if (len < 0.001f) continue;
-                    axis.x /= len; axis.y /= len; axis.z /= len;
-                    
-                    float r1 = fabs(e1.x * (ax1[0].x*axis.x + ax1[0].y*axis.y + ax1[0].z*axis.z)) +
-                               fabs(e1.y * (ax1[1].x*axis.x + ax1[1].y*axis.y + ax1[1].z*axis.z)) +
-                               fabs(e1.z * (ax1[2].x*axis.x + ax1[2].y*axis.y + ax1[2].z*axis.z));
-                    float r2 = fabs(e2.x * (ax2[0].x*axis.x + ax2[0].y*axis.y + ax2[0].z*axis.z)) +
-                               fabs(e2.y * (ax2[1].x*axis.x + ax2[1].y*axis.y + ax2[1].z*axis.z)) +
-                               fabs(e2.z * (ax2[2].x*axis.x + ax2[2].y*axis.y + ax2[2].z*axis.z));
-                    float dist = fabs(relPos.x*axis.x + relPos.y*axis.y + relPos.z*axis.z);
-                    
-                    if (dist > r1 + r2) { colliding = false; }
-                    else {
-                        float pen = r1 + r2 - dist;
-                        if (pen < minPen) { minPen = pen; minAxis = axis; }
-                    }
-                }
-                
-                if (colliding && minPen < 1e8f) {
-                    if (relPos.x*minAxis.x + relPos.y*minAxis.y + relPos.z*minAxis.z < 0) {
-                        minAxis.x = -minAxis.x; minAxis.y = -minAxis.y; minAxis.z = -minAxis.z;
-                    }
-                    float margin = 0.01f;
-                    obj.position.x += minAxis.x * (minPen + margin);
-                    obj.position.y += minAxis.y * (minPen + margin);
-                    obj.position.z += minAxis.z * (minPen + margin);
-                    
-                    float vDot = obj.velocity.x*minAxis.x + obj.velocity.y*minAxis.y + obj.velocity.z*minAxis.z;
-                    if (vDot < 0) {
-                        obj.velocity.x -= minAxis.x * vDot * (1.0f + obstacle.bounciness);
-                        obj.velocity.y -= minAxis.y * vDot * (1.0f + obstacle.bounciness);
-                        obj.velocity.z -= minAxis.z * vDot * (1.0f + obstacle.bounciness);
-                    }
-                    if (fabs(minAxis.y) > 0.5f) {
-                        obj.velocity.x *= (1.0f - obstacle.friction);
-                        obj.velocity.z *= (1.0f - obstacle.friction);
-                    }
-                    Vec3 tangentVel = {obj.velocity.x - minAxis.x * vDot, obj.velocity.y - minAxis.y * vDot, obj.velocity.z - minAxis.z * vDot};
-                    float tangentSpeed = sqrt(tangentVel.x*tangentVel.x + tangentVel.y*tangentVel.y + tangentVel.z*tangentVel.z);
-                    if (tangentSpeed > 0.01f) {
-                        Vec3 rollAxis = {minAxis.y*tangentVel.z - minAxis.z*tangentVel.y, minAxis.z*tangentVel.x - minAxis.x*tangentVel.z, minAxis.x*tangentVel.y - minAxis.y*tangentVel.x};
-                        float rollSpeed = tangentSpeed / fmax(e1.x, fmax(e1.y, e1.z));
-                        obj.angularVelocity.x += rollAxis.x * rollSpeed * 0.1f;
-                        obj.angularVelocity.y += rollAxis.y * rollSpeed * 0.1f;
-                        obj.angularVelocity.z += rollAxis.z * rollSpeed * 0.1f;
-                    }
-                }
-            } else {
-                Vec3 min1 = {obj.position.x + c1.x - e1.x, obj.position.y + c1.y - e1.y, obj.position.z + c1.z - e1.z};
-                Vec3 max1 = {obj.position.x + c1.x + e1.x, obj.position.y + c1.y + e1.y, obj.position.z + c1.z + e1.z};
-                Vec3 min2 = {obstacle.position.x + c2.x - e2.x, obstacle.position.y + c2.y - e2.y, obstacle.position.z + c2.z - e2.z};
-                Vec3 max2 = {obstacle.position.x + c2.x + e2.x, obstacle.position.y + c2.y + e2.y, obstacle.position.z + c2.z + e2.z};
-                
-                bool colliding = false;
-                if (obstacle.collisionShape == 1) {
-                    float dx = obj.position.x - obstacle.position.x;
-                    float dz = obj.position.z - obstacle.position.z;
-                    float dist2d = sqrt(dx*dx + dz*dz);
-                    float combinedRadius = (e1.x + e1.z) * 0.5f + obstacle.collisionRadius * fmax(obstacle.scale.x, obstacle.scale.z);
-                    if (dist2d < combinedRadius && min1.y < max2.y && max1.y > min2.y) colliding = true;
-                } else {
-                    colliding = aabbIntersect(min1, max1, min2, max2);
-                }
-                
-                if (colliding) {
-                    float overlapX = fmin(max1.x, max2.x) - fmax(min1.x, min2.x);
-                    float overlapY = fmin(max1.y, max2.y) - fmax(min1.y, min2.y);
-                    float overlapZ = fmin(max1.z, max2.z) - fmax(min1.z, min2.z);
-                    
-                    if (obstacle.collisionShape == 1) {
-                        float dx = obj.position.x - obstacle.position.x;
-                        float dz = obj.position.z - obstacle.position.z;
-                        float dist2d = sqrt(dx*dx + dz*dz);
-                        if (dist2d > 0.001f) {
-                            float nx = dx / dist2d, nz = dz / dist2d;
-                            float combinedRadius = (e1.x + e1.z) * 0.5f + obstacle.collisionRadius * fmax(obstacle.scale.x, obstacle.scale.z);
-                            float penetration = combinedRadius - dist2d;
-                            obj.position.x += nx * penetration;
-                            obj.position.z += nz * penetration;
-                            float vDot = obj.velocity.x * nx + obj.velocity.z * nz;
-                            if (vDot < 0) {
-                                obj.velocity.x -= nx * vDot * (1.0f + obstacle.bounciness);
-                                obj.velocity.z -= nz * vDot * (1.0f + obstacle.bounciness);
-                            }
-                        }
-                    } else if (overlapY <= overlapX && overlapY <= overlapZ) {
-                        if (obj.position.y > obstacle.position.y) {
-                            obj.position.y += overlapY;
-                            if (obj.velocity.y < 0) obj.velocity.y *= -obstacle.bounciness;
-                            float tangentSpeed = sqrt(obj.velocity.x*obj.velocity.x + obj.velocity.z*obj.velocity.z);
-                            if (tangentSpeed > 0.01f) {
-                                float radius = fmax(e1.x, fmax(e1.y, e1.z));
-                                obj.angularVelocity.x += obj.velocity.z / radius * 0.1f;
-                                obj.angularVelocity.z -= obj.velocity.x / radius * 0.1f;
-                            }
-                            obj.velocity.x *= (1.0f - obstacle.friction);
-                            obj.velocity.z *= (1.0f - obstacle.friction);
-                            if (fabs(obstacle.rotation.x) > 0.01f || fabs(obstacle.rotation.z) > 0.01f) {
-                                Vec3 up = {0, 1, 0};
-                                up = rotateX(up, obstacle.rotation.x);
-                                up = rotateY(up, obstacle.rotation.y);
-                                up = rotateZ(up, obstacle.rotation.z);
-                                obj.groundNormal = up;
-                            } else {
-                                obj.groundNormal = {0, 1, 0};
-                            }
-                        } else {
-                            obj.position.y -= overlapY;
-                            if (obj.velocity.y > 0) obj.velocity.y *= -obstacle.bounciness;
-                        }
-                    } else if (overlapX <= overlapZ) {
-                        if (obj.position.x > obstacle.position.x) obj.position.x += overlapX;
-                        else obj.position.x -= overlapX;
-                        if (obj.velocity.x != 0) {
-                            float radius = fmax(e1.x, fmax(e1.y, e1.z));
-                            obj.angularVelocity.y += obj.velocity.x / radius * 0.2f;
-                            obj.angularVelocity.z += obj.velocity.y / radius * 0.1f;
-                        }
-                        obj.velocity.x = 0;
-                    } else {
-                        if (obj.position.z > obstacle.position.z) obj.position.z += overlapZ;
-                        else obj.position.z -= overlapZ;
-                        if (obj.velocity.z != 0) {
-                            float radius = fmax(e1.x, fmax(e1.y, e1.z));
-                            obj.angularVelocity.y -= obj.velocity.z / radius * 0.2f;
-                            obj.angularVelocity.x += obj.velocity.y / radius * 0.1f;
-                        }
-                        obj.velocity.z = 0;
+                Vec3 dirs[6] = {{0,-1,0}, {0,1,0}, {-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1}};
+                for (auto& dir : dirs) {
+                    float t; Vec3 n;
+                    if (rayTriangleIntersect(obj.position, dir, tv[0], tv[1], tv[2], t, n) && t < e1.y * 2.0f) {
+                        if (t < minDist) { minDist = t; bestNormal = n; hasCollision = true; }
                     }
                 }
             }
+            
+            if (hasCollision && minDist < e1.y * 1.5f) {
+                obj.position.x += bestNormal.x * (e1.y * 1.5f - minDist);
+                obj.position.y += bestNormal.y * (e1.y * 1.5f - minDist);
+                obj.position.z += bestNormal.z * (e1.y * 1.5f - minDist);
+                
+                float vDot = obj.velocity.x*bestNormal.x + obj.velocity.y*bestNormal.y + obj.velocity.z*bestNormal.z;
+                if (vDot < 0) {
+                    obj.velocity.x -= bestNormal.x * vDot * (1.0f + obstacle.bounciness);
+                    obj.velocity.y -= bestNormal.y * vDot * (1.0f + obstacle.bounciness);
+                    obj.velocity.z -= bestNormal.z * vDot * (1.0f + obstacle.bounciness);
+                }
+                if (fabs(bestNormal.y) > 0.5f) {
+                    obj.velocity.x *= (1.0f - obstacle.friction);
+                    obj.velocity.z *= (1.0f - obstacle.friction);
+                    obj.groundNormal = bestNormal;
+                }
             }
         }
         
@@ -1316,6 +1401,7 @@ public:
         return "0";
     }
 };
+
 
 class AddVelocityBuiltin : public BuiltinFunction {
 public:
@@ -1400,6 +1486,8 @@ public:
         player.position.y += player.velocity.y;
         
         int grounded = 0;
+        float minScale = fmin(player.scale.x, fmin(player.scale.y, player.scale.z));
+        float threshold = 0.01f * minScale;
         
         for (size_t i = 2; i < node->args.size(); i++) {
             Value obstacleVal = interp->evaluate(node->args[i].get());
@@ -1412,17 +1500,18 @@ public:
             Vec3 c2 = {(obstacle.aabbMin.x + obstacle.aabbMax.x) * 0.5f, (obstacle.aabbMin.y + obstacle.aabbMax.y) * 0.5f, (obstacle.aabbMin.z + obstacle.aabbMax.z) * 0.5f};
             Vec3 e2 = {(obstacle.aabbMax.x - obstacle.aabbMin.x) * 0.5f * obstacle.scale.x, (obstacle.aabbMax.y - obstacle.aabbMin.y) * 0.5f * obstacle.scale.y, (obstacle.aabbMax.z - obstacle.aabbMin.z) * 0.5f * obstacle.scale.z};
             
-            Vec3 min1 = {player.position.x + c1.x - e1.x, player.position.y + c1.y - e1.y, player.position.z + c1.z - e1.z};
-            Vec3 max1 = {player.position.x + c1.x + e1.x, player.position.y + c1.y + e1.y, player.position.z + c1.z + e1.z};
-            Vec3 min2 = {obstacle.position.x + c2.x - e2.x, obstacle.position.y + c2.y - e2.y, obstacle.position.z + c2.z - e2.z};
-            Vec3 max2 = {obstacle.position.x + c2.x + e2.x, obstacle.position.y + c2.y + e2.y, obstacle.position.z + c2.z + e2.z};
+            Vec3 min1 = {player.position.x + c1.x * player.scale.x - e1.x, player.position.y + c1.y * player.scale.y - e1.y, player.position.z + c1.z * player.scale.z - e1.z};
+            Vec3 max1 = {player.position.x + c1.x * player.scale.x + e1.x, player.position.y + c1.y * player.scale.y + e1.y, player.position.z + c1.z * player.scale.z + e1.z};
+            Vec3 min2 = {obstacle.position.x + c2.x * obstacle.scale.x - e2.x, obstacle.position.y + c2.y * obstacle.scale.y - e2.y, obstacle.position.z + c2.z * obstacle.scale.z - e2.z};
+            Vec3 max2 = {obstacle.position.x + c2.x * obstacle.scale.x + e2.x, obstacle.position.y + c2.y * obstacle.scale.y + e2.y, obstacle.position.z + c2.z * obstacle.scale.z + e2.z};
             
             if (aabbIntersect(min1, max1, min2, max2)) {
-                float obstacleTop = obstacle.position.y + (obstacle.aabbMax.y * obstacle.scale.y);
-                float playerBottom = player.position.y + (player.aabbMin.y * player.scale.y);
+                float obstacleTop = max2.y;
+                float playerBottom = min1.y;
+                float oldPlayerBottom = oldPos.y + c1.y * player.scale.y - e1.y;
                 
-                if (oldPos.y >= obstacleTop && playerBottom < obstacleTop + 0.1f) {
-                    player.position.y = obstacleTop - (player.aabbMin.y * player.scale.y);
+                if (oldPlayerBottom >= obstacleTop - threshold && playerBottom < obstacleTop + threshold) {
+                    player.position.y = obstacleTop - (c1.y * player.scale.y - e1.y);
                     player.velocity.y = 0.0f;
                     grounded = 1;
                 }
@@ -1515,6 +1604,14 @@ public:
                 scene.fogColor.r = std::stoi(color.substr(1, 2), nullptr, 16);
                 scene.fogColor.g = std::stoi(color.substr(3, 2), nullptr, 16);
                 scene.fogColor.b = std::stoi(color.substr(5, 2), nullptr, 16);
+            }
+        }
+        if (settings->fields.count("backgroundColor")) {
+            std::string color = std::get<std::string>(settings->fields["backgroundColor"]);
+            if (color[0] == '#' && color.length() == 7) {
+                scene.background.r = std::stoi(color.substr(1, 2), nullptr, 16);
+                scene.background.g = std::stoi(color.substr(3, 2), nullptr, 16);
+                scene.background.b = std::stoi(color.substr(5, 2), nullptr, 16);
             }
         }
         return "";

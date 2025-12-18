@@ -1,55 +1,20 @@
 {
-    "files.associations": {
-        "*.embeddedhtml": "html",
-        "variant": "cpp",
-        "iostream": "cpp",
-        "__bit_reference": "cpp",
-        "__locale": "cpp",
-        "__split_buffer": "cpp",
-        "__verbose_abort": "cpp",
-        "array": "cpp",
-        "cctype": "cpp",
-        "clocale": "cpp",
-        "cmath": "cpp",
-        "cstdarg": "cpp",
-        "cstdint": "cpp",
-        "cstdio": "cpp",
-        "cstdlib": "cpp",
-        "cstring": "cpp",
-        "ctime": "cpp",
-        "cwchar": "cpp",
-        "cwctype": "cpp",
-        "execution": "cpp",
-        "initializer_list": "cpp",
-        "ios": "cpp",
-        "iosfwd": "cpp",
-        "limits": "cpp",
-        "locale": "cpp",
-        "mutex": "cpp",
-        "new": "cpp",
-        "optional": "cpp",
-        "ratio": "cpp",
-        "stdexcept": "cpp",
-        "streambuf": "cpp",
-        "string": "cpp",
-        "string_view": "cpp",
-        "typeinfo": "cpp",
-        "vector": "cpp",
-        "algorithm": "cpp",
-        "__hash_table": "cpp",
-        "__node_handle": "cpp",
-        "bitset": "cpp",
-        "complex": "cpp",
-        "deque": "cpp",
-        "memory": "cpp",
-        "fstream": "cpp",
-        "iomanip": "cpp",
-        "istream": "cpp",
-        "print": "cpp",
-        "queue": "cpp",
-        "sstream": "cpp",
-        "stack": "cpp",
-        "unordered_map": "cpp",
-        "unordered_set": "cpp"
-    }
+  "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": ["storage.type.primitive.axolotl", "entity.name.type.axolotl"],
+        "settings": {
+          "foreground": "#ff69b4",
+          "fontStyle": "bold"
+        }
+      },
+      {
+        "scope": "support.function.builtin.axolotl",
+        "settings": {
+          "foreground": "#4ec9b0",
+          "fontStyle": "italic"
+        }
+      }
+    ]
+  }
 }
