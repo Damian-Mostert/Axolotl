@@ -1,4 +1,4 @@
-.PHONY: all build install uninstall clean test
+.PHONY: all build install uninstall clean test extensions update-extensions
 
 all: build
 
@@ -17,3 +17,9 @@ clean:
 
 test: build
 	@./build/compiler tests/all_tests.axo
+
+extensions:
+	@./build_extensions.sh
+
+update-extensions:
+	@./update_extensions.sh

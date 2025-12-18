@@ -63,6 +63,7 @@ Operators: arithmetic `+ - * / %`, comparison `== != < > <= >=`, logical `&& || 
 Prerequisites
 - C++17 toolchain (Apple Clang or GCC/Clang)
 - CMake 3.10+
+- LLVM, SDL2, SDL2_image, curl, GTK3 (for full features)
 
 From the repository root (recommended):
 
@@ -71,12 +72,21 @@ From the repository root (recommended):
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
 
+# OR use Makefile
+make build
+
 # run an example
 ./build/compiler examples/test.axo
 
-# compile to standalone executable
-./build/compiler compile examples/test.axo myprogram
-./myprogram
+# compile to standalone executable (embeds full interpreter)
+./build/compiler compile sample/index.axo MyGame
+./MyGame
+
+# compile with icon (cross-platform)
+./compile_standalone.sh sample/index.axo MyGame sample/icon.png
+# macOS: creates MyGame.app bundle
+# Linux: creates MyGame executable + .desktop file
+# Windows: creates MyGame.exe with embedded icon
 
 # interactive REPL mode
 ./build/compiler
@@ -84,30 +94,62 @@ cmake --build build -j$(nproc)
 
 If you previously built in a different folder, remove `build/` and re-run `cmake -S . -B build` to avoid stale cache issues.
 
-## **VS Code Extension (language + icons)**
+## **Standalone Executables**
 
-The `lang-ext/` folder contains a small VS Code extension providing syntax highlighting and an icon theme.
-
-Quick steps to test the extension locally (dev host):
+The compiler can create TRUE standalone executables that bundle the entire Axolotl interpreter and your source code into a single binary requiring no external dependencies:
 
 ```bash
-# open VS Code to the extension folder and press F5
-code --extensionDevelopmentPath=/path/to/Axolotl/lang-ext
+# Quick compile
+./build/compiler compile myapp.axo myapp
+
+# With icon support (recommended)
+./compile_standalone.sh myapp.axo myapp path/to/icon.png
 ```
 
-Package and install the VSIX (to test in regular VS Code):
+The standalone compiler:
+- Embeds the full Axolotl interpreter
+- Bundles all source code
+- Creates platform-specific executables:
+  - **macOS**: `.app` bundle with icon
+  - **Linux**: executable with `.desktop` file
+  - **Windows**: `.exe` with embedded icon
+- No runtime dependencies on Axolotl installation
+
+## **VS Code Extensions**
+
+The `vs-code-extentions/` folder contains multiple VS Code extensions:
+- **axolotl-highlighter**: Syntax highlighting and language support
+- **axolotl-intelsense**: IntelliSense and autocomplete
+- **axolotl-formater**: Code formatting
+
+Build all extensions at once:
 
 ```bash
-cd lang-ext
-npm install -g vsce   # if you don't have it
-npm run build          # uses `vsce package` (see package.json)
-# installs lang-syntax-<version>.vsix
-code --install-extension ./lang-syntax-1.0.0.vsix
+# Build all extensions to VSIX packages
+./build_extensions.sh
+
+# OR use Makefile
+make extensions
+
+# Install extensions
+code --install-extension build/extensions/axolotl-highlighter.vsix
+code --install-extension build/extensions/axolotl-intelsense.vsix
+code --install-extension build/extensions/axolotl-formater.vsix
 ```
 
-After installing or running the dev host:
-- In Command Palette → `Preferences: File Icon Theme` → choose `Axolotl Icons` to enable file icons for `.axo` files.
-- If icons don't appear: `Developer: Reload Window`, ensure the extension is enabled, and that `.axo` is selected as the language for your file.
+Manual build (single extension):
+
+```bash
+cd vs-code-extentions/axolotl-highlighter
+npm install -g @vscode/vsce
+vsce package
+code --install-extension axolotl-highlighter-1.0.0.vsix
+```
+
+After installing:
+- Reload VS Code window
+- Open any `.axo` file to activate extensions
+- IntelliSense will provide autocomplete suggestions
 
 ## **Error Reporting / Diagnostics**
 

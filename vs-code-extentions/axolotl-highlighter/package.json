@@ -1,0 +1,40 @@
+{
+  "name": "axolotl-highlighter",
+  "displayName": "Axolotl Syntax Highlighter",
+  "description": "Syntax highlighting for Axolotl programming language",
+  "version": "1.0.0",
+  "publisher": "axolotl",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [{
+      "id": "axolotl",
+      "aliases": ["Axolotl", "axo"],
+      "extensions": [".axo"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "axolotl",
+      "scopeName": "source.axolotl",
+      "path": "./syntaxes/axolotl.tmLanguage.json"
+    }],
+    "configurationDefaults": {
+      "[axolotl]": {
+        "editor.tokenColorCustomizations": {
+          "textMateRules": [
+            {
+              "scope": ["storage.type.primitive.axolotl", "entity.name.type.axolotl"],
+              "settings": {"foreground": "#ff69b4", "fontStyle": "bold"}
+            },
+            {
+              "scope": "support.function.builtin.axolotl",
+              "settings": {"foreground": "#4ec9b0", "fontStyle": "italic"}
+            }
+          ]
+        }
+      }
+    }
+  }
+}

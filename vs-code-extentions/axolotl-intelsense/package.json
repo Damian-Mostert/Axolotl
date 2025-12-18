@@ -1,0 +1,14 @@
+{
+  "name": "axolotl-intelsense",
+  "displayName": "Axolotl IntelliSense",
+  "description": "IntelliSense and autocomplete for Axolotl programming language",
+  "version": "1.0.0",
+  "publisher": "axolotl",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": ["Programming Languages"],
+  "activationEvents": ["onLanguage:axolotl"],
+  "main": "./extension.js",
+  "contributes": {}
+}
