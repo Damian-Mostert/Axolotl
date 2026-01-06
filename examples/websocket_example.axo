@@ -1,0 +1,32 @@
+// WebSocket Example
+// Connect to WebSocket server and send/receive messages
+
+// Connect to WebSocket server
+const ws: object = wsConnect("ws://localhost:8080/chat");
+
+print("Connected to WebSocket server");
+
+// Send a message
+ws.send("Hello from Axolotl!");
+
+// Receive messages in a loop
+var running: int = 1;
+var count: int = 0;
+
+while (running == 1 && count < 100) {
+    const message: string = ws.receive();
+    
+    if (message != "") {
+        print("Received: " + message);
+        
+        // Echo back
+        ws.send("Echo: " + message);
+    }
+    
+    count = count + 1;
+    sleep(100);
+}
+
+// Close connection
+ws.close();
+print("WebSocket closed");

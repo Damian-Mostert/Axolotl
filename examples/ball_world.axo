@@ -112,7 +112,7 @@ while (handleDevInput() == 1) {
     
     applyAttractionToMesh(player, planet);
     handleCollision(player, planet, tree1, tree2, rock1, rock2);
-    
+
     applyAttractionToMesh(ball1, planet);
     handleCollision(ball1, planet, tree1, tree2, rock1, rock2, player);
     

@@ -2,13 +2,21 @@
   "name": "axolotl-intelsense",
   "displayName": "Axolotl IntelliSense",
   "description": "IntelliSense and autocomplete for Axolotl programming language",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "axolotl",
   "engines": {
     "vscode": "^1.60.0"
   },
   "categories": ["Programming Languages"],
-  "activationEvents": ["onLanguage:axolotl"],
+  "activationEvents": ["onLanguage:axolotl", "*"],
   "main": "./extension.js",
-  "contributes": {}
+  "extensionDependencies": ["axolotl.axolotl-highlighter"],
+  "contributes": {
+    "languages": [{
+      "id": "axolotl",
+      "aliases": ["Axolotl", "axo"],
+      "extensions": [".axo"],
+      "configuration": "./language-configuration.json"
+    }]
+  }
 }

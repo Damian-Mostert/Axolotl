@@ -131,6 +131,28 @@ if [ "$OS_TYPE" = "Linux" ]; then
             TEMP_INSTALLED="$TEMP_INSTALLED gtk3-devel"
         fi
     fi
+    # Optional: MySQL
+    if command -v apt-get >/dev/null 2>&1; then
+        if ! dpkg -l | grep -q libmysqlclient-dev 2>/dev/null; then
+            echo "${BLUE}ℹ${RESET}  MySQL support available (optional)"
+            read -p "  Install MySQL support? [y/N] " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                sudo apt-get install -y libmysqlclient-dev
+            fi
+        fi
+    fi
+    # Optional: WebSocket
+    if command -v apt-get >/dev/null 2>&1; then
+        if ! dpkg -l | grep -q libwebsockets-dev 2>/dev/null; then
+            echo "${BLUE}ℹ${RESET}  WebSocket support available (optional)"
+            read -p "  Install WebSocket support? [y/N] " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                sudo apt-get install -y libwebsockets-dev
+            fi
+        fi
+    fi
 elif [ "$OS_TYPE" = "Mac" ]; then
     if ! brew list sdl2 >/dev/null 2>&1; then
         echo "${YELLOW}⚠${RESET}  SDL2 not found, installing temporarily..."
@@ -141,6 +163,24 @@ elif [ "$OS_TYPE" = "Mac" ]; then
         echo "${YELLOW}⚠${RESET}  GTK3 not found, installing temporarily..."
         brew install gtk+3
         TEMP_INSTALLED="$TEMP_INSTALLED gtk+3"
+    fi
+    # Optional: MySQL
+    if ! brew list mysql-connector-c >/dev/null 2>&1; then
+        echo "${BLUE}ℹ${RESET}  MySQL support available (optional)"
+        read -p "  Install MySQL support? [y/N] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            brew install mysql-connector-c
+        fi
+    fi
+    # Optional: WebSocket
+    if ! brew list libwebsockets >/dev/null 2>&1; then
+        echo "${BLUE}ℹ${RESET}  WebSocket support available (optional)"
+        read -p "  Install WebSocket support? [y/N] " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            brew install libwebsockets
+        fi
     fi
 fi
 echo "${GREEN}✓${RESET} All dependencies ready"

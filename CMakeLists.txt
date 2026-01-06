@@ -27,6 +27,7 @@ set(SOURCES
     src/operators.cpp
     src/jit.cpp
     src/error_handler.cpp
+    src/builtin_registry.cpp
     src/builtins/registry.cpp
     src/builtins/string_functions.cpp
     src/builtins/io_functions.cpp
@@ -45,6 +46,34 @@ set(SOURCES
     src/ui_parser.cpp
     src/ui_interpreter.cpp
 )
+
+# Optional MySQL support
+find_library(MYSQL_LIBRARY mysqlclient PATHS /usr/local/lib /opt/homebrew/lib)
+if(MYSQL_LIBRARY)
+    find_path(MYSQL_INCLUDE_DIR mysql/mysql.h PATHS /usr/local/include /opt/homebrew/include)
+    if(MYSQL_INCLUDE_DIR)
+        message(STATUS "Found MySQL: ${MYSQL_LIBRARY}")
+        list(APPEND SOURCES src/builtins/mysql_functions.cpp)
+        include_directories(${MYSQL_INCLUDE_DIR})
+        set(HAVE_MYSQL TRUE)
+    endif()
+else()
+    message(STATUS "MySQL not found - skipping MySQL support")
+endif()
+
+# Optional WebSocket support
+find_library(WEBSOCKETS_LIBRARY websockets PATHS /usr/local/lib /opt/homebrew/lib)
+if(WEBSOCKETS_LIBRARY)
+    find_path(WEBSOCKETS_INCLUDE_DIR libwebsockets.h PATHS /usr/local/include /opt/homebrew/include)
+    if(WEBSOCKETS_INCLUDE_DIR)
+        message(STATUS "Found libwebsockets: ${WEBSOCKETS_LIBRARY}")
+        list(APPEND SOURCES src/builtins/websocket_functions.cpp)
+        include_directories(${WEBSOCKETS_INCLUDE_DIR})
+        set(HAVE_WEBSOCKETS TRUE)
+    endif()
+else()
+    message(STATUS "libwebsockets not found - skipping WebSocket support")
+endif()
 
 # Create static library (without main.cpp)
 set(LIB_SOURCES ${SOURCES})
@@ -100,6 +129,14 @@ message(STATUS "Found SDL2_image: ${SDL2_IMAGE_LIBRARY}")
 llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
 target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY} ${OPENGL_LIBRARIES})
 target_link_libraries(compiler ${GTK3_LDFLAGS})
+
+# Link optional libraries
+if(HAVE_MYSQL)
+    target_link_libraries(compiler ${MYSQL_LIBRARY})
+endif()
+if(HAVE_WEBSOCKETS)
+    target_link_libraries(compiler ${WEBSOCKETS_LIBRARY})
+endif()
 
 # Link stdc++fs for GNU < 9 and also for AppleClang for filesystem support
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

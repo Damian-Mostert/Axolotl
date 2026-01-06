@@ -85,6 +85,7 @@ scene.add(sun);
 
 const ground: object = BoxGeometry(100, 1, 100);
 ground.setPosition(0, -0.5, 0);
+ground.setBounciness(0.0);
 ground.setColor("#556633");
 scene.add(ground);
 

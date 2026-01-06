@@ -2,19 +2,13 @@
   "name": "axolotl-highlighter",
   "displayName": "Axolotl Syntax Highlighter",
   "description": "Syntax highlighting for Axolotl programming language",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "axolotl",
   "engines": {
     "vscode": "^1.60.0"
   },
   "categories": ["Programming Languages", "Themes"],
   "contributes": {
-    "languages": [{
-      "id": "axolotl",
-      "aliases": ["Axolotl", "axo"],
-      "extensions": [".axo"],
-      "configuration": "./language-configuration.json"
-    }],
     "grammars": [{
       "language": "axolotl",
       "scopeName": "source.axolotl",

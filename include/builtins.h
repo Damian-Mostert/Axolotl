@@ -36,6 +36,7 @@ public:
     static BuiltinRegistry& instance();
     void registerBuiltin(BuiltinFunction* func);
     BuiltinFunction* getBuiltin(const std::string& name);
+    std::vector<std::string> getAllNames() const;
     
 private:
     BuiltinRegistry() = default;
