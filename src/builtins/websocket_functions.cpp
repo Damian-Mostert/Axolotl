@@ -46,6 +46,7 @@ static struct lws_protocols protocols[] = {
 
 class WSConnectBuiltin : public BuiltinFunction {
 public:
+// @desc Connect to WebSocket server
     std::string getName() const override { return "wsConnect"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("wsConnect(url)");
@@ -122,7 +123,9 @@ public:
 
 class WSSendBuiltin : public BuiltinFunction {
 public:
+// @desc Send message through WebSocket
     std::string getName() const override { return "send"; }
+    std::string getParent() const override { return "websocket"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 1) throw std::runtime_error("ws.send(message)");
         
@@ -148,7 +151,9 @@ public:
 
 class WSReceiveBuiltin : public BuiltinFunction {
 public:
+// @desc Receive message from WebSocket
     std::string getName() const override { return "receive"; }
+    std::string getParent() const override { return "websocket"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) throw std::runtime_error("ws.receive()");
         
@@ -176,7 +181,9 @@ public:
 
 class WSCloseBuiltin : public BuiltinFunction {
 public:
+// @desc Close canvas window
     std::string getName() const override { return "close"; }
+    std::string getParent() const override { return "websocket"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) throw std::runtime_error("ws.close()");
         

@@ -5,10 +5,14 @@ const canvas: object = createCanvas(800, 600);
 var frame: int = 0;
 
 print("Watch the animations! Press ESC to exit (close window)");
-
+func onKeyDown(key: int) {
+    if (key == KEY_ESCAPE) {
+        frame = 600; // End animation
+    }
+}
 while (frame < 600) {
     updateInputs();
-    
+    onKeyDown(getLastKey());
     // Dark background
     canvas.fillStyle("#0a0a0a");
     canvas.fillRect(0, 0, 800, 600);

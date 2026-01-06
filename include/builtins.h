@@ -27,6 +27,7 @@ class BuiltinFunction {
 public:
     virtual ~BuiltinFunction() = default;
     virtual std::string getName() const = 0;
+    virtual std::string getParent() const { return ""; }
     virtual std::string execute(Interpreter* interp, FunctionCall* node) = 0;
 };
 

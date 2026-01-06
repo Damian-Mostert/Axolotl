@@ -758,52 +758,55 @@ std::unique_ptr<Statement> Parser::parseVariableDeclaration() {
     }
     
     Token name = consume(TokenType::IDENTIFIER, "Expected variable name");
-    consume(TokenType::COLON, "Expected ':' after variable name");
     
-    // Type can be a keyword, identifier, array type [base_type], or function type (params)->return
-    std::string typeStr;
-    if (check(TokenType::LPAREN)) {
-        // Could be function type like ()->void or (int,string)->bool
-        // Look ahead to check if this is a function type
-        size_t savedPos = current;
-        bool isFunctionType = false;
-        
-        // Try to parse as function type
-        try {
-            typeStr = parseFunctionType();
-            isFunctionType = true;
-        } catch (...) {
-            // Not a function type, backtrack
-            current = savedPos;
-            Token type = consume(TokenType::IDENTIFIER, "Expected variable type");
+    // Type annotation is now optional - if missing, infer as 'any'
+    std::string typeStr = "any";
+    
+    if (match({TokenType::COLON})) {
+        // Type can be a keyword, identifier, array type [base_type], or function type (params)->return
+        if (check(TokenType::LPAREN)) {
+            // Could be function type like ()->void or (int,string)->bool
+            // Look ahead to check if this is a function type
+            size_t savedPos = current;
+            bool isFunctionType = false;
+            
+            // Try to parse as function type
+            try {
+                typeStr = parseFunctionType();
+                isFunctionType = true;
+            } catch (...) {
+                // Not a function type, backtrack
+                current = savedPos;
+                Token type = consume(TokenType::IDENTIFIER, "Expected variable type");
+                typeStr = type.value;
+            }
+        } else if (check(TokenType::LBRACKET)) {
+            // Array type: [int], [string], [[int]], etc.
+            typeStr = parseArrayType();
+        } else {
+            // Regular type
+            Token type;
+            if (check(TokenType::KW_INT)) {
+                type = advance();
+            } else if (check(TokenType::KW_FLOAT)) {
+                type = advance();
+            } else if (check(TokenType::KW_STRING)) {
+                type = advance();
+            } else if (check(TokenType::KW_BOOL)) {
+                type = advance();
+            } else if (check(TokenType::KW_VOID)) {
+                type = advance();
+            } else if (check(TokenType::KW_OBJECT)) {
+                type = advance();
+            } else if (check(TokenType::KW_ANY)) {
+                type = advance();
+            } else if (check(TokenType::KW_FUNC)) {
+                type = advance();
+            } else {
+                type = consume(TokenType::IDENTIFIER, "Expected variable type");
+            }
             typeStr = type.value;
         }
-    } else if (check(TokenType::LBRACKET)) {
-        // Array type: [int], [string], [[int]], etc.
-        typeStr = parseArrayType();
-    } else {
-        // Regular type
-        Token type;
-        if (check(TokenType::KW_INT)) {
-            type = advance();
-        } else if (check(TokenType::KW_FLOAT)) {
-            type = advance();
-        } else if (check(TokenType::KW_STRING)) {
-            type = advance();
-        } else if (check(TokenType::KW_BOOL)) {
-            type = advance();
-        } else if (check(TokenType::KW_VOID)) {
-            type = advance();
-        } else if (check(TokenType::KW_OBJECT)) {
-            type = advance();
-        } else if (check(TokenType::KW_ANY)) {
-            type = advance();
-        } else if (check(TokenType::KW_FUNC)) {
-            type = advance();
-        } else {
-            type = consume(TokenType::IDENTIFIER, "Expected variable type");
-        }
-        typeStr = type.value;
     }
     
     std::unique_ptr<Expression> initializer = nullptr;
@@ -1168,11 +1171,6 @@ std::unique_ptr<Expression> Parser::parsePrimary() {
         auto expr = parseExpression();
         consume(TokenType::RPAREN, "Expected ')' after expression");
         return expr;
-    }
-    
-    // Check for UI elements
-    if (isUIStart()) {
-        return parseUIElement();
     }
     
     throw ParseError("Unexpected token: " + peek().value, peek());

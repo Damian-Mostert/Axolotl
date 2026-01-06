@@ -13,6 +13,7 @@ static int nextSurfaceId = 1;
 
 class CreateCanvasBuiltin : public BuiltinFunction {
 public:
+// @desc Create 2D canvas with width and height
     std::string getName() const override { return "createCanvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() < 2 || node->args.size() > 3) throw std::runtime_error("createCanvas() expects 2-3 arguments: createCanvas(width, height [, title])");
@@ -71,7 +72,9 @@ public:
 
 class FillRectBuiltin : public BuiltinFunction {
 public:
+// @desc Draw filled rectangle on canvas
     std::string getName() const override { return "fillRect"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 4) throw std::runtime_error("fillRect() expects 4 arguments: fillRect(x, y, width, height)");
         if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
@@ -95,7 +98,9 @@ public:
 
 class StrokeRectBuiltin : public BuiltinFunction {
 public:
+// @desc Draw rectangle outline on canvas
     std::string getName() const override { return "strokeRect"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 4) throw std::runtime_error("strokeRect() expects 4 arguments");
         if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
@@ -117,7 +122,9 @@ public:
 
 class ClearRectBuiltin : public BuiltinFunction {
 public:
+// @desc Clear rectangular area on canvas
     std::string getName() const override { return "clearRect"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 4) throw std::runtime_error("clearRect() expects 4 arguments");
         if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
@@ -139,7 +146,9 @@ public:
 
 class FillStyleBuiltin : public BuiltinFunction {
 public:
+// @desc Set fill color for canvas drawing
     std::string getName() const override { return "fillStyle"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 1) throw std::runtime_error("fillStyle() expects 1 argument: color string");
         if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
@@ -160,7 +169,9 @@ public:
 
 class StrokeStyleBuiltin : public BuiltinFunction {
 public:
+// @desc Set stroke color for canvas drawing
     std::string getName() const override { return "strokeStyle"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 1) throw std::runtime_error("strokeStyle() expects 1 argument");
         if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
@@ -181,6 +192,7 @@ public:
 
 class RenderBuiltin : public BuiltinFunction {
 public:
+// @desc Render scene with camera to canvas
     std::string getName() const override { return "render"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         std::cout << "[DEBUG] RenderBuiltin::execute called! args=" << node->args.size() << " callee=" << (node->callee ? "yes" : "no") << std::endl;
@@ -206,7 +218,9 @@ public:
 
 class FillCircleBuiltin : public BuiltinFunction {
 public:
+// @desc Draw filled circle on canvas
     std::string getName() const override { return "fillCircle"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 3) throw std::runtime_error("fillCircle() expects 3 arguments: fillCircle(x, y, radius)");
         if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
@@ -233,6 +247,7 @@ public:
 
 class PollEventsBuiltin : public BuiltinFunction {
 public:
+// @desc Process window and input events
     std::string getName() const override { return "pollEvents"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         SDL_Event event;
@@ -253,6 +268,7 @@ public:
 
 class LoadImageBuiltin : public BuiltinFunction {
 public:
+// @desc Load image from file path
     std::string getName() const override { return "loadImage"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("loadImage() expects 1 argument: loadImage(path)");
@@ -276,7 +292,9 @@ public:
 
 class DrawImageBuiltin : public BuiltinFunction {
 public:
+// @desc Draw image on canvas at position
     std::string getName() const override { return "drawImage"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) throw std::runtime_error("drawImage() must be called on canvas");
         if (node->args.size() < 3 || node->args.size() > 5) {
@@ -321,7 +339,9 @@ public:
 
 class DrawLineBuiltin : public BuiltinFunction {
 public:
+// @desc Draw line between two points
     std::string getName() const override { return "drawLine"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 4) throw std::runtime_error("drawLine() expects 4 arguments: drawLine(x1, y1, x2, y2)");
         if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {
@@ -342,7 +362,9 @@ public:
 
 class CloseCanvasBuiltin : public BuiltinFunction {
 public:
+// @desc Close canvas window
     std::string getName() const override { return "close"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) throw std::runtime_error("close() must be called on canvas");
         if (auto fa = dynamic_cast<FieldAccess*>(node->callee.get())) {

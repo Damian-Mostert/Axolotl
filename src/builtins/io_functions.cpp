@@ -5,6 +5,7 @@
 
 namespace fs = std::filesystem;
 
+// @desc Print values to console
 class PrintBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "print"; }
@@ -21,6 +22,7 @@ public:
     }
 };
 
+// @desc Write content to file
 class WriteBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "write"; }
@@ -43,6 +45,7 @@ public:
     }
 };
 
+// @desc Read file contents as string
 class ReadBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "read"; }
@@ -64,6 +67,7 @@ public:
     }
 };
 
+// @desc List directory contents as array
 class ReadDirBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "readDir"; }
@@ -88,6 +92,7 @@ public:
     }
 };
 
+// @desc Copy file from source to destination
 class CopyBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "copy"; }

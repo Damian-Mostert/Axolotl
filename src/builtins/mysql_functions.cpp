@@ -8,6 +8,7 @@ static int nextConnId = 1;
 
 class MySQLConnectBuiltin : public BuiltinFunction {
 public:
+// @desc Connect to MySQL database
     std::string getName() const override { return "mysqlConnect"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() < 4) throw std::runtime_error("mysqlConnect(host, user, password, database)");
@@ -38,7 +39,9 @@ public:
 
 class MySQLQueryBuiltin : public BuiltinFunction {
 public:
+// @desc Execute SQL query on database connection
     std::string getName() const override { return "query"; }
+    std::string getParent() const override { return "connection"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 1) throw std::runtime_error("conn.query(sql)");
         
@@ -85,7 +88,9 @@ public:
 
 class MySQLCloseBuiltin : public BuiltinFunction {
 public:
+// @desc Close canvas window
     std::string getName() const override { return "close"; }
+    std::string getParent() const override { return "connection"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) throw std::runtime_error("conn.close()");
         

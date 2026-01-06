@@ -1,0 +1,30 @@
+{
+  "name": "axolotl-extension",
+  "displayName": "Axolotl Language Support",
+  "description": "Complete language support for Axolotl: syntax highlighting, IntelliSense, formatting, and function browser",
+  "version": "1.0.0",
+  "publisher": "axolotl",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": ["Programming Languages", "Formatters"],
+  "activationEvents": ["*"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [{
+      "id": "axolotl",
+      "aliases": ["Axolotl", "axo"],
+      "extensions": [".axo"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "axolotl",
+      "scopeName": "source.axolotl",
+      "path": "./syntaxes/axolotl.tmLanguage.json"
+    }],
+    "commands": [{
+      "command": "axolotl.browseBuiltins",
+      "title": "Axolotl: Browse Built-in Functions"
+    }]
+  }
+}

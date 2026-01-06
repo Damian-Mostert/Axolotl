@@ -1,6 +1,7 @@
 #include "include/builtins.h"
 #include <algorithm>
 
+// @desc Get length of array or string
 class LenBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "len"; }
@@ -21,6 +22,7 @@ public:
     }
 };
 
+// @desc Extract portion of array from start to end index
 class SliceBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "slice"; }
@@ -42,6 +44,7 @@ public:
     }
 };
 
+// @desc Reverse array elements
 class ReverseBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "reverse"; }
@@ -59,6 +62,7 @@ public:
     }
 };
 
+// @desc Join array elements into string with separator
 class JoinBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "join"; }
@@ -79,6 +83,7 @@ public:
     }
 };
 
+// @desc Find index of element in array, returns -1 if not found
 class FindBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "find"; }
@@ -99,6 +104,7 @@ public:
     }
 };
 
+// @desc Check if array contains element
 class IncludesBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "includes"; }
@@ -119,6 +125,7 @@ public:
     }
 };
 
+// @desc Add element to array and return new array
 class PushBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "push"; }
@@ -136,6 +143,7 @@ public:
     }
 };
 
+// @desc Remove and return last element from array
 class PopBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "pop"; }
@@ -156,6 +164,7 @@ public:
     }
 };
 
+// @desc Sort array elements in-place
 class SortBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "sort"; }

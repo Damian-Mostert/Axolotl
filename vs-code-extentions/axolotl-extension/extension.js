@@ -1,0 +1,692 @@
+const vscode = require('vscode');
+const fs = require('fs');
+const path = require('path');
+
+const keywords = ['var', 'const', 'func', 'if', 'else', 'while', 'for', 'return', 'break', 'continue', 'switch', 'case', 'default', 'try', 'catch', 'finally', 'throw', 'import', 'export', 'use', 'type', 'program', 'await', 'typeof'];
+const types = ['int', 'float', 'string', 'bool', 'void', 'any', 'object'];
+const constants = [{ name: 'true', doc: 'Boolean true value' }, { name: 'false', doc: 'Boolean false value' }];
+
+// Built-in function return types and parent types
+const builtinReturnTypes = {
+    print: 'void', len: 'int', push: 'void', pop: 'any', slice: 'array', reverse: 'void', join: 'string',
+    find: 'int', includes: 'bool', sort: 'void', toUpper: 'string', toLower: 'string',
+    substr: 'string', indexOf: 'int', contains: 'bool', trim: 'string', replace: 'string',
+    split: '[string]', startsWith: 'bool', endsWith: 'bool', repeat: 'string', charAt: 'string',
+    charCodeAt: 'int', random: 'float', pow: 'float', atan2: 'float', abs: 'float',
+    floor: 'int', ceil: 'int', round: 'int', min: 'float', max: 'float', clamp: 'float',
+    lerp: 'float', typeof: 'string', toInt: 'int', toFloat: 'float', toString: 'string',
+    toBool: 'bool', keys: '[string]', values: '[any]', hasKey: 'bool', clone: 'any',
+    merge: 'object', millis: 'int', sleep: 'void', assert: 'void', error: 'void',
+    read: 'string', write: 'void', readDir: '[string]', copy: 'void', json_parse: 'object',
+    json_stringify: 'string', fetch: 'string', createServer: 'object', createCanvas: 'object',
+    fillRect: 'void', strokeRect: 'void', clearRect: 'void', fillCircle: 'void',
+    drawLine: 'void', drawImage: 'void', loadImage: 'object', fillStyle: 'void',
+    strokeStyle: 'void', isKeyDown: 'bool', getMouseX: 'int', getMouseY: 'int',
+    isMouseDown: 'bool', wasMouseClicked: 'bool', pollEvents: 'void', updateInputs: 'void',
+    getKeyState: 'object', createScene: 'object', render: 'void', renderWindow: 'void',
+    PerspectiveCamera: 'object', BoxGeometry: 'object', SphereGeometry: 'object', PlaneGeometry: 'object',
+    TorusGeometry: 'object', CylinderGeometry: 'object', loadOBJ: 'object',
+    PointLight: 'object', DirectionalLight: 'object', AmbientLight: 'object',
+    setPosition: 'void', setRotation: 'void', setScale: 'void', setColor: 'void',
+    lookAt: 'void', moveBy: 'void', getPosition: 'object', applyGravity: 'void',
+    handleCollision: 'void', isColliding: 'bool', setBounciness: 'void', setFriction: 'void',
+    addVelocity: 'void', applyNaturalCollision: 'void', getGroundNormal: 'object',
+    applyAttractionToMesh: 'void', deformVertices: 'void', followTarget: 'void',
+    setGraphics: 'void', setMetallic: 'void', enableDevMode: 'void', updateDevCamera: 'void',
+    handleDevInput: 'int', createBox: 'object', createCamera: 'object', renderMesh: 'void',
+    close: 'void', add: 'void', CreateWindow: 'object'
+};
+
+const builtinParentTypes = {
+    add: 'scene', removeMesh: 'scene', render: 'canvas',
+    setPosition: 'mesh', setRotation: 'mesh', setScale: 'mesh', setColor: 'mesh',
+    lookAt: 'camera', moveBy: 'mesh', getPosition: 'mesh', getGroundNormal: 'mesh',
+    deformVertices: 'mesh', setMetallic: 'mesh', setTexture: 'mesh',
+    applyMTL: 'mesh', createBone: 'mesh', setBonePose: 'mesh',
+    createAnimation: 'mesh', addAnimKey: 'mesh', playAnimation: 'mesh', updateAnimation: 'mesh'
+};
+
+function isInCommentOrString(text, position) {
+    let inString = false;
+    let stringChar = null;
+    let inComment = false;
+    
+    for (let i = 0; i < position && i < text.length; i++) {
+        if (!inString && !inComment && text[i] === '/' && text[i + 1] === '/') {
+            inComment = true;
+            break;
+        }
+        if (!inString && (text[i] === '"' || text[i] === "'")) {
+            inString = true;
+            stringChar = text[i];
+        } else if (inString && text[i] === stringChar && text[i - 1] !== '\\') {
+            inString = false;
+            stringChar = null;
+        }
+    }
+    return inString || inComment;
+}
+
+const MAX_RECURSION_DEPTH = 10;
+const MAX_PARSE_LINES = 10000;
+const MAX_EXPRESSION_LENGTH = 1000;
+const MAX_PROPERTY_DEPTH = 5;
+
+function parseDocument(document) {
+    const variables = new Map();
+    const functions = new Map();
+    const customTypes = new Map();
+    const properties = new Map();
+    
+    const maxLines = Math.min(document.lineCount, MAX_PARSE_LINES);
+    
+    for (let i = 0; i < maxLines; i++) {
+        try {
+            const line = document.lineAt(i).text;
+            if (line.trim().startsWith('//')) continue;
+            if (line.length > MAX_EXPRESSION_LENGTH) continue;
+            
+            // Parse type declarations: type Name = ...
+            const typeMatch = line.match(/^\s*type\s+(\w+)\s*=\s*(.+);?/);
+            if (typeMatch) {
+                customTypes.set(typeMatch[1], typeMatch[2].trim().replace(/;$/, ''));
+                continue;
+            }
+            
+            // Parse function declarations: func name(...) -> returnType
+            const funcMatch = line.match(/^\s*func\s+(\w+)\s*\(([^)]*)\)\s*->\s*(\w+|\[[^\]]+\]|\{[^}]+\}|void|any)/);
+            if (funcMatch) {
+                const params = funcMatch[2].split(',').map(p => {
+                    const pm = p.trim().match(/(\w+)\s*:\s*(.+)/);
+                    if (pm) {
+                        variables.set(pm[1], { type: pm[2].trim(), line: i, isConst: false, scope: 'param' });
+                        return { name: pm[1], type: pm[2].trim() };
+                    }
+                    return null;
+                }).filter(Boolean);
+                functions.set(funcMatch[1], { returnType: funcMatch[3].trim(), params, line: i });
+                continue;
+            }
+            
+            // Parse variable declarations with explicit type: var/const name: type = ...
+            const varMatch = line.match(/\s*(var|const)\s+(\w+)\s*:\s*([^=]+)(?:=\s*(.+))?/);
+            if (varMatch) {
+                const type = varMatch[3].trim();
+                const initializer = varMatch[4] ? varMatch[4].trim().replace(/;$/, '') : null;
+                variables.set(varMatch[2], { 
+                    type, 
+                    line: i, 
+                    isConst: varMatch[1] === 'const',
+                    initializer,
+                    scope: 'global'
+                });
+            } else {
+                // Parse variable declarations with type inference: var/const name = ...
+                const inferMatch = line.match(/\s*(var|const)\s+(\w+)\s*=\s*(.+);?/);
+                if (inferMatch) {
+                    const initializer = inferMatch[3].trim().replace(/;$/, '');
+                    const inferredType = inferExpressionType(initializer, variables, functions, customTypes, 0);
+                    variables.set(inferMatch[2], { 
+                        type: inferredType, 
+                        line: i, 
+                        isConst: inferMatch[1] === 'const',
+                        initializer,
+                        inferred: true,
+                        scope: 'global'
+                    });
+                }
+            }
+            
+            // Track property assignments: obj.prop = value or obj.prop.subprop = value
+            const propMatch = line.match(/^\s*([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\s*=\s*(.+);?/);
+            if (propMatch && propMatch[1].includes('.') && !line.match(/^\s*(var|const|type|func)/)) {
+                const propPath = propMatch[1];
+                const parts = propPath.split('.');
+                if (parts.length <= MAX_PROPERTY_DEPTH && variables.has(parts[0])) {
+                    const value = propMatch[2].trim().replace(/;$/, '');
+                    const inferredType = inferExpressionType(value, variables, functions, customTypes, 0);
+                    properties.set(propPath, { type: inferredType, line: i, parent: parts[0] });
+                }
+            }
+        } catch (err) {
+            continue;
+        }
+    }
+    
+    return { variables, functions, customTypes, properties };
+}
+
+function resolveType(type, customTypes, depth = 0) {
+    if (depth > MAX_RECURSION_DEPTH) return 'any';
+    if (customTypes.has(type)) {
+        return resolveType(customTypes.get(type), customTypes, depth + 1);
+    }
+    return type;
+}
+
+function inferExpressionType(expr, variables, functions, customTypes, depth = 0) {
+    if (depth > MAX_RECURSION_DEPTH) return 'any';
+    if (!expr || expr.length > MAX_EXPRESSION_LENGTH) return 'any';
+    
+    expr = expr.trim();
+    
+    // String literal
+    if (expr.startsWith('"') || expr.startsWith("'")) return 'string';
+    
+    // Number literal
+    if (/^-?\d+$/.test(expr)) return 'int';
+    if (/^-?\d+\.\d+$/.test(expr)) return 'float';
+    
+    // Boolean literal
+    if (expr === 'true' || expr === 'false') return 'bool';
+    
+    // Array literal
+    if (expr.startsWith('[')) {
+        try {
+            const match = expr.match(/^\[\s*(.+?)\s*\]$/);
+            if (match && match[1]) {
+                const elements = match[1].split(',').slice(0, 10).map(e => e.trim()).filter(Boolean);
+                if (elements.length > 0) {
+                    const firstType = inferExpressionType(elements[0], variables, functions, customTypes, depth + 1);
+                    return `[${firstType}]`;
+                }
+            }
+        } catch (err) {
+            return '[any]';
+        }
+        return '[any]';
+    }
+    
+    // Object literal
+    if (expr.startsWith('{')) return 'object';
+    
+    // Function call
+    const callMatch = expr.match(/^(\w+)\s*\(/);
+    if (callMatch) {
+        const fnName = callMatch[1];
+        if (builtinReturnTypes[fnName]) return builtinReturnTypes[fnName];
+        if (functions.has(fnName)) return functions.get(fnName).returnType;
+        return 'any';
+    }
+    
+    // Method call (e.g., obj.method())
+    const methodMatch = expr.match(/^(\w+)\.(\w+)\s*\(/);
+    if (methodMatch) {
+        const methodName = methodMatch[2];
+        if (builtinReturnTypes[methodName]) return builtinReturnTypes[methodName];
+        return 'any';
+    }
+    
+    // Field access (e.g., obj.field or obj.field.subfield)
+    const fieldMatch = expr.match(/^([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)$/);
+    if (fieldMatch && fieldMatch[1].includes('.')) {
+        const parts = fieldMatch[1].split('.');
+        if (parts.length <= MAX_PROPERTY_DEPTH && variables.has(parts[0])) {
+            return 'any';
+        }
+    }
+    
+    // Binary operations
+    if (expr.includes('+') || expr.includes('-') || expr.includes('*') || expr.includes('/')) {
+        if (expr.includes('.')) return 'float';
+        return 'int';
+    }
+    
+    // Comparison operations
+    if (expr.includes('==') || expr.includes('!=') || expr.includes('<') || expr.includes('>') || 
+        expr.includes('<=') || expr.includes('>=') || expr.includes('&&') || expr.includes('||')) {
+        return 'bool';
+    }
+    
+    // Variable reference
+    if (variables.has(expr)) {
+        return resolveType(variables.get(expr).type, customTypes, depth + 1);
+    }
+    
+    return 'any';
+}
+
+// Load builtins from generated JSON
+let builtins = [];
+try {
+    const builtinsPath = path.join(__dirname, 'builtins.json');
+    if (fs.existsSync(builtinsPath)) {
+        const data = JSON.parse(fs.readFileSync(builtinsPath, 'utf8'));
+        for (const [category, funcs] of Object.entries(data)) {
+            funcs.forEach(fn => {
+                builtins.push({
+                    name: fn.name,
+                    sig: fn.signature,
+                    doc: fn.description || `[${category}] ${fn.signature}`,
+                    category: category,
+                    returnType: fn.returnType || 'void'
+                });
+                // Update builtinReturnTypes from JSON
+                if (fn.returnType) {
+                    builtinReturnTypes[fn.name] = fn.returnType;
+                }
+            });
+        }
+    }
+    
+    // Load parent types
+    const parentsPath = path.join(__dirname, 'builtins_parents.json');
+    if (fs.existsSync(parentsPath)) {
+        const parentData = JSON.parse(fs.readFileSync(parentsPath, 'utf8'));
+        for (const [name, parent] of Object.entries(parentData)) {
+            builtinParentTypes[name] = parent;
+        }
+    }
+} catch (err) {
+    console.error('Failed to load builtins.json:', err);
+}
+
+function activate(context) {
+    const completionProvider = vscode.languages.registerCompletionItemProvider('axolotl', {
+        provideCompletionItems(document, position) {
+            const items = [];
+            const { variables, functions, customTypes } = parseDocument(document);
+            
+            keywords.forEach(kw => items.push(new vscode.CompletionItem(kw, vscode.CompletionItemKind.Keyword)));
+            types.forEach(t => items.push(new vscode.CompletionItem(t, vscode.CompletionItemKind.TypeParameter)));
+            
+            // Add custom types
+            customTypes.forEach((def, name) => {
+                const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.TypeParameter);
+                item.detail = def;
+                items.push(item);
+            });
+            
+            constants.forEach(c => {
+                const item = new vscode.CompletionItem(c.name, vscode.CompletionItemKind.Constant);
+                item.documentation = c.doc;
+                items.push(item);
+            });
+            
+            // Add local variables
+            variables.forEach((info, name) => {
+                const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Variable);
+                item.detail = info.type;
+                if (info.inferred) {
+                    item.documentation = `${info.isConst ? 'const' : 'var'} ${name} = ${info.initializer || '...'} (inferred: ${info.type})`;
+                } else {
+                    item.documentation = `${info.isConst ? 'const' : 'var'} ${name}: ${info.type}`;
+                }
+                items.push(item);
+            });
+            
+            // Add local functions
+            functions.forEach((info, name) => {
+                const item = new vscode.CompletionItem(name, vscode.CompletionItemKind.Function);
+                const params = info.params.map(p => `${p.name}: ${p.type}`).join(', ');
+                item.detail = `func ${name}(${params}) -> ${info.returnType}`;
+                items.push(item);
+            });
+            
+            builtins.forEach(fn => {
+                const item = new vscode.CompletionItem(fn.name, vscode.CompletionItemKind.Function);
+                item.detail = fn.sig;
+                item.documentation = fn.doc;
+                items.push(item);
+            });
+            return items;
+        }
+    });
+
+    const hoverProvider = vscode.languages.registerHoverProvider('axolotl', {
+        provideHover(document, position) {
+            const range = document.getWordRangeAtPosition(position);
+            if (!range) return;
+            const word = document.getText(range);
+            const { variables, functions, customTypes } = parseDocument(document);
+            
+            // Check property access: obj.prop or obj.prop.subprop
+            const fullText = document.lineAt(position.line).text;
+            const beforeCursor = fullText.substring(0, position.character);
+            const propMatch = beforeCursor.match(/([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)$/);            
+            if (propMatch) {
+                const propPath = propMatch[1];
+                const parts = propPath.split('.');
+                
+                if (parts.length > 1 && parts.length <= MAX_PROPERTY_DEPTH) {
+                    const { variables, properties } = parseDocument(document);
+                    const rootVar = parts[0];
+                    
+                    if (variables.has(rootVar)) {
+                        const md = new vscode.MarkdownString();
+                        md.appendCodeblock(propPath, 'axolotl');
+                        
+                        if (properties.has(propPath)) {
+                            const propInfo = properties.get(propPath);
+                            md.appendMarkdown(`\n\n**Type:** \`${propInfo.type}\``);
+                        } else {
+                            md.appendMarkdown(`\n\n**Type:** \`any\` (property of \`${rootVar}\`)`);
+                        }
+                        
+                        return new vscode.Hover(md);
+                    }
+                }
+            }
+            
+            // Check local variables
+            if (variables.has(word)) {
+                const info = variables.get(word);
+                const resolvedType = resolveType(info.type, customTypes);
+                const md = new vscode.MarkdownString();
+                
+                if (info.inferred) {
+                    md.appendCodeblock(`${info.isConst ? 'const' : 'var'} ${word} = ${info.initializer || '...'}`, 'axolotl');
+                    md.appendMarkdown(`\n\n**Inferred type:** \`${info.type}\``);
+                } else {
+                    md.appendCodeblock(`${info.isConst ? 'const' : 'var'} ${word}: ${info.type}`, 'axolotl');
+                }
+                
+                if (resolvedType !== info.type) {
+                    md.appendMarkdown(`\n\n**Resolved type:** \`${resolvedType}\``);
+                }
+                
+                if (info.scope) {
+                    md.appendMarkdown(`\n\n*Scope: ${info.scope}*`);
+                }
+                
+                return new vscode.Hover(md);
+            }
+            
+            // Check local functions
+            if (functions.has(word)) {
+                const info = functions.get(word);
+                const params = info.params.map(p => `${p.name}: ${p.type}`).join(', ');
+                const md = new vscode.MarkdownString();
+                md.appendCodeblock(`func ${word}(${params}) -> ${info.returnType}`, 'axolotl');
+                return new vscode.Hover(md);
+            }
+            
+            // Check custom types
+            if (customTypes.has(word)) {
+                const def = customTypes.get(word);
+                const md = new vscode.MarkdownString();
+                md.appendCodeblock(`type ${word} = ${def}`, 'axolotl');
+                return new vscode.Hover(md);
+            }
+            
+            // Check builtins
+            const fn = builtins.find(b => b.name === word);
+            if (fn) {
+                const md = new vscode.MarkdownString();
+                md.appendCodeblock(fn.sig, 'axolotl');
+                const returnType = builtinReturnTypes[word];
+                if (returnType) {
+                    md.appendMarkdown(`\n\n**Returns:** \`${returnType}\`\n\n`);
+                }
+                md.appendMarkdown(fn.doc);
+                return new vscode.Hover(md);
+            }
+        }
+    });
+
+    const formatter = vscode.languages.registerDocumentFormattingEditProvider('axolotl', {
+        provideDocumentFormattingEdits(document) {
+            const edits = [];
+            let formatted = '';
+            let indent = 0;
+            for (let i = 0; i < document.lineCount; i++) {
+                const line = document.lineAt(i);
+                let text = line.text.trim();
+                if (!text) { formatted += '\\n'; continue; }
+                if (text.startsWith('}') || text.startsWith(']')) indent = Math.max(0, indent - 1);
+                formatted += '    '.repeat(indent) + text + '\\n';
+                if (text.endsWith('{') || text.endsWith('[')) indent++;
+                if (text.includes('}') && !text.startsWith('}')) indent = Math.max(0, indent - 1);
+            }
+            const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(document.getText().length));
+            edits.push(vscode.TextEdit.replace(fullRange, formatted.trimEnd()));
+            return edits;
+        }
+    });
+
+    const builtinBrowser = vscode.commands.registerCommand('axolotl.browseBuiltins', async () => {
+        const functions = builtins.map(fn => ({ label: fn.name, description: fn.sig, detail: fn.doc, fn: fn }));
+        const selectedFn = await vscode.window.showQuickPick(functions, { placeHolder: 'Select a builtin function', matchOnDescription: true });
+        if (selectedFn) {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                editor.edit(editBuilder => editBuilder.insert(editor.selection.active, selectedFn.fn.name + '()'));
+                const pos = editor.selection.active;
+                editor.selection = new vscode.Selection(pos.line, pos.character - 1, pos.line, pos.character - 1);
+            }
+        }
+    });
+
+    const diagnosticCollection = vscode.languages.createDiagnosticCollection('axolotl');
+    let diagnosticTimeout = null;
+    const DEBOUNCE_DELAY = 500;
+    
+    function updateDiagnostics(document) {
+        if (document.languageId !== 'axolotl') return;
+        
+        const diagnostics = [];
+        let parseResult;
+        
+        try {
+            parseResult = parseDocument(document);
+        } catch (err) {
+            console.error('Parse error:', err);
+            return;
+        }
+        
+        const { variables, functions, customTypes, properties } = parseResult;
+        const usedVariables = new Set();
+        const maxLines = Math.min(document.lineCount, MAX_PARSE_LINES);
+        
+        for (let i = 0; i < maxLines; i++) {
+            try {
+                const line = document.lineAt(i);
+                const text = line.text;
+                if (text.length > MAX_EXPRESSION_LENGTH) continue;
+                if (text.trim().startsWith('//')) continue;
+                
+                // Check for invalid object literal syntax (e.g., x:quality: instead of quality:)
+                const objLiteralMatch = text.match(/\{[^}]*\}/);
+                if (objLiteralMatch) {
+                    const objContent = objLiteralMatch[0];
+                    // Check for pattern like "word:word:" which is invalid
+                    if (/\w+:\w+:/.test(objContent)) {
+                        const diagnostic = new vscode.Diagnostic(
+                            line.range,
+                            'Invalid object literal syntax - unexpected colon',
+                            vscode.DiagnosticSeverity.Error
+                        );
+                        diagnostics.push(diagnostic);
+                    }
+                }
+                
+                // Check for accessing undefined nested properties (e.g., x.y.ss.s when x doesn't have y)
+                const nestedAccessMatch = text.match(/^\s*([a-zA-Z_]\w*)(\.\w+){2,}/);
+                if (nestedAccessMatch && !text.includes('=')) {
+                    const rootVar = nestedAccessMatch[1];
+                    if (variables.has(rootVar)) {
+                        const diagnostic = new vscode.Diagnostic(
+                            line.range,
+                            `Accessing undefined nested properties on '${rootVar}'`,
+                            vscode.DiagnosticSeverity.Warning
+                        );
+                        diagnostics.push(diagnostic);
+                    }
+                }
+                
+                // Check for undefined variables in expressions
+                const identifiers = text.match(/\b[a-zA-Z_]\w*\b/g);
+                if (identifiers) {
+                    identifiers.slice(0, 50).forEach(id => {
+                        if (variables.has(id)) {
+                            usedVariables.add(id);
+                        }
+                    });
+                }
+                
+                // Track property access usage: obj.prop or obj.prop.subprop
+                const propAccessMatch = text.match(/\b([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)+)\b/g);
+                if (propAccessMatch) {
+                    propAccessMatch.slice(0, 20).forEach(propPath => {
+                        const parts = propPath.split('.');
+                        if (parts.length <= MAX_PROPERTY_DEPTH && variables.has(parts[0])) {
+                            usedVariables.add(parts[0]);
+                        }
+                    });
+                }
+                
+                // Check variable/property assignments: name = expr or obj.prop = expr
+                const assignMatch = text.match(/^\s*([a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*)*)\s*=\s*(.+);?/);
+                if (assignMatch && !text.match(/^\s*(var|const|type|func)/)) {
+                    const target = assignMatch[1];
+                    const expr = assignMatch[2].trim().replace(/;$/, '');
+                    
+                    if (expr.length > MAX_EXPRESSION_LENGTH) continue;
+                    
+                    // Property assignment: obj.prop or obj.prop.subprop
+                    if (target.includes('.')) {
+                        const parts = target.split('.');
+                        if (parts.length > MAX_PROPERTY_DEPTH) continue;
+                        
+                        const rootVar = parts[0];
+                        if (!variables.has(rootVar)) {
+                            const diagnostic = new vscode.Diagnostic(
+                                line.range,
+                                `Variable '${rootVar}' is not declared`,
+                                vscode.DiagnosticSeverity.Error
+                            );
+                            diagnostics.push(diagnostic);
+                        } else {
+                            const rootInfo = variables.get(rootVar);
+                            if (rootInfo.isConst) {
+                                const diagnostic = new vscode.Diagnostic(
+                                    line.range,
+                                    `Cannot modify property of const variable '${rootVar}'`,
+                                    vscode.DiagnosticSeverity.Warning
+                                );
+                                diagnostics.push(diagnostic);
+                            }
+                        }
+                    } else {
+                        // Simple variable assignment
+                        if (!variables.has(target)) {
+                            const diagnostic = new vscode.Diagnostic(
+                                line.range,
+                                `Variable '${target}' is not declared`,
+                                vscode.DiagnosticSeverity.Error
+                            );
+                            diagnostics.push(diagnostic);
+                        } else {
+                            const varInfo = variables.get(target);
+                            
+                            if (varInfo.isConst) {
+                                const diagnostic = new vscode.Diagnostic(
+                                    line.range,
+                                    `Cannot reassign to const variable '${target}'`,
+                                    vscode.DiagnosticSeverity.Error
+                                );
+                                diagnostics.push(diagnostic);
+                            }
+                            
+                            const exprType = inferExpressionType(expr, variables, functions, customTypes, 0);
+                            const varType = resolveType(varInfo.type, customTypes, 0);
+                            
+                            if (exprType !== 'any' && varType !== 'any' && exprType !== varType) {
+                                if (!(varType === 'float' && exprType === 'int')) {
+                                    const isArrayCompat = varType.startsWith('[') && exprType.startsWith('[');
+                                    if (!isArrayCompat) {
+                                        const diagnostic = new vscode.Diagnostic(
+                                            line.range,
+                                            `Type mismatch: cannot assign '${exprType}' to '${varType}'`,
+                                            vscode.DiagnosticSeverity.Warning
+                                        );
+                                        diagnostics.push(diagnostic);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Check for missing semicolons (optional warning)
+                if (text.trim() && !text.trim().startsWith('//') && !text.trim().startsWith('/*') &&
+                    !text.trim().endsWith(';') && !text.trim().endsWith('{') && !text.trim().endsWith('}') &&
+                    text.match(/^\s*(var|const|return|throw|break|continue)\s+/)) {
+                    const diagnostic = new vscode.Diagnostic(
+                        new vscode.Range(i, text.length, i, text.length),
+                        'Consider adding a semicolon',
+                        vscode.DiagnosticSeverity.Information
+                    );
+                    diagnostics.push(diagnostic);
+                }
+                
+                // Check for undefined function calls (but not arguments inside function calls)
+                const funcCallMatch = text.match(/\b(\w+)\s*\(/g);
+                if (funcCallMatch) {
+                    funcCallMatch.slice(0, 20).forEach(match => {
+                        const fnName = match.replace(/\s*\($/, '');
+                        // Don't flag variables used as arguments (they appear after opening paren)
+                        const matchIndex = text.indexOf(match);
+                        const beforeMatch = text.substring(0, matchIndex);
+                        const afterMatch = text.substring(matchIndex + match.length);
+                        
+                        // Skip if this identifier is inside parentheses (it's an argument)
+                        const openParens = (beforeMatch.match(/\(/g) || []).length;
+                        const closeParens = (beforeMatch.match(/\)/g) || []).length;
+                        const isInsideCall = openParens > closeParens;
+                        
+                        if (!isInsideCall && !functions.has(fnName) && !builtinReturnTypes[fnName] && 
+                            !keywords.includes(fnName) && fnName !== 'if' && fnName !== 'while' && fnName !== 'for') {
+                            const diagnostic = new vscode.Diagnostic(
+                                line.range,
+                                `Function '${fnName}' is not defined`,
+                                vscode.DiagnosticSeverity.Warning
+                            );
+                            diagnostics.push(diagnostic);
+                        }
+                    });
+                }
+                
+                if (diagnostics.length > 100) break;
+            } catch (err) {
+                continue;
+            }
+        }
+        
+        // Check for unused variables (info level)
+        let unusedCount = 0;
+        variables.forEach((info, name) => {
+            if (unusedCount > 50) return;
+            if (!usedVariables.has(name) && info.scope === 'global') {
+                const diagnostic = new vscode.Diagnostic(
+                    new vscode.Range(info.line, 0, info.line, 100),
+                    `Variable '${name}' is declared but never used`,
+                    vscode.DiagnosticSeverity.Hint
+                );
+                diagnostics.push(diagnostic);
+                unusedCount++;
+            }
+        });
+        
+        diagnosticCollection.set(document.uri, diagnostics);
+    }
+    
+    // Update diagnostics on document change with debouncing
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeTextDocument(e => {
+            if (diagnosticTimeout) clearTimeout(diagnosticTimeout);
+            diagnosticTimeout = setTimeout(() => updateDiagnostics(e.document), DEBOUNCE_DELAY);
+        }),
+        vscode.workspace.onDidOpenTextDocument(doc => updateDiagnostics(doc)),
+        diagnosticCollection
+    );
+    
+    // Initial diagnostics for open documents
+    vscode.workspace.textDocuments.forEach(doc => updateDiagnostics(doc));
+    
+    context.subscriptions.push(completionProvider, hoverProvider, formatter, builtinBrowser);
+}
+
+function deactivate() {}
+
+module.exports = { activate, deactivate };

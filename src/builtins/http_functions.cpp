@@ -11,6 +11,7 @@
 
 class CreateServerBuiltin : public BuiltinFunction {
 public:
+// @desc Create HTTP server on specified port
     std::string getName() const override { return "createServer"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 2) throw std::runtime_error("createServer() expects 2 arguments");
@@ -75,7 +76,9 @@ public:
 
 class WriteHeadBuiltin : public BuiltinFunction {
 public:
+// @desc Write HTTP response headers
     std::string getName() const override { return "writeHead"; }
+    std::string getParent() const override { return "response"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) return "";
         if (node->args.size() < 1 || node->args.size() > 2) throw std::runtime_error("writeHead() expects 1 or 2 arguments");
@@ -98,7 +101,9 @@ public:
 
 class WriteBuiltin : public BuiltinFunction {
 public:
+// @desc Write HTTP response body content
     std::string getName() const override { return "write"; }
+    std::string getParent() const override { return "response"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) return "";
         if (node->args.size() != 1) throw std::runtime_error("write() expects 1 argument");
@@ -120,7 +125,9 @@ public:
 
 class EndBuiltin : public BuiltinFunction {
 public:
+// @desc End HTTP response
     std::string getName() const override { return "end"; }
+    std::string getParent() const override { return "response"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) return "";
         if (node->args.size() > 1) throw std::runtime_error("end() expects 0 or 1 argument");
@@ -153,6 +160,7 @@ public:
 
 class FetchBuiltin : public BuiltinFunction {
 public:
+// @desc Make HTTP GET request to URL
     std::string getName() const override { return "fetch"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() < 1 || node->args.size() > 2) throw std::runtime_error("fetch() expects 1 or 2 arguments");

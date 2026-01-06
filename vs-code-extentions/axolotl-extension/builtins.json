@@ -1,0 +1,172 @@
+{
+  "array": [
+    {"name": "len", "signature": "len()", "description": "Get length of array or string", "returnType": "void"},
+    {"name": "slice", "signature": "slice()", "description": "Extract portion of array from start to end index", "returnType": "void"},
+    {"name": "reverse", "signature": "reverse()", "description": "Reverse array elements", "returnType": "void"},
+    {"name": "join", "signature": "join()", "description": "Join array elements into string with separator", "returnType": "void"},
+    {"name": "find", "signature": "find()", "description": "Find index of element in array, returns -1 if not found", "returnType": "void"},
+    {"name": "includes", "signature": "includes()", "description": "Check if array contains element", "returnType": "void"},
+    {"name": "push", "signature": "push()", "description": "Add element to array and return new array", "returnType": "void"},
+    {"name": "pop", "signature": "pop()", "description": "Remove and return last element from array", "returnType": "void"},
+    {"name": "sort", "signature": "sort()", "description": "Sort array elements in-place", "returnType": "void"}
+  ]
+,
+  "canvas_3d": [
+    {"name": "createScene", "signature": "createScene()", "description": "Create a new 3D scene container", "returnType": "void"},
+    {"name": "add", "signature": "add()", "description": "Add mesh or light to scene", "returnType": "void"},
+    {"name": "removeMesh", "signature": "removeMesh()", "description": "Remove mesh or light from scene", "returnType": "void"},
+    {"name": "BoxGeometry", "signature": "BoxGeometry()", "description": "Create box geometry with width, height, depth", "returnType": "void"},
+    {"name": "SphereGeometry", "signature": "SphereGeometry()", "description": "Create sphere geometry with radius and segments", "returnType": "void"},
+    {"name": "PlaneGeometry", "signature": "PlaneGeometry()", "description": "Create plane geometry with width and height", "returnType": "void"},
+    {"name": "TorusGeometry", "signature": "TorusGeometry()", "description": "Create torus geometry with radius, tube, and segments", "returnType": "void"},
+    {"name": "CylinderGeometry", "signature": "CylinderGeometry()", "description": "Create cylinder geometry with radii, height, and segments", "returnType": "void"},
+    {"name": "loadOBJ", "signature": "loadOBJ()", "description": "Load 3D mesh from OBJ file", "returnType": "void"},
+    {"name": "applyMTL", "signature": "applyMTL()", "description": "Apply MTL material file to mesh", "returnType": "void"},
+    {"name": "PerspectiveCamera", "signature": "PerspectiveCamera()", "description": "Create perspective camera with field of view", "returnType": "void"},
+    {"name": "setPosition", "signature": "setPosition()", "description": "Set object position in 3D space", "returnType": "void"},
+    {"name": "setRotation", "signature": "setRotation()", "description": "Set object rotation in radians", "returnType": "void"},
+    {"name": "setScale", "signature": "setScale()", "description": "Set object scale factors", "returnType": "void"},
+    {"name": "lookAt", "signature": "lookAt()", "description": "Point camera at target coordinates", "returnType": "void"},
+    {"name": "enableDevMode", "signature": "enableDevMode()", "description": "Enable development camera controls", "returnType": "void"},
+    {"name": "updateDevCamera", "signature": "updateDevCamera()", "description": "Update development camera position", "returnType": "void"},
+    {"name": "handleDevInput", "signature": "handleDevInput()", "description": "Process development mode input events", "returnType": "void"},
+    {"name": "PointLight", "signature": "PointLight()", "description": "Create point light with color and intensity", "returnType": "void"},
+    {"name": "AmbientLight", "signature": "AmbientLight()", "description": "Create ambient light with color and intensity", "returnType": "void"},
+    {"name": "DirectionalLight", "signature": "DirectionalLight()", "description": "Create directional light with color and intensity", "returnType": "void"},
+    {"name": "setColor", "signature": "setColor()", "description": "Set mesh color using hex string", "returnType": "void"},
+    {"name": "setMetallic", "signature": "setMetallic()", "description": "Set mesh metallic property for reflections", "returnType": "void"},
+    {"name": "render", "signature": "render()", "description": "Render scene with camera to canvas", "returnType": "void"},
+    {"name": "isColliding", "signature": "isColliding()", "description": "Check if meshes are colliding", "returnType": "void"},
+    {"name": "followTarget", "signature": "followTarget()", "description": "Make camera follow target mesh", "returnType": "void"},
+    {"name": "getPosition", "signature": "getPosition()", "description": "Get mesh position as object with x, y, z", "returnType": "void"},
+    {"name": "moveBy", "signature": "moveBy()", "description": "Move mesh by relative offset", "returnType": "void"},
+    {"name": "deformVertices", "signature": "deformVertices()", "description": "Deform mesh vertices with noise function", "returnType": "void"},
+    {"name": "setGraphics", "signature": "setGraphics()", "description": "Configure scene graphics settings", "returnType": "void"},
+    {"name": "getGroundNormal", "signature": "getGroundNormal()", "description": "Get ground normal vector for mesh", "returnType": "void"},
+    {"name": "setTexture", "signature": "setTexture()", "description": "Apply texture image to mesh", "returnType": "void"},
+    {"name": "createBone", "signature": "createBone()", "description": "Create skeletal bone for animation", "returnType": "void"},
+    {"name": "setBonePose", "signature": "setBonePose()", "description": "Set bone position and rotation", "returnType": "void"},
+    {"name": "createAnimation", "signature": "createAnimation()", "description": "Create animation with name and duration", "returnType": "void"},
+    {"name": "addAnimKey", "signature": "addAnimKey()", "description": "Add keyframe to animation", "returnType": "void"},
+    {"name": "playAnimation", "signature": "playAnimation()", "description": "Start playing animation by index", "returnType": "void"},
+    {"name": "updateAnimation", "signature": "updateAnimation()", "description": "Update animation with delta time", "returnType": "void"}
+  ]
+,
+  "canvas": [
+    {"name": "createCanvas", "signature": "createCanvas()", "description": "Create 2D canvas with width and height", "returnType": "void"},
+    {"name": "fillRect", "signature": "fillRect()", "description": "Draw filled rectangle on canvas", "returnType": "void"},
+    {"name": "strokeRect", "signature": "strokeRect()", "description": "Draw rectangle outline on canvas", "returnType": "void"},
+    {"name": "clearRect", "signature": "clearRect()", "description": "Clear rectangular area on canvas", "returnType": "void"},
+    {"name": "fillStyle", "signature": "fillStyle()", "description": "Set fill color for canvas drawing", "returnType": "void"},
+    {"name": "strokeStyle", "signature": "strokeStyle()", "description": "Set stroke color for canvas drawing", "returnType": "void"},
+    {"name": "render", "signature": "render()", "description": "Render scene with camera to canvas", "returnType": "void"},
+    {"name": "fillCircle", "signature": "fillCircle()", "description": "Draw filled circle on canvas", "returnType": "void"},
+    {"name": "pollEvents", "signature": "pollEvents()", "description": "Process window and input events", "returnType": "void"},
+    {"name": "loadImage", "signature": "loadImage()", "description": "Load image from file path", "returnType": "void"},
+    {"name": "drawImage", "signature": "drawImage()", "description": "Draw image on canvas at position", "returnType": "void"},
+    {"name": "drawLine", "signature": "drawLine()", "description": "Draw line between two points", "returnType": "void"},
+    {"name": "close", "signature": "close()", "description": "Close canvas window", "returnType": "void"}
+  ]
+,
+  "conversion": [
+    {"name": "toString", "signature": "toString()", "description": "Convert value to string", "returnType": "void"},
+    {"name": "toInt", "signature": "toInt()", "description": "Convert value to integer", "returnType": "void"},
+    {"name": "toFloat", "signature": "toFloat()", "description": "Convert value to float", "returnType": "void"},
+    {"name": "toBool", "signature": "toBool()", "description": "Convert value to boolean", "returnType": "void"}
+  ]
+,
+  "env_loader": [
+
+  ]
+,
+  "http": [
+    {"name": "createServer", "signature": "createServer()", "description": "Create HTTP server on specified port", "returnType": "void"},
+    {"name": "writeHead", "signature": "writeHead()", "description": "Write HTTP response headers", "returnType": "void"},
+    {"name": "write", "signature": "write()", "description": "Write HTTP response body content", "returnType": "void"},
+    {"name": "end", "signature": "end()", "description": "End HTTP response", "returnType": "void"},
+    {"name": "fetch", "signature": "fetch()", "description": "Make HTTP GET request to URL", "returnType": "void"}
+  ]
+,
+  "input": [
+    {"name": "isKeyDown", "signature": "isKeyDown()", "description": "Check if keyboard key is pressed", "returnType": "void"},
+    {"name": "getMouseX", "signature": "getMouseX()", "description": "Get mouse X coordinate", "returnType": "void"},
+    {"name": "getMouseY", "signature": "getMouseY()", "description": "Get mouse Y coordinate", "returnType": "void"},
+    {"name": "isMouseDown", "signature": "isMouseDown()", "description": "Check if mouse button is pressed", "returnType": "void"},
+    {"name": "wasMouseClicked", "signature": "wasMouseClicked()", "description": "Check if mouse was clicked this frame", "returnType": "void"},
+    {"name": "updateInputs", "signature": "updateInputs()", "description": "Update input state for current frame", "returnType": "void"},
+    {"name": "getKeyState", "signature": "getKeyState()", "description": "Get keyboard state object with arrow keys and space", "returnType": "void"}
+  ]
+,
+  "io": [
+    {"name": "print", "signature": "print()", "description": "Print values to console", "returnType": "void"},
+    {"name": "write", "signature": "write()", "description": "Write content to file", "returnType": "void"},
+    {"name": "read", "signature": "read()", "description": "Read file contents as string", "returnType": "void"},
+    {"name": "readDir", "signature": "readDir()", "description": "List directory contents as array", "returnType": "void"},
+    {"name": "copy", "signature": "copy()", "description": "Copy file from source to destination", "returnType": "void"}
+  ]
+,
+  "json": [
+    {"name": "json_parse", "signature": "json_parse()", "description": "Parse JSON string into object", "returnType": "void"},
+    {"name": "json_stringify", "signature": "json_stringify()", "description": "Convert object to JSON string", "returnType": "void"}
+  ]
+,
+  "math": [
+    {"name": "pow", "signature": "pow()", "description": "Raise base to exponent power", "returnType": "void"},
+    {"name": "min", "signature": "min()", "description": "Return minimum of two numbers", "returnType": "void"},
+    {"name": "max", "signature": "max()", "description": "Return maximum of two numbers", "returnType": "void"},
+    {"name": "clamp", "signature": "clamp()", "description": "Clamp value between min and max", "returnType": "void"},
+    {"name": "lerp", "signature": "lerp()", "description": "Linear interpolation between a and b by t", "returnType": "void"},
+    {"name": "atan2", "signature": "atan2()", "description": "Calculate arc tangent of y/x in radians", "returnType": "void"},
+    {"name": "random", "signature": "random()", "description": "Generate random float between 0.0 and 1.0", "returnType": "void"}
+  ]
+,
+  "mesh_deform": [
+    {"name": "deformVertices", "signature": "deformVertices()", "description": "", "returnType": "void"}
+  ]
+,
+  "mysql": [
+    {"name": "mysqlConnect", "signature": "mysqlConnect()", "description": "Connect to MySQL database", "returnType": "void"},
+    {"name": "query", "signature": "query()", "description": "Execute SQL query on database connection", "returnType": "void"},
+    {"name": "close", "signature": "close()", "description": "Close canvas window", "returnType": "void"}
+  ]
+,
+  "registry": [
+
+  ]
+,
+  "string": [
+    {"name": "toUpper", "signature": "toUpper()", "description": "Convert string to uppercase", "returnType": "void"},
+    {"name": "toLower", "signature": "toLower()", "description": "Convert string to lowercase", "returnType": "void"},
+    {"name": "substr", "signature": "substr()", "description": "Extract substring from start index with given length", "returnType": "void"},
+    {"name": "indexOf", "signature": "indexOf()", "description": "Find index of substring, returns -1 if not found", "returnType": "void"},
+    {"name": "contains", "signature": "contains()", "description": "Check if string contains substring", "returnType": "void"},
+    {"name": "trim", "signature": "trim()", "description": "Remove leading and trailing whitespace", "returnType": "void"},
+    {"name": "replace", "signature": "replace()", "description": "Replace first occurrence of search string with replacement", "returnType": "void"},
+    {"name": "split", "signature": "split()", "description": "Split string into array by delimiter", "returnType": "void"},
+    {"name": "startsWith", "signature": "startsWith()", "description": "Check if string starts with prefix", "returnType": "void"},
+    {"name": "endsWith", "signature": "endsWith()", "description": "Check if string ends with suffix", "returnType": "void"},
+    {"name": "repeat", "signature": "repeat()", "description": "Repeat string count times", "returnType": "void"},
+    {"name": "charAt", "signature": "charAt()", "description": "Get character at index", "returnType": "void"},
+    {"name": "charCodeAt", "signature": "charCodeAt()", "description": "Get character code at index", "returnType": "void"}
+  ]
+,
+  "utility": [
+    {"name": "millis", "signature": "millis()", "description": "Get current time in milliseconds since epoch", "returnType": "void"},
+    {"name": "sleep", "signature": "sleep()", "description": "Sleep for specified milliseconds", "returnType": "void"},
+    {"name": "assert", "signature": "assert()", "description": "Throw error if condition is false", "returnType": "void"},
+    {"name": "error", "signature": "error()", "description": "Throw runtime error with message", "returnType": "void"},
+    {"name": "keys", "signature": "keys()", "description": "Get array of object keys", "returnType": "void"},
+    {"name": "values", "signature": "values()", "description": "Get array of object values", "returnType": "void"},
+    {"name": "hasKey", "signature": "hasKey()", "description": "Check if object has key", "returnType": "void"},
+    {"name": "clone", "signature": "clone()", "description": "Create shallow copy of array or object", "returnType": "void"},
+    {"name": "merge", "signature": "merge()", "description": "Merge two objects, second overrides first", "returnType": "void"},
+    {"name": "typeof", "signature": "typeof()", "description": "Get type of value as string", "returnType": "void"}
+  ]
+,
+  "websocket": [
+    {"name": "wsConnect", "signature": "wsConnect()", "description": "Connect to WebSocket server", "returnType": "void"},
+    {"name": "send", "signature": "send()", "description": "Send message through WebSocket", "returnType": "void"},
+    {"name": "receive", "signature": "receive()", "description": "Receive message from WebSocket", "returnType": "void"},
+    {"name": "close", "signature": "close()", "description": "Close canvas window", "returnType": "void"}
+  ]
+}

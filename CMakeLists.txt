@@ -4,16 +4,21 @@ project(CompilerEngine)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find LLVM
-find_package(LLVM REQUIRED CONFIG)
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-
-list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-include(AddLLVM)
+# Find LLVM (optional)
+find_package(LLVM CONFIG)
+if(LLVM_FOUND)
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+    list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+    include(AddLLVM)
+    include_directories(${LLVM_INCLUDE_DIRS})
+    set(HAVE_LLVM TRUE)
+else()
+    message(STATUS "LLVM not found - JIT compilation disabled")
+    set(HAVE_LLVM FALSE)
+endif()
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR})
-include_directories(${LLVM_INCLUDE_DIRS})
 
 # Source files
 set(SOURCES
@@ -27,7 +32,7 @@ set(SOURCES
     src/operators.cpp
     src/jit.cpp
     src/error_handler.cpp
-    src/builtin_registry.cpp
+    src/physics_core.cpp
     src/builtins/registry.cpp
     src/builtins/string_functions.cpp
     src/builtins/io_functions.cpp
@@ -41,10 +46,6 @@ set(SOURCES
     src/builtins/canvas_3d_functions.cpp
     src/builtins/input_functions.cpp
     src/builtins/env_loader.cpp
-    src/builtins/ui_functions.cpp
-    src/ui_ast.cpp
-    src/ui_parser.cpp
-    src/ui_interpreter.cpp
 )
 
 # Optional MySQL support
@@ -109,11 +110,6 @@ find_path(SDL2_INCLUDE_DIR SDL2/SDL.h PATHS /opt/homebrew/include REQUIRED)
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 
-# Find GTK3
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
-include_directories(${GTK3_INCLUDE_DIRS})
-
 if(NOT SDL2_LIBRARY)
     message(FATAL_ERROR "SDL2 not found")
 endif()
@@ -126,9 +122,11 @@ message(STATUS "Found SDL2: ${SDL2_LIBRARY}")
 message(STATUS "Found SDL2_image: ${SDL2_IMAGE_LIBRARY}")
 
 # Link LLVM libraries
-llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
-target_link_libraries(compiler ${llvm_libs} ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY} ${OPENGL_LIBRARIES})
-target_link_libraries(compiler ${GTK3_LDFLAGS})
+if(HAVE_LLVM)
+    llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
+    target_link_libraries(compiler ${llvm_libs})
+endif()
+target_link_libraries(compiler ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY} ${OPENGL_LIBRARIES})
 
 # Link optional libraries
 if(HAVE_MYSQL)
@@ -160,6 +158,25 @@ install(DIRECTORY modules DESTINATION lib/axolotl OPTIONAL)
 install(DIRECTORY env DESTINATION lib/axolotl OPTIONAL)
 install(FILES README.md DESTINATION share/axolotl)
 install(DIRECTORY tests DESTINATION share/axolotl/examples OPTIONAL)
+
+# Generate builtins.json for VS Code extension
+if(WIN32)
+    add_custom_command(
+        TARGET compiler POST_BUILD
+        COMMAND cmd /c ${CMAKE_SOURCE_DIR}/scripts/extract_builtins.bat
+                ${CMAKE_SOURCE_DIR}/vs-code-extentions/axolotl-extension/builtins.json
+                ${CMAKE_SOURCE_DIR}/src/builtins/*.cpp
+        COMMENT "Generating builtins.json for VS Code extension"
+    )
+else()
+    add_custom_command(
+        TARGET compiler POST_BUILD
+        COMMAND ${CMAKE_SOURCE_DIR}/scripts/extract_builtins.sh
+                ${CMAKE_SOURCE_DIR}/vs-code-extentions/axolotl-extension/builtins.json
+                ${CMAKE_SOURCE_DIR}/src/builtins/*.cpp
+        COMMENT "Generating builtins.json for VS Code extension"
+    )
+endif()
 
 # Test executable
 enable_testing()

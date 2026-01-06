@@ -9,6 +9,7 @@ static bool mouseClicked = false;
 
 class IsKeyDownBuiltin : public BuiltinFunction {
 public:
+// @desc Check if keyboard key is pressed
     std::string getName() const override { return "isKeyDown"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("isKeyDown() expects 1 argument: key name");
@@ -20,6 +21,7 @@ public:
 
 class GetMouseXBuiltin : public BuiltinFunction {
 public:
+// @desc Get mouse X coordinate
     std::string getName() const override { return "getMouseX"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 0) throw std::runtime_error("getMouseX() expects no arguments");
@@ -32,6 +34,7 @@ public:
 
 class GetMouseYBuiltin : public BuiltinFunction {
 public:
+// @desc Get mouse Y coordinate
     std::string getName() const override { return "getMouseY"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 0) throw std::runtime_error("getMouseY() expects no arguments");
@@ -44,6 +47,7 @@ public:
 
 class IsMouseDownBuiltin : public BuiltinFunction {
 public:
+// @desc Check if mouse button is pressed
     std::string getName() const override { return "isMouseDown"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 0) throw std::runtime_error("isMouseDown() expects no arguments");
@@ -54,6 +58,7 @@ public:
 
 class WasMouseClickedBuiltin : public BuiltinFunction {
 public:
+// @desc Check if mouse was clicked this frame
     std::string getName() const override { return "wasMouseClicked"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 0) throw std::runtime_error("wasMouseClicked() expects no arguments");
@@ -66,6 +71,7 @@ public:
 
 class UpdateInputsBuiltin : public BuiltinFunction {
 public:
+// @desc Update input state for current frame
     std::string getName() const override { return "updateInputs"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         SDL_Event event;
@@ -94,6 +100,7 @@ public:
 
 class GetKeyStateBuiltin : public BuiltinFunction {
 public:
+// @desc Get keyboard state object with arrow keys and space
     std::string getName() const override { return "getKeyState"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         const Uint8* keys = SDL_GetKeyboardState(nullptr);

@@ -1,5 +1,6 @@
 #include "include/builtins.h"
 
+// @desc Convert value to string
 class ToStringBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "toString"; }
@@ -12,6 +13,7 @@ public:
     }
 };
 
+// @desc Convert value to integer
 class ToIntBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "toInt"; }
@@ -37,6 +39,7 @@ public:
     }
 };
 
+// @desc Convert value to float
 class ToFloatBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "toFloat"; }
@@ -60,6 +63,7 @@ public:
     }
 };
 
+// @desc Convert value to boolean
 class ToBoolBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "toBool"; }

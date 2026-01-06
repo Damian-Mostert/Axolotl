@@ -1,6 +1,6 @@
 #include "include/builtins.h"
 
-// toUpper builtin
+// @desc Convert string to uppercase
 class ToUpperBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "toUpper"; }
@@ -23,7 +23,7 @@ public:
     }
 };
 
-// toLower builtin
+// @desc Convert string to lowercase
 class ToLowerBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "toLower"; }
@@ -46,6 +46,7 @@ public:
     }
 };
 
+// @desc Extract substring from start index with given length
 class SubstrBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "substr"; }
@@ -64,6 +65,7 @@ public:
     }
 };
 
+// @desc Find index of substring, returns -1 if not found
 class IndexOfBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "indexOf"; }
@@ -80,6 +82,7 @@ public:
     }
 };
 
+// @desc Check if string contains substring
 class ContainsBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "contains"; }
@@ -96,6 +99,7 @@ public:
     }
 };
 
+// @desc Remove leading and trailing whitespace
 class TrimBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "trim"; }
@@ -115,6 +119,7 @@ public:
     }
 };
 
+// @desc Replace first occurrence of search string with replacement
 class ReplaceBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "replace"; }
@@ -134,6 +139,7 @@ public:
     }
 };
 
+// @desc Split string into array by delimiter
 class SplitBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "split"; }
@@ -157,6 +163,7 @@ public:
     }
 };
 
+// @desc Check if string starts with prefix
 class StartsWithBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "startsWith"; }
@@ -172,6 +179,7 @@ public:
     }
 };
 
+// @desc Check if string ends with suffix
 class EndsWithBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "endsWith"; }
@@ -191,6 +199,7 @@ public:
     }
 };
 
+// @desc Repeat string count times
 class RepeatBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "repeat"; }
@@ -208,6 +217,7 @@ public:
     }
 };
 
+// @desc Get character at index
 class CharAtBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "charAt"; }
@@ -227,6 +237,7 @@ public:
     }
 };
 
+// @desc Get character code at index
 class CharCodeAtBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "charCodeAt"; }

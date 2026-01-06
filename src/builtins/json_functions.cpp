@@ -2,6 +2,7 @@
 
 class JsonParseBuiltin : public BuiltinFunction {
 public:
+// @desc Parse JSON string into object
     std::string getName() const override { return "json_parse"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("json_parse() expects 1 argument");
@@ -60,6 +61,7 @@ public:
 
 class JsonStringifyBuiltin : public BuiltinFunction {
 public:
+// @desc Convert object to JSON string
     std::string getName() const override { return "json_stringify"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("json_stringify() expects 1 argument");

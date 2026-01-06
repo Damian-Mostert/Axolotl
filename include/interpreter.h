@@ -142,10 +142,6 @@ public:
     std::string visit(ContinueStatement* node) override;
     std::string visit(CaseClause* node) override;
     std::string visit(SwitchStatement* node) override;
-    std::string visit(class UIElement* node) override;
-    std::string visit(class UIFragment* node) override;
-    std::string visit(class UIText* node) override;
-    std::string visit(class UIExpression* node) override;
     
 private:
     std::unordered_map<std::string, FunctionDeclaration*> functions;

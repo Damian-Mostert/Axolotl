@@ -178,6 +178,7 @@ Vec3 project(Vec3 v, float fov, int w, int h) {
 
 class CreateSceneBuiltin : public BuiltinFunction {
 public:
+// @desc Create a new 3D scene container
     std::string getName() const override { return "createScene"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         int id = nextSceneId++;
@@ -191,7 +192,9 @@ public:
 
 class AddToSceneBuiltin : public BuiltinFunction {
 public:
+// @desc Add mesh or light to scene
     std::string getName() const override { return "add"; }
+    std::string getParent() const override { return "scene"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 1) throw std::runtime_error("scene.add(mesh)");
         auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
@@ -208,7 +211,9 @@ public:
 
 class RemoveMeshBuiltin : public BuiltinFunction {
 public:
+// @desc Remove mesh or light from scene
     std::string getName() const override { return "removeMesh"; }
+    std::string getParent() const override { return "scene"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 1) throw std::runtime_error("scene.removeMesh(mesh)");
         auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
@@ -232,6 +237,7 @@ public:
 
 class BoxGeometryBuiltin : public BuiltinFunction {
 public:
+// @desc Create box geometry with width, height, depth
     std::string getName() const override { return "BoxGeometry"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         float w = 1, h = 1, d = 1;
@@ -248,6 +254,7 @@ public:
 
 class SphereGeometryBuiltin : public BuiltinFunction {
 public:
+// @desc Create sphere geometry with radius and segments
     std::string getName() const override { return "SphereGeometry"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         float r = 1; int wSeg = 16, hSeg = 12;
@@ -265,6 +272,7 @@ public:
 
 class PlaneGeometryBuiltin : public BuiltinFunction {
 public:
+// @desc Create plane geometry with width and height
     std::string getName() const override { return "PlaneGeometry"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         float w = 1, h = 1;
@@ -278,6 +286,7 @@ public:
 
 class TorusGeometryBuiltin : public BuiltinFunction {
 public:
+// @desc Create torus geometry with radius, tube, and segments
     std::string getName() const override { return "TorusGeometry"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         float radius = 1, tube = 0.4f; int rSeg = 16, tSeg = 32;
@@ -296,6 +305,7 @@ public:
 
 class CylinderGeometryBuiltin : public BuiltinFunction {
 public:
+// @desc Create cylinder geometry with radii, height, and segments
     std::string getName() const override { return "CylinderGeometry"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         float radiusTop = 1, radiusBottom = 1, height = 2; int radialSegments = 32;
@@ -335,6 +345,7 @@ public:
 
 class LoadOBJBuiltin : public BuiltinFunction {
 public:
+// @desc Load 3D mesh from OBJ file
     std::string getName() const override { return "loadOBJ"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("loadOBJ(filepath)");
@@ -404,7 +415,9 @@ public:
 
 class ApplyMTLBuiltin : public BuiltinFunction {
 public:
+// @desc Apply MTL material file to mesh
     std::string getName() const override { return "applyMTL"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() < 1 || node->args.size() > 2) throw std::runtime_error("mesh.applyMTL(mtlFilepath, [materialName])");
         if (!node->callee) throw std::runtime_error("applyMTL must be called on mesh");
@@ -458,6 +471,7 @@ public:
 
 class PerspectiveCameraBuiltin : public BuiltinFunction {
 public:
+// @desc Create perspective camera with field of view
     std::string getName() const override { return "PerspectiveCamera"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         Camera cam;
@@ -469,7 +483,9 @@ public:
 
 class SetPositionBuiltin : public BuiltinFunction {
 public:
+// @desc Set object position in 3D space
     std::string getName() const override { return "setPosition"; }
+    std::string getParent() const override { return "mesh,camera,light"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 3) throw std::runtime_error("setPosition(x, y, z)");
         auto v0 = interp->evaluate(node->args[0].get()); auto v1 = interp->evaluate(node->args[1].get()); auto v2 = interp->evaluate(node->args[2].get());
@@ -488,7 +504,9 @@ public:
 
 class SetRotationBuiltin : public BuiltinFunction {
 public:
+// @desc Set object rotation in radians
     std::string getName() const override { return "setRotation"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 3) throw std::runtime_error("setRotation(x, y, z)");
         auto v0 = interp->evaluate(node->args[0].get()); auto v1 = interp->evaluate(node->args[1].get()); auto v2 = interp->evaluate(node->args[2].get());
@@ -505,7 +523,9 @@ public:
 
 class SetScaleBuiltin : public BuiltinFunction {
 public:
+// @desc Set object scale factors
     std::string getName() const override { return "setScale"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 3) throw std::runtime_error("setScale(x, y, z)");
         auto v0 = interp->evaluate(node->args[0].get()); auto v1 = interp->evaluate(node->args[1].get()); auto v2 = interp->evaluate(node->args[2].get());
@@ -526,7 +546,9 @@ public:
 
 class LookAtBuiltin : public BuiltinFunction {
 public:
+// @desc Point camera at target coordinates
     std::string getName() const override { return "lookAt"; }
+    std::string getParent() const override { return "camera"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 3) throw std::runtime_error("lookAt(x, y, z)");
         if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
@@ -552,6 +574,7 @@ public:
 
 class EnableDevModeBuiltin : public BuiltinFunction {
 public:
+// @desc Enable development camera controls
     std::string getName() const override { return "enableDevMode"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("enableDevMode(camera)");
@@ -569,6 +592,7 @@ public:
 
 class UpdateDevCameraBuiltin : public BuiltinFunction {
 public:
+// @desc Update development camera position
     std::string getName() const override { return "updateDevCamera"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!devMode || devCameraId < 0) return "";
@@ -582,6 +606,7 @@ public:
 
 class HandleDevInputBuiltin : public BuiltinFunction {
 public:
+// @desc Process development mode input events
     std::string getName() const override { return "handleDevInput"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         SDL_Event event;
@@ -628,6 +653,7 @@ public:
 
 class PointLightBuiltin : public BuiltinFunction {
 public:
+// @desc Create point light with color and intensity
     std::string getName() const override { return "PointLight"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         Light light;
@@ -650,6 +676,7 @@ public:
 
 class AmbientLightBuiltin : public BuiltinFunction {
 public:
+// @desc Create ambient light with color and intensity
     std::string getName() const override { return "AmbientLight"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         Light light; light.intensity = 0.5f;
@@ -672,6 +699,7 @@ public:
 
 class DirectionalLightBuiltin : public BuiltinFunction {
 public:
+// @desc Create directional light with color and intensity
     std::string getName() const override { return "DirectionalLight"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         Light light; light.position = {0, 1, 0};
@@ -694,7 +722,9 @@ public:
 
 class SetColorBuiltin : public BuiltinFunction {
 public:
+// @desc Set mesh color using hex string
     std::string getName() const override { return "setColor"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("setColor(color)");
         std::string color = std::get<std::string>(interp->evaluate(node->args[0].get()));
@@ -713,7 +743,9 @@ public:
 
 class SetMetallicBuiltin : public BuiltinFunction {
 public:
+// @desc Set mesh metallic property for reflections
     std::string getName() const override { return "setMetallic"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("setMetallic(value)");
         auto v = interp->evaluate(node->args[0].get());
@@ -728,7 +760,9 @@ public:
 
 class RenderSceneBuiltin : public BuiltinFunction {
 public:
+// @desc Render scene with camera to canvas
     std::string getName() const override { return "render"; }
+    std::string getParent() const override { return "canvas"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() == 0) {
             if (!node->callee) throw std::runtime_error("render() must be called on canvas");
@@ -949,6 +983,7 @@ public:
 
 class IsCollidingBuiltin : public BuiltinFunction {
 public:
+// @desc Check if meshes are colliding
     std::string getName() const override { return "isColliding"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         try {
@@ -1004,111 +1039,9 @@ public:
     }
 };
 
-class ApplyNaturalCollisionBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "applyNaturalCollision"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() < 2) throw std::runtime_error("applyNaturalCollision(mesh1, mesh2, ...)");
-        try {
-            std::vector<int> meshIds;
-            for (auto& arg : node->args) {
-                Value v = interp->evaluate(arg.get());
-                if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(v)) continue;
-                auto obj = std::get<std::shared_ptr<ObjectValue>>(v);
-                if (obj && obj->fields.count("_meshId")) {
-                    auto& field = obj->fields.at("_meshId");
-                    if (std::holds_alternative<int>(field)) {
-                        meshIds.push_back(std::get<int>(field));
-                    } else if (std::holds_alternative<float>(field)) {
-                        meshIds.push_back((int)std::get<float>(field));
-                    }
-                }
-            }
-        for (size_t i = 0; i < meshIds.size(); i++) {
-            for (size_t j = i + 1; j < meshIds.size(); j++) {
-                Mesh& m1 = meshes[meshIds[i]];
-                Mesh& m2 = meshes[meshIds[j]];
-                Vec3 min1 = transformVertex(m1.aabbMin, m1);
-                Vec3 max1 = transformVertex(m1.aabbMax, m1);
-                Vec3 min2 = transformVertex(m2.aabbMin, m2);
-                Vec3 max2 = transformVertex(m2.aabbMax, m2);
-                if (!aabbIntersect(min1, max1, min2, max2)) continue;
-                Vec3 dir = {m2.position.x - m1.position.x, m2.position.y - m1.position.y, m2.position.z - m1.position.z};
-                float dist = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
-                if (dist < 0.001f) continue;
-                dir.x /= dist; dir.y /= dist; dir.z /= dist;
-                float v1 = dir.x * m1.velocity.x + dir.y * m1.velocity.y + dir.z * m1.velocity.z;
-                float v2 = dir.x * m2.velocity.x + dir.y * m2.velocity.y + dir.z * m2.velocity.z;
-                float m1m = m1.mass, m2m = m2.mass;
-                float newV1 = (v1 * (m1m - m2m) + 2 * m2m * v2) / (m1m + m2m);
-                float newV2 = (v2 * (m2m - m1m) + 2 * m1m * v1) / (m1m + m2m);
-                m1.velocity.x += (newV1 - v1) * dir.x * 0.8f;
-                m1.velocity.y += (newV1 - v1) * dir.y * 0.8f;
-                m1.velocity.z += (newV1 - v1) * dir.z * 0.8f;
-                m2.velocity.x += (newV2 - v2) * dir.x * 0.8f;
-                m2.velocity.y += (newV2 - v2) * dir.y * 0.8f;
-                m2.velocity.z += (newV2 - v2) * dir.z * 0.8f;
-                float overlap = (max1.x - min1.x + max2.x - min2.x) * 0.5f - dist;
-                if (overlap > 0) {
-                    m1.position.x -= dir.x * overlap * 0.5f;
-                    m1.position.y -= dir.y * overlap * 0.5f;
-                    m1.position.z -= dir.z * overlap * 0.5f;
-                    m2.position.x += dir.x * overlap * 0.5f;
-                    m2.position.y += dir.y * overlap * 0.5f;
-                    m2.position.z += dir.z * overlap * 0.5f;
-                }
-            }
-        }
-        return "";
-        } catch (...) {
-            return "";
-        }
-    }
-};
 
-class ApplyAttractionToMeshBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "applyAttractionToMesh"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("applyAttractionToMesh(mesh1, mesh2)");
-        try {
-            Value v1 = interp->evaluate(node->args[0].get());
-            Value v2 = interp->evaluate(node->args[1].get());
-            if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(v1) || !std::holds_alternative<std::shared_ptr<ObjectValue>>(v2)) return "";
-            auto obj1 = std::get<std::shared_ptr<ObjectValue>>(v1);
-            auto obj2 = std::get<std::shared_ptr<ObjectValue>>(v2);
-            if (!obj1 || !obj1->fields.count("_meshId") || !obj2 || !obj2->fields.count("_meshId")) return "";
-            auto& field1 = obj1->fields.at("_meshId");
-            auto& field2 = obj2->fields.at("_meshId");
-            int meshId1 = std::holds_alternative<int>(field1) ? std::get<int>(field1) : (int)std::get<float>(field1);
-            int meshId2 = std::holds_alternative<int>(field2) ? std::get<int>(field2) : (int)std::get<float>(field2);
-            Mesh& m1 = meshes[meshId1];
-            Mesh& m2 = meshes[meshId2];
-            Vec3 c2 = {(m2.aabbMin.x + m2.aabbMax.x) * 0.5f, (m2.aabbMin.y + m2.aabbMax.y) * 0.5f, (m2.aabbMin.z + m2.aabbMax.z) * 0.5f};
-            Vec3 e2 = {(m2.aabbMax.x - m2.aabbMin.x) * 0.5f * m2.scale.x, (m2.aabbMax.y - m2.aabbMin.y) * 0.5f * m2.scale.y, (m2.aabbMax.z - m2.aabbMin.z) * 0.5f * m2.scale.z};
-            Vec3 min2 = {m2.position.x + c2.x - e2.x, m2.position.y + c2.y - e2.y, m2.position.z + c2.z - e2.z};
-            Vec3 max2 = {m2.position.x + c2.x + e2.x, m2.position.y + c2.y + e2.y, m2.position.z + c2.z + e2.z};
-            Vec3 nearest = {
-                fmax(min2.x, fmin(m1.position.x, max2.x)),
-                fmax(min2.y, fmin(m1.position.y, max2.y)),
-                fmax(min2.z, fmin(m1.position.z, max2.z))
-            };
-            Vec3 dir = {nearest.x - m1.position.x, nearest.y - m1.position.y, nearest.z - m1.position.z};
-            float dist = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
-            if (dist > 0.001f) {
-                dir.x /= dist; dir.y /= dist; dir.z /= dist;
-                float mass2 = m2.scale.x * m2.scale.y * m2.scale.z * m2.mass;
-                float strength = 0.02f * mass2;
-                m1.velocity.x += dir.x * strength;
-                m1.velocity.y += dir.y * strength;
-                m1.velocity.z += dir.z * strength;
-            }
-            return "";
-        } catch (...) {
-            return "";
-        }
-    }
-};
+
+
 
 REGISTER_BUILTIN(CreateSceneBuiltin)
 REGISTER_BUILTIN(AddToSceneBuiltin)
@@ -1135,12 +1068,12 @@ REGISTER_BUILTIN(UpdateDevCameraBuiltin)
 REGISTER_BUILTIN(HandleDevInputBuiltin)
 REGISTER_BUILTIN(RenderSceneBuiltin)
 REGISTER_BUILTIN(IsCollidingBuiltin)
-REGISTER_BUILTIN(ApplyNaturalCollisionBuiltin)
-REGISTER_BUILTIN(ApplyAttractionToMeshBuiltin)
 
 class FollowTargetBuiltin : public BuiltinFunction {
 public:
+// @desc Make camera follow target mesh
     std::string getName() const override { return "followTarget"; }
+    std::string getParent() const override { return "camera"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 4) throw std::runtime_error("followTarget(camera, target, distance, height)");
         Value camVal = interp->evaluate(node->args[0].get());
@@ -1174,7 +1107,9 @@ REGISTER_BUILTIN(FollowTargetBuiltin)
 
 class GetPositionBuiltin : public BuiltinFunction {
 public:
+// @desc Get mesh position as object with x, y, z
     std::string getName() const override { return "getPosition"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) throw std::runtime_error("getPosition must be called on mesh");
         auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
@@ -1195,125 +1130,17 @@ public:
     }
 };
 
-class GetVelocityBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "getVelocity"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (!node->callee) throw std::runtime_error("getVelocity must be called on mesh");
-        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
-        Value objVal = interp->evaluate(fa->object.get());
-        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-        
-        if (obj->fields.count("_meshId")) {
-            int meshId = std::get<int>(obj->fields["_meshId"]);
-            Mesh& mesh = meshes[meshId];
-            auto result = std::make_shared<ObjectValue>();
-            result->fields["x"] = mesh.velocity.x;
-            result->fields["y"] = mesh.velocity.y;
-            result->fields["z"] = mesh.velocity.z;
-            interp->lastValue = result;
-            return "{object}";
-        }
-        throw std::runtime_error("getVelocity requires mesh object");
-    }
-};
 
-class ApplyPhysicsBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "applyPhysics"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() < 3) throw std::runtime_error("applyPhysics(object, gravity, obstacle1, ...)");
-        
-        Value objVal = interp->evaluate(node->args[0].get());
-        auto objObj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-        int objId = std::get<int>(objObj->fields["_meshId"]);
-        Mesh& obj = meshes[objId];
-        
-        auto v1 = interp->evaluate(node->args[1].get());
-        float gravity = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
-        
-        obj.velocity.y += gravity;
-        obj.position.x += obj.velocity.x;
-        obj.position.y += obj.velocity.y;
-        obj.position.z += obj.velocity.z;
-        
-        Vec3 c1 = {(obj.aabbMin.x + obj.aabbMax.x) * 0.5f, (obj.aabbMin.y + obj.aabbMax.y) * 0.5f, (obj.aabbMin.z + obj.aabbMax.z) * 0.5f};
-        Vec3 e1 = {(obj.aabbMax.x - obj.aabbMin.x) * 0.5f * obj.scale.x, (obj.aabbMax.y - obj.aabbMin.y) * 0.5f * obj.scale.y, (obj.aabbMax.z - obj.aabbMin.z) * 0.5f * obj.scale.z};
-        
-        int grounded = 0;
-        
-        for (size_t i = 2; i < node->args.size(); i++) {
-            Value obstacleVal = interp->evaluate(node->args[i].get());
-            auto obstacleObj = std::get<std::shared_ptr<ObjectValue>>(obstacleVal);
-            int obstacleId = std::get<int>(obstacleObj->fields["_meshId"]);
-            Mesh& obstacle = meshes[obstacleId];
-            
-            Vec3 c2 = {(obstacle.aabbMin.x + obstacle.aabbMax.x) * 0.5f, (obstacle.aabbMin.y + obstacle.aabbMax.y) * 0.5f, (obstacle.aabbMin.z + obstacle.aabbMax.z) * 0.5f};
-            Vec3 e2 = {(obstacle.aabbMax.x - obstacle.aabbMin.x) * 0.5f * obstacle.scale.x, (obstacle.aabbMax.y - obstacle.aabbMin.y) * 0.5f * obstacle.scale.y, (obstacle.aabbMax.z - obstacle.aabbMin.z) * 0.5f * obstacle.scale.z};
-            
-            Vec3 min1 = {obj.position.x + c1.x * obj.scale.x - e1.x, obj.position.y + c1.y * obj.scale.y - e1.y, obj.position.z + c1.z * obj.scale.z - e1.z};
-            Vec3 max1 = {obj.position.x + c1.x * obj.scale.x + e1.x, obj.position.y + c1.y * obj.scale.y + e1.y, obj.position.z + c1.z * obj.scale.z + e1.z};
-            Vec3 min2 = {obstacle.position.x + c2.x * obstacle.scale.x - e2.x, obstacle.position.y + c2.y * obstacle.scale.y - e2.y, obstacle.position.z + c2.z * obstacle.scale.z - e2.z};
-            Vec3 max2 = {obstacle.position.x + c2.x * obstacle.scale.x + e2.x, obstacle.position.y + c2.y * obstacle.scale.y + e2.y, obstacle.position.z + c2.z * obstacle.scale.z + e2.z};
-            
-            if (!aabbIntersect(min1, max1, min2, max2)) continue;
-            
-            float minDist = 1e9f;
-            Vec3 bestNormal = {0, 1, 0};
-            bool hasCollision = false;
-            
-            for (size_t ti = 0; ti < obstacle.indices.size(); ti += 3) {
-                Vec3 tv[3];
-                for (int j = 0; j < 3; j++) tv[j] = transformVertex(obstacle.vertices[obstacle.indices[ti + j]], obstacle);
-                
-                Vec3 dirs[6] = {{0,-1,0}, {0,1,0}, {-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1}};
-                for (auto& dir : dirs) {
-                    float t; Vec3 n;
-                    if (rayTriangleIntersect(obj.position, dir, tv[0], tv[1], tv[2], t, n) && t < e1.y * 2.0f) {
-                        if (t < minDist) { minDist = t; bestNormal = n; hasCollision = true; }
-                    }
-                }
-            }
-            
-            if (hasCollision && minDist < e1.y * 1.5f) {
-                obj.position.x += bestNormal.x * (e1.y * 1.5f - minDist);
-                obj.position.y += bestNormal.y * (e1.y * 1.5f - minDist);
-                obj.position.z += bestNormal.z * (e1.y * 1.5f - minDist);
-                
-                float vDot = obj.velocity.x*bestNormal.x + obj.velocity.y*bestNormal.y + obj.velocity.z*bestNormal.z;
-                if (vDot < 0) {
-                    obj.velocity.x -= bestNormal.x * vDot * (1.0f + obstacle.bounciness);
-                    obj.velocity.y -= bestNormal.y * vDot * (1.0f + obstacle.bounciness);
-                    obj.velocity.z -= bestNormal.z * vDot * (1.0f + obstacle.bounciness);
-                }
-                if (fabs(bestNormal.y) > 0.5f && vDot < 0) {
-                    obj.velocity.x *= (1.0f - obstacle.friction);
-                    obj.velocity.z *= (1.0f - obstacle.friction);
-                    obj.groundNormal = bestNormal;
-                    grounded = 1;
-                }
-            }
-        }
-        
-        obj.angularVelocity.x *= 0.98f;
-        obj.angularVelocity.y *= 0.98f;
-        obj.angularVelocity.z *= 0.98f;
-        obj.rotation.x += obj.angularVelocity.x;
-        obj.rotation.y += obj.angularVelocity.y;
-        obj.rotation.z += obj.angularVelocity.z;
-        
-        interp->lastValue = grounded;
-        return grounded ? "1" : "0";
-    }
-};
+
+
 
 REGISTER_BUILTIN(GetPositionBuiltin)
-REGISTER_BUILTIN(GetVelocityBuiltin)
-REGISTER_BUILTIN(ApplyPhysicsBuiltin)
 
 class MoveByBuiltin : public BuiltinFunction {
 public:
+// @desc Move mesh by relative offset
     std::string getName() const override { return "moveBy"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 3) throw std::runtime_error("moveBy(x, y, z)");
         if (!node->callee) throw std::runtime_error("moveBy must be called on mesh");
@@ -1339,214 +1166,25 @@ public:
     }
 };
 
-class HandleCollisionBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "handleCollision"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() < 2) throw std::runtime_error("handleCollision(object, obstacle1, ...)");
-        
-        Value objVal = interp->evaluate(node->args[0].get());
-        auto objObj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-        int objId = std::get<int>(objObj->fields["_meshId"]);
-        Mesh& obj = meshes[objId];
-        
-        Vec3 c1 = {(obj.aabbMin.x + obj.aabbMax.x) * 0.5f, (obj.aabbMin.y + obj.aabbMax.y) * 0.5f, (obj.aabbMin.z + obj.aabbMax.z) * 0.5f};
-        Vec3 e1 = {(obj.aabbMax.x - obj.aabbMin.x) * 0.5f * obj.scale.x, (obj.aabbMax.y - obj.aabbMin.y) * 0.5f * obj.scale.y, (obj.aabbMax.z - obj.aabbMin.z) * 0.5f * obj.scale.z};
-        
-        obj.position.x += obj.velocity.x;
-        obj.position.y += obj.velocity.y;
-        obj.position.z += obj.velocity.z;
-        
-        for (size_t i = 1; i < node->args.size(); i++) {
-            Value obstacleVal = interp->evaluate(node->args[i].get());
-            auto obstacleObj = std::get<std::shared_ptr<ObjectValue>>(obstacleVal);
-            int obstacleId = std::get<int>(obstacleObj->fields["_meshId"]);
-            Mesh& obstacle = meshes[obstacleId];
-            
-            Vec3 c2 = {(obstacle.aabbMin.x + obstacle.aabbMax.x) * 0.5f, (obstacle.aabbMin.y + obstacle.aabbMax.y) * 0.5f, (obstacle.aabbMin.z + obstacle.aabbMax.z) * 0.5f};
-            Vec3 e2 = {(obstacle.aabbMax.x - obstacle.aabbMin.x) * 0.5f * obstacle.scale.x, (obstacle.aabbMax.y - obstacle.aabbMin.y) * 0.5f * obstacle.scale.y, (obstacle.aabbMax.z - obstacle.aabbMin.z) * 0.5f * obstacle.scale.z};
-            
-            Vec3 min1 = {obj.position.x + c1.x * obj.scale.x - e1.x, obj.position.y + c1.y * obj.scale.y - e1.y, obj.position.z + c1.z * obj.scale.z - e1.z};
-            Vec3 max1 = {obj.position.x + c1.x * obj.scale.x + e1.x, obj.position.y + c1.y * obj.scale.y + e1.y, obj.position.z + c1.z * obj.scale.z + e1.z};
-            Vec3 min2 = {obstacle.position.x + c2.x * obstacle.scale.x - e2.x, obstacle.position.y + c2.y * obstacle.scale.y - e2.y, obstacle.position.z + c2.z * obstacle.scale.z - e2.z};
-            Vec3 max2 = {obstacle.position.x + c2.x * obstacle.scale.x + e2.x, obstacle.position.y + c2.y * obstacle.scale.y + e2.y, obstacle.position.z + c2.z * obstacle.scale.z + e2.z};
-            
-            if (!aabbIntersect(min1, max1, min2, max2)) continue;
-            
-            float minDist = 1e9f;
-            Vec3 bestNormal = {0, 1, 0};
-            bool hasCollision = false;
-            
-            for (size_t ti = 0; ti < obstacle.indices.size(); ti += 3) {
-                Vec3 tv[3];
-                for (int j = 0; j < 3; j++) tv[j] = transformVertex(obstacle.vertices[obstacle.indices[ti + j]], obstacle);
-                
-                Vec3 dirs[6] = {{0,-1,0}, {0,1,0}, {-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1}};
-                for (auto& dir : dirs) {
-                    float t; Vec3 n;
-                    if (rayTriangleIntersect(obj.position, dir, tv[0], tv[1], tv[2], t, n) && t < e1.y * 2.0f) {
-                        if (t < minDist) { minDist = t; bestNormal = n; hasCollision = true; }
-                    }
-                }
-            }
-            
-            if (hasCollision && minDist < e1.y * 1.5f) {
-                obj.position.x += bestNormal.x * (e1.y * 1.5f - minDist);
-                obj.position.y += bestNormal.y * (e1.y * 1.5f - minDist);
-                obj.position.z += bestNormal.z * (e1.y * 1.5f - minDist);
-                
-                float vDot = obj.velocity.x*bestNormal.x + obj.velocity.y*bestNormal.y + obj.velocity.z*bestNormal.z;
-                if (vDot < 0) {
-                    obj.velocity.x -= bestNormal.x * vDot * (1.0f + obstacle.bounciness);
-                    obj.velocity.y -= bestNormal.y * vDot * (1.0f + obstacle.bounciness);
-                    obj.velocity.z -= bestNormal.z * vDot * (1.0f + obstacle.bounciness);
-                }
-                if (fabs(bestNormal.y) > 0.5f) {
-                    obj.velocity.x *= (1.0f - obstacle.friction);
-                    obj.velocity.z *= (1.0f - obstacle.friction);
-                    obj.groundNormal = bestNormal;
-                }
-            }
-        }
-        
-        obj.angularVelocity.x *= 0.98f;
-        obj.angularVelocity.y *= 0.98f;
-        obj.angularVelocity.z *= 0.98f;
-        obj.rotation.x += obj.angularVelocity.x;
-        obj.rotation.y += obj.angularVelocity.y;
-        obj.rotation.z += obj.angularVelocity.z;
-        
-        interp->lastValue = 0;
-        return "0";
-    }
-};
 
 
-class AddVelocityBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "addVelocity"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 3) throw std::runtime_error("addVelocity(x, y, z)");
-        if (!node->callee) throw std::runtime_error("addVelocity must be called on mesh");
-        auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
-        Value objVal = interp->evaluate(fa->object.get());
-        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-        
-        if (obj->fields.count("_meshId")) {
-            int meshId = std::get<int>(obj->fields["_meshId"]);
-            auto v0 = interp->evaluate(node->args[0].get());
-            auto v1 = interp->evaluate(node->args[1].get());
-            auto v2 = interp->evaluate(node->args[2].get());
-            float x = std::holds_alternative<int>(v0) ? std::get<int>(v0) : std::get<float>(v0);
-            float y = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
-            float z = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
-            
-            Mesh& mesh = meshes[meshId];
-            mesh.velocity.x += x;
-            mesh.velocity.y += y;
-            mesh.velocity.z += z;
-        }
-        return "";
-    }
-};
 
-class SetFrictionBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "setFriction"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 1) throw std::runtime_error("setFriction(value)");
-        auto v = interp->evaluate(node->args[0].get());
-        float friction = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
-        if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
-            auto fa = dynamic_cast<FieldAccess*>(node->callee.get()); Value objVal = interp->evaluate(fa->object.get()); auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-            if (obj->fields.count("_meshId")) meshes[std::get<int>(obj->fields["_meshId"])].friction = friction;
-        }
-        return "";
-    }
-};
 
-class SetBouncinessBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "setBounciness"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 1) throw std::runtime_error("setBounciness(value)");
-        auto v = interp->evaluate(node->args[0].get());
-        float bounciness = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
-        if (node->callee && dynamic_cast<FieldAccess*>(node->callee.get())) {
-            auto fa = dynamic_cast<FieldAccess*>(node->callee.get()); Value objVal = interp->evaluate(fa->object.get()); auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-            if (obj->fields.count("_meshId")) meshes[std::get<int>(obj->fields["_meshId"])].bounciness = bounciness;
-        }
-        return "";
-    }
-};
+
+
+
+
 
 REGISTER_BUILTIN(MoveByBuiltin)
-REGISTER_BUILTIN(AddVelocityBuiltin)
-REGISTER_BUILTIN(SetFrictionBuiltin)
-REGISTER_BUILTIN(SetBouncinessBuiltin)
-REGISTER_BUILTIN(HandleCollisionBuiltin)
 
-class ApplyGravityBuiltin : public BuiltinFunction {
-public:
-    std::string getName() const override { return "applyGravity"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() < 3) throw std::runtime_error("applyGravity(player, gravity, obstacle1, ...)");
-        
-        Value playerVal = interp->evaluate(node->args[0].get());
-        auto playerObj = std::get<std::shared_ptr<ObjectValue>>(playerVal);
-        int playerId = std::get<int>(playerObj->fields["_meshId"]);
-        Mesh& player = meshes[playerId];
-        
-        auto v1 = interp->evaluate(node->args[1].get());
-        float gravity = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
-        
-        Vec3 oldPos = player.position;
-        player.velocity.y += gravity;
-        player.position.y += player.velocity.y;
-        
-        int grounded = 0;
-        float minScale = fmin(player.scale.x, fmin(player.scale.y, player.scale.z));
-        float threshold = 0.01f * minScale;
-        
-        for (size_t i = 2; i < node->args.size(); i++) {
-            Value obstacleVal = interp->evaluate(node->args[i].get());
-            auto obstacleObj = std::get<std::shared_ptr<ObjectValue>>(obstacleVal);
-            int obstacleId = std::get<int>(obstacleObj->fields["_meshId"]);
-            Mesh& obstacle = meshes[obstacleId];
-            
-            Vec3 c1 = {(player.aabbMin.x + player.aabbMax.x) * 0.5f, (player.aabbMin.y + player.aabbMax.y) * 0.5f, (player.aabbMin.z + player.aabbMax.z) * 0.5f};
-            Vec3 e1 = {(player.aabbMax.x - player.aabbMin.x) * 0.5f * player.scale.x, (player.aabbMax.y - player.aabbMin.y) * 0.5f * player.scale.y, (player.aabbMax.z - player.aabbMin.z) * 0.5f * player.scale.z};
-            Vec3 c2 = {(obstacle.aabbMin.x + obstacle.aabbMax.x) * 0.5f, (obstacle.aabbMin.y + obstacle.aabbMax.y) * 0.5f, (obstacle.aabbMin.z + obstacle.aabbMax.z) * 0.5f};
-            Vec3 e2 = {(obstacle.aabbMax.x - obstacle.aabbMin.x) * 0.5f * obstacle.scale.x, (obstacle.aabbMax.y - obstacle.aabbMin.y) * 0.5f * obstacle.scale.y, (obstacle.aabbMax.z - obstacle.aabbMin.z) * 0.5f * obstacle.scale.z};
-            
-            Vec3 min1 = {player.position.x + c1.x * player.scale.x - e1.x, player.position.y + c1.y * player.scale.y - e1.y, player.position.z + c1.z * player.scale.z - e1.z};
-            Vec3 max1 = {player.position.x + c1.x * player.scale.x + e1.x, player.position.y + c1.y * player.scale.y + e1.y, player.position.z + c1.z * player.scale.z + e1.z};
-            Vec3 min2 = {obstacle.position.x + c2.x * obstacle.scale.x - e2.x, obstacle.position.y + c2.y * obstacle.scale.y - e2.y, obstacle.position.z + c2.z * obstacle.scale.z - e2.z};
-            Vec3 max2 = {obstacle.position.x + c2.x * obstacle.scale.x + e2.x, obstacle.position.y + c2.y * obstacle.scale.y + e2.y, obstacle.position.z + c2.z * obstacle.scale.z + e2.z};
-            
-            if (aabbIntersect(min1, max1, min2, max2)) {
-                float obstacleTop = max2.y;
-                float playerBottom = min1.y;
-                float oldPlayerBottom = oldPos.y + c1.y * player.scale.y - e1.y;
-                
-                if (oldPlayerBottom >= obstacleTop - threshold && playerBottom < obstacleTop + threshold) {
-                    player.position.y = obstacleTop - (c1.y * player.scale.y - e1.y);
-                    player.velocity.y = 0.0f;
-                    grounded = 1;
-                }
-            }
-        }
-        
-        interp->lastValue = grounded;
-        return grounded ? "1" : "0";
-    }
-};
 
-REGISTER_BUILTIN(ApplyGravityBuiltin)
+
 
 class DeformVerticesBuiltin : public BuiltinFunction {
 public:
+// @desc Deform mesh vertices with noise function
     std::string getName() const override { return "deformVertices"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 3) throw std::runtime_error("deformVertices(amplitude, frequency, seed)");
         if (!node->callee) throw std::runtime_error("deformVertices must be called on mesh");
@@ -1576,6 +1214,7 @@ REGISTER_BUILTIN(DeformVerticesBuiltin)
 
 class SetGraphicsBuiltin : public BuiltinFunction {
 public:
+// @desc Configure scene graphics settings
     std::string getName() const override { return "setGraphics"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 2) throw std::runtime_error("setGraphics(scene, settings)");
@@ -1641,7 +1280,9 @@ REGISTER_BUILTIN(SetGraphicsBuiltin)
 
 class GetGroundNormalBuiltin : public BuiltinFunction {
 public:
+// @desc Get ground normal vector for mesh
     std::string getName() const override { return "getGroundNormal"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) throw std::runtime_error("getGroundNormal must be called on mesh");
         auto fa = dynamic_cast<FieldAccess*>(node->callee.get());
@@ -1665,7 +1306,9 @@ REGISTER_BUILTIN(GetGroundNormalBuiltin)
 
 class SetTextureBuiltin : public BuiltinFunction {
 public:
+// @desc Apply texture image to mesh
     std::string getName() const override { return "setTexture"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("mesh.setTexture(filepath)");
         if (!node->callee) throw std::runtime_error("setTexture must be called on mesh");
@@ -1695,7 +1338,9 @@ REGISTER_BUILTIN(SetTextureBuiltin)
 
 class CreateBoneBuiltin : public BuiltinFunction {
 public:
+// @desc Create skeletal bone for animation
     std::string getName() const override { return "createBone"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() < 1) throw std::runtime_error("mesh.createBone(name, [parentBoneIndex])");
         if (!node->callee) throw std::runtime_error("createBone must be called on mesh");
@@ -1721,7 +1366,9 @@ public:
 
 class SetBonePoseBuiltin : public BuiltinFunction {
 public:
+// @desc Set bone position and rotation
     std::string getName() const override { return "setBonePose"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 7) throw std::runtime_error("mesh.setBonePose(boneIndex, px, py, pz, rx, ry, rz)");
         if (!node->callee) throw std::runtime_error("setBonePose must be called on mesh");
@@ -1755,7 +1402,9 @@ public:
 
 class CreateAnimationBuiltin : public BuiltinFunction {
 public:
+// @desc Create animation with name and duration
     std::string getName() const override { return "createAnimation"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 2) throw std::runtime_error("mesh.createAnimation(name, duration)");
         if (!node->callee) throw std::runtime_error("createAnimation must be called on mesh");
@@ -1778,7 +1427,9 @@ public:
 
 class AddAnimKeyBuiltin : public BuiltinFunction {
 public:
+// @desc Add keyframe to animation
     std::string getName() const override { return "addAnimKey"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() < 6) throw std::runtime_error("mesh.addAnimKey(animIdx, boneName, time, x, y, z, [isRotation])");
         if (!node->callee) throw std::runtime_error("addAnimKey must be called on mesh");
@@ -1808,7 +1459,9 @@ public:
 
 class PlayAnimationBuiltin : public BuiltinFunction {
 public:
+// @desc Start playing animation by index
     std::string getName() const override { return "playAnimation"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("mesh.playAnimation(animIndex)");
         if (!node->callee) throw std::runtime_error("playAnimation must be called on mesh");
@@ -1826,7 +1479,9 @@ public:
 
 class UpdateAnimationBuiltin : public BuiltinFunction {
 public:
+// @desc Update animation with delta time
     std::string getName() const override { return "updateAnimation"; }
+    std::string getParent() const override { return "mesh"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("mesh.updateAnimation(deltaTime)");
         if (!node->callee) throw std::runtime_error("updateAnimation must be called on mesh");

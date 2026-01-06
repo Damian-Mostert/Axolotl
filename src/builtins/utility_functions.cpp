@@ -2,6 +2,7 @@
 #include <chrono>
 #include <thread>
 
+// @desc Get current time in milliseconds since epoch
 class MillisBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "millis"; }
@@ -15,6 +16,7 @@ public:
     }
 };
 
+// @desc Sleep for specified milliseconds
 class SleepBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "sleep"; }
@@ -28,6 +30,7 @@ public:
     }
 };
 
+// @desc Throw error if condition is false
 class AssertBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "assert"; }
@@ -42,6 +45,7 @@ public:
     }
 };
 
+// @desc Throw runtime error with message
 class ErrorBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "error"; }
@@ -52,6 +56,7 @@ public:
     }
 };
 
+// @desc Get array of object keys
 class KeysBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "keys"; }
@@ -69,6 +74,7 @@ public:
     }
 };
 
+// @desc Get array of object values
 class ValuesBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "values"; }
@@ -86,6 +92,7 @@ public:
     }
 };
 
+// @desc Check if object has key
 class HasKeyBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "hasKey"; }
@@ -101,6 +108,7 @@ public:
     }
 };
 
+// @desc Create shallow copy of array or object
 class CloneBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "clone"; }
@@ -126,6 +134,7 @@ public:
     }
 };
 
+// @desc Merge two objects, second overrides first
 class MergeBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "merge"; }
@@ -149,6 +158,26 @@ public:
     }
 };
 
+// @desc Get type of value as string
+class TypeofBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "typeof"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 1) throw std::runtime_error("typeof() expects 1 argument");
+        Value v = interp->evaluate(node->args[0].get());
+        std::string type;
+        if (std::holds_alternative<int>(v)) type = "int";
+        else if (std::holds_alternative<float>(v)) type = "float";
+        else if (std::holds_alternative<std::string>(v)) type = "string";
+        else if (std::holds_alternative<bool>(v)) type = "bool";
+        else if (std::holds_alternative<std::shared_ptr<ArrayValue>>(v)) type = "array";
+        else if (std::holds_alternative<std::shared_ptr<ObjectValue>>(v)) type = "object";
+        else type = "unknown";
+        interp->lastValue = type;
+        return "[string]";
+    }
+};
+
 REGISTER_BUILTIN(MillisBuiltin)
 REGISTER_BUILTIN(SleepBuiltin)
 REGISTER_BUILTIN(AssertBuiltin)
@@ -158,3 +187,4 @@ REGISTER_BUILTIN(ValuesBuiltin)
 REGISTER_BUILTIN(HasKeyBuiltin)
 REGISTER_BUILTIN(CloneBuiltin)
 REGISTER_BUILTIN(MergeBuiltin)
+REGISTER_BUILTIN(TypeofBuiltin)

@@ -1,0 +1,99 @@
+// Axolotl Physics Universe Example
+// Demonstrates both planar (traditional) and radial (planet) gravity
+
+const canvas:any = createCanvas(800, 600);
+const scene:any = createScene();
+const camera:any = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 5.0, 15.0);
+camera.lookAt(0.0, 0.0, 0.0);
+enableDevMode(camera);
+
+// Example 1: Planar Gravity (Traditional Game Physics)
+func planarExample() -> void {
+    const universe:any = createUniverse();
+    universe.addGravityLaw(0.0, -1.0, 0.0, 0.5);
+    
+    const ground:any = PlaneGeometry(20.0, 20.0);
+    ground.setPosition(0.0, -2.0, 0.0);
+    ground.setRotation(1.57, 0.0, 0.0);
+    ground.setColor("#444444");
+    scene.add(ground);
+    universe.addBody(ground, 0.0, 1);
+    
+    const box:any = BoxGeometry(1.0);
+    box.setPosition(0.0, 5.0, 0.0);
+    box.setColor("#ff6b6b");
+    scene.add(box);
+    universe.addBody(box, 1.0, 0);
+    
+    var running: int = 1;
+    while (running == 1) {
+        running = handleDevInput();
+        updateDevCamera();
+        universe.step(0.016);
+        canvas.render(scene, camera);
+    }
+}
+
+// Example 2: Radial Gravity (Planet Physics)
+func radialExample() -> void {
+    const universe :any= createUniverse();
+    universe.addRadialGravityLaw(0.0, 0.0, 0.0, 0.02);
+    
+    const planet :any= SphereGeometry(5.0, 32, 24);
+    planet.setPosition(0.0, 0.0, 0.0);
+    planet.setColor("#4ecdc4");
+    scene.add(planet);
+    universe.addBody(planet, 0.0, 1);
+    
+    const player:any = BoxGeometry(0.5);
+    player.setPosition(0.0, 8.0, 0.0);
+    player.setColor("#ff6b6b");
+    scene.add(player);
+    universe.addBody(player, 1.0, 0);
+    
+    var running: int = 1;
+    while (running == 1) {
+        running = handleDevInput();
+        updateDevCamera();
+        universe.step(0.016);
+        canvas.render(scene, camera);
+    }
+}
+
+// Example 3: Multi-Body System (Orbiting Objects)
+func orbitExample() -> void {
+    const universe:any = createUniverse();
+    universe.addRadialGravityLaw(0.0, 0.0, 0.0, 0.05);
+    
+    const sun:any = SphereGeometry(3.0, 32, 24);
+    sun.setPosition(0.0, 0.0, 0.0);
+    sun.setColor("#ffd93d");
+    scene.add(sun);
+    universe.addBody(sun, 0.0, 1);
+    
+    const planet1:any = SphereGeometry(0.5, 16, 12);
+    planet1.setPosition(8.0, 0.0, 0.0);
+    planet1.setColor("#6bcb77");
+    scene.add(planet1);
+    universe.addBody(planet1, 0.5, 0);
+    
+    const planet2:any = SphereGeometry(0.7, 16, 12);
+    planet2.setPosition(0.0, 0.0, 12.0);
+    planet2.setColor("#4d96ff");
+    scene.add(planet2);
+    universe.addBody(planet2, 0.8, 0);
+    
+    var running: int = 1;
+    while (running == 1) {
+        running = handleDevInput();
+        updateDevCamera();
+        universe.step(0.016);
+        canvas.render(scene, camera);
+    }
+}
+
+// Run examples (uncomment one)
+// planarExample();
+ radialExample();
+// orbitExample();

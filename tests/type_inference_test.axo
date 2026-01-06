@@ -1,0 +1,34 @@
+// Test type inference with 'any' type
+
+// Traditional syntax with explicit type
+const player1: any = BoxGeometry(0.8, 1.6, 0.8);
+print("Player1 created with explicit any type");
+
+// New shorthand syntax - type inferred as 'any'
+const player2 = BoxGeometry(0.8, 1.6, 0.8);
+print("Player2 created with inferred any type");
+
+// Works with other values too
+const x = 42;
+const y = 3.14;
+const name = "Axolotl";
+const flag = true;
+
+print("x = " + toString(x));
+print("y = " + toString(y));
+print("name = " + name);
+print("flag = " + toString(flag));
+
+// Works with arrays
+const numbers = [1, 2, 3, 4, 5];
+print("Array length: " + toString(len(numbers)));
+
+// Works with objects
+const config = {x: 10, y: 20};
+print("Config created");
+
+// Works with function calls
+const scene = createScene();
+const camera = PerspectiveCamera(60.0);
+
+print("Type inference test completed!");

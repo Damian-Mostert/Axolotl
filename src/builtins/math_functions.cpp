@@ -20,6 +20,10 @@ MATH_UNARY(sin, std::sin)
 MATH_UNARY(cos, std::cos)
 MATH_UNARY(tan, std::tan)
 MATH_UNARY(sqrt, std::sqrt)
+MATH_UNARY(abs, std::abs)
+MATH_UNARY(floor, std::floor)
+MATH_UNARY(ceil, std::ceil)
+MATH_UNARY(round, std::round)
 MATH_UNARY(log, std::log)
 MATH_UNARY(log10, std::log10)
 MATH_UNARY(exp, std::exp)
@@ -27,6 +31,7 @@ MATH_UNARY(asin, std::asin)
 MATH_UNARY(acos, std::acos)
 MATH_UNARY(atan, std::atan)
 
+// @desc Raise base to exponent power
 class PowBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "pow"; }
@@ -41,6 +46,71 @@ public:
     }
 };
 
+// @desc Return minimum of two numbers
+class MinBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "min"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 2) throw std::runtime_error("min() expects 2 arguments");
+        Value a = interp->evaluate(node->args[0].get());
+        Value b = interp->evaluate(node->args[1].get());
+        float af = std::holds_alternative<float>(a) ? std::get<float>(a) : static_cast<float>(std::get<int>(a));
+        float bf = std::holds_alternative<float>(b) ? std::get<float>(b) : static_cast<float>(std::get<int>(b));
+        interp->lastValue = std::min(af, bf);
+        return "[float]";
+    }
+};
+
+// @desc Return maximum of two numbers
+class MaxBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "max"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 2) throw std::runtime_error("max() expects 2 arguments");
+        Value a = interp->evaluate(node->args[0].get());
+        Value b = interp->evaluate(node->args[1].get());
+        float af = std::holds_alternative<float>(a) ? std::get<float>(a) : static_cast<float>(std::get<int>(a));
+        float bf = std::holds_alternative<float>(b) ? std::get<float>(b) : static_cast<float>(std::get<int>(b));
+        interp->lastValue = std::max(af, bf);
+        return "[float]";
+    }
+};
+
+// @desc Clamp value between min and max
+class ClampBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "clamp"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 3) throw std::runtime_error("clamp() expects 3 arguments");
+        Value v = interp->evaluate(node->args[0].get());
+        Value minV = interp->evaluate(node->args[1].get());
+        Value maxV = interp->evaluate(node->args[2].get());
+        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v));
+        float minVal = std::holds_alternative<float>(minV) ? std::get<float>(minV) : static_cast<float>(std::get<int>(minV));
+        float maxVal = std::holds_alternative<float>(maxV) ? std::get<float>(maxV) : static_cast<float>(std::get<int>(maxV));
+        interp->lastValue = std::clamp(val, minVal, maxVal);
+        return "[float]";
+    }
+};
+
+// @desc Linear interpolation between a and b by t
+class LerpBuiltin : public BuiltinFunction {
+public:
+    std::string getName() const override { return "lerp"; }
+    std::string execute(Interpreter* interp, FunctionCall* node) override {
+        if (node->args.size() != 3) throw std::runtime_error("lerp() expects 3 arguments");
+        Value a = interp->evaluate(node->args[0].get());
+        Value b = interp->evaluate(node->args[1].get());
+        Value t = interp->evaluate(node->args[2].get());
+        float af = std::holds_alternative<float>(a) ? std::get<float>(a) : static_cast<float>(std::get<int>(a));
+        float bf = std::holds_alternative<float>(b) ? std::get<float>(b) : static_cast<float>(std::get<int>(b));
+        float tf = std::holds_alternative<float>(t) ? std::get<float>(t) : static_cast<float>(std::get<int>(t));
+        interp->lastValue = af + (bf - af) * tf;
+        return "[float]";
+    }
+};
+
+// @desc Calculate arc tangent of y/x in radians
 class Atan2Builtin : public BuiltinFunction {
 public:
     std::string getName() const override { return "atan2"; }
@@ -55,6 +125,7 @@ public:
     }
 };
 
+// @desc Generate random float between 0.0 and 1.0
 class RandomBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "random"; }
@@ -72,5 +143,9 @@ public:
 };
 
 REGISTER_BUILTIN(PowBuiltin)
+REGISTER_BUILTIN(MinBuiltin)
+REGISTER_BUILTIN(MaxBuiltin)
+REGISTER_BUILTIN(ClampBuiltin)
+REGISTER_BUILTIN(LerpBuiltin)
 REGISTER_BUILTIN(Atan2Builtin)
 REGISTER_BUILTIN(RandomBuiltin)
