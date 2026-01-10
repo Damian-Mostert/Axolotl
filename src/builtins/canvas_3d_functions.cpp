@@ -4,9 +4,11 @@
 #include <SDL2/SDL_opengl.h>
 #define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl3.h>
+#ifdef HAVE_ASSIMP
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#endif
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -273,7 +275,19 @@ public:
         int sceneId = std::get<int>(sceneObj->fields["_sceneId"]);
         Value meshVal = interp->evaluate(node->args[0].get());
         auto meshObj = std::get<std::shared_ptr<ObjectValue>>(meshVal);
-        if (meshObj->fields.count("_meshId"))
+        
+        // Check if this is a multi-mesh object (from loadOBJ)
+        if (meshObj->fields.count("_submeshCount"))
+        {
+            int count = std::get<int>(meshObj->fields["_submeshCount"]);
+            for (int i = 0; i < count; i++)
+            {
+                std::string key = "_submesh" + std::to_string(i);
+                if (meshObj->fields.count(key))
+                    scenes[sceneId].meshIds.push_back(std::get<int>(meshObj->fields[key]));
+            }
+        }
+        else if (meshObj->fields.count("_meshId"))
             scenes[sceneId].meshIds.push_back(std::get<int>(meshObj->fields["_meshId"]));
         else if (meshObj->fields.count("_lightId"))
             scenes[sceneId].lightIds.push_back(std::get<int>(meshObj->fields["_lightId"]));
@@ -557,23 +571,82 @@ public:
             throw std::runtime_error("loadOBJ(filepath)");
         std::string filepath = std::get<std::string>(interp->evaluate(node->args[0].get()));
         
+#ifdef HAVE_ASSIMP
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(filepath, 
-            aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+            aiProcess_Triangulate | aiProcess_GenNormals);
         
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
             throw std::runtime_error("Failed to load OBJ: " + std::string(importer.GetErrorString()));
         
-        Mesh mesh;
         std::string dir = filepath.substr(0, filepath.find_last_of("/\\") + 1);
         
-        // Process all meshes
+        // Load all materials first
+        std::unordered_map<unsigned int, std::string> matNames;
+        std::unordered_map<std::string, SDL_Color> matColors;
+        std::unordered_map<std::string, std::string> matTextures;
+        
+        for (unsigned int i = 0; i < scene->mNumMaterials; i++)
+        {
+            aiMaterial* mat = scene->mMaterials[i];
+            aiString name;
+            mat->Get(AI_MATKEY_NAME, name);
+            std::string matName = name.C_Str();
+            matNames[i] = matName;
+            
+            aiColor3D color(1.f, 1.f, 1.f);
+            mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+            matColors[matName] = {(Uint8)(color.r * 255), (Uint8)(color.g * 255), (Uint8)(color.b * 255), 255};
+            
+            if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+            {
+                aiString texPath;
+                mat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath);
+                std::string texFile = texPath.C_Str();
+                std::string fullPath = (texFile[0] == '/' || (texFile.length() > 1 && texFile[1] == ':')) ? texFile : dir + texFile;
+                
+                // Try exact path first
+                FILE* f = fopen(fullPath.c_str(), "r");
+                if (!f)
+                {
+                    // Try with spaces removed
+                    std::string noSpaces = texFile;
+                    noSpaces.erase(std::remove(noSpaces.begin(), noSpaces.end(), ' '), noSpaces.end());
+                    fullPath = dir + noSpaces;
+                    f = fopen(fullPath.c_str(), "r");
+                }
+                if (!f)
+                {
+                    // Try different extensions
+                    size_t dotPos = fullPath.find_last_of('.');
+                    if (dotPos != std::string::npos)
+                    {
+                        std::string base = fullPath.substr(0, dotPos);
+                        const char* exts[] = {".png", ".jpg", ".jpeg", ".tga", ".bmp"};
+                        for (const char* ext : exts)
+                        {
+                            std::string tryPath = base + ext;
+                            FILE* tf = fopen(tryPath.c_str(), "r");
+                            if (tf) { fclose(tf); fullPath = tryPath; f = (FILE*)1; break; }
+                        }
+                    }
+                }
+                if (f && f != (FILE*)1) fclose(f);
+                
+                matTextures[matName] = fullPath;
+            }
+        }
+        
+        // Create separate mesh for each Assimp mesh to preserve correct UV mapping
+        std::vector<int> meshIds;
+        std::cout << "[Assimp] Loading " << scene->mNumMeshes << " meshes" << std::endl;
+        
         for (unsigned int m = 0; m < scene->mNumMeshes; m++)
         {
             aiMesh* aimesh = scene->mMeshes[m];
-            unsigned int baseVertex = mesh.vertices.size();
+            Mesh mesh;
+            std::string matName = matNames[aimesh->mMaterialIndex];
             
-            // Vertices and UVs
             for (unsigned int i = 0; i < aimesh->mNumVertices; i++)
             {
                 mesh.vertices.push_back({aimesh->mVertices[i].x, aimesh->mVertices[i].y, aimesh->mVertices[i].z});
@@ -581,62 +654,58 @@ public:
                     mesh.uvs.push_back({aimesh->mTextureCoords[0][i].x, aimesh->mTextureCoords[0][i].y});
             }
             
-            // Faces
-            std::string matName = "";
-            if (aimesh->mMaterialIndex < scene->mNumMaterials)
-            {
-                aiMaterial* mat = scene->mMaterials[aimesh->mMaterialIndex];
-                aiString name;
-                mat->Get(AI_MATKEY_NAME, name);
-                matName = name.C_Str();
-            }
-            
             for (unsigned int i = 0; i < aimesh->mNumFaces; i++)
             {
                 aiFace face = aimesh->mFaces[i];
-                for (unsigned int j = 0; j < face.mNumIndices; j++)
+                if (face.mNumIndices == 3)
                 {
-                    mesh.indices.push_back(baseVertex + face.mIndices[j]);
+                    mesh.indices.push_back(face.mIndices[0]);
+                    mesh.indices.push_back(face.mIndices[1]);
+                    mesh.indices.push_back(face.mIndices[2]);
                     if (aimesh->mTextureCoords[0])
-                        mesh.uvIndices.push_back(baseVertex + face.mIndices[j]);
+                    {
+                        mesh.uvIndices.push_back(face.mIndices[0]);
+                        mesh.uvIndices.push_back(face.mIndices[1]);
+                        mesh.uvIndices.push_back(face.mIndices[2]);
+                    }
+                    mesh.faceMaterials.push_back(matName);
                 }
-                mesh.faceMaterials.push_back(matName);
             }
-        }
-        
-        // Process materials
-        for (unsigned int i = 0; i < scene->mNumMaterials; i++)
-        {
-            aiMaterial* mat = scene->mMaterials[i];
-            aiString name;
-            mat->Get(AI_MATKEY_NAME, name);
-            std::string matName = name.C_Str();
             
-            // Diffuse color
-            aiColor3D color(1.f, 1.f, 1.f);
-            mat->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-            mesh.materialColors[matName] = {(Uint8)(color.r * 255), (Uint8)(color.g * 255), (Uint8)(color.b * 255), 255};
-            
-            // Diffuse texture
-            if (mat->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+            mesh.materialColors[matName] = matColors[matName];
+            if (matTextures.count(matName))
             {
-                aiString texPath;
-                mat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath);
-                std::string fullPath = dir + texPath.C_Str();
                 TextureOptions texOpts;
-                texOpts.path = fullPath;
+                texOpts.path = matTextures[matName];
                 pendingTextures[nextMeshId].push_back({matName, texOpts});
             }
+            
+            calcAABB(mesh);
+            int id = nextMeshId++;
+            meshes[id] = mesh;
+            meshIds.push_back(id);
         }
         
-        calcAABB(mesh);
-        int id = nextMeshId++;
-        meshes[id] = mesh;
-        
+        // Return parent object containing all mesh IDs
         auto obj = std::make_shared<ObjectValue>();
-        obj->fields["_meshId"] = id;
+        if (!meshIds.empty())
+        {
+            obj->fields["_meshId"] = meshIds[0];
+            // Store all mesh IDs as separate fields for scene.add() to find
+            for (size_t i = 0; i < meshIds.size(); i++)
+            {
+                obj->fields["_submesh" + std::to_string(i)] = meshIds[i];
+            }
+            obj->fields["_submeshCount"] = (int)meshIds.size();
+        }
         interp->lastValue = obj;
         return "{object}";
+#else
+        throw std::runtime_error("Assimp not available - OBJ loading disabled");
+        auto obj = std::make_shared<ObjectValue>();
+        interp->lastValue = obj;
+        return "{object}";
+#endif
     }
 };
 
@@ -682,7 +751,17 @@ public:
             auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
             Value objVal = interp->evaluate(fa->object.get());
             auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-            if (obj->fields.count("_meshId"))
+            if (obj->fields.count("_submeshCount"))
+            {
+                int count = std::get<int>(obj->fields["_submeshCount"]);
+                for (int i = 0; i < count; i++)
+                {
+                    std::string key = "_submesh" + std::to_string(i);
+                    if (obj->fields.count(key))
+                        meshes[std::get<int>(obj->fields[key])].position = {x, y, z};
+                }
+            }
+            else if (obj->fields.count("_meshId"))
                 meshes[std::get<int>(obj->fields["_meshId"])].position = {x, y, z};
             else if (obj->fields.count("_cameraId"))
                 cameras[std::get<int>(obj->fields["_cameraId"])].position = {x, y, z};
@@ -713,7 +792,17 @@ public:
             auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
             Value objVal = interp->evaluate(fa->object.get());
             auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-            if (obj->fields.count("_meshId"))
+            if (obj->fields.count("_submeshCount"))
+            {
+                int count = std::get<int>(obj->fields["_submeshCount"]);
+                for (int i = 0; i < count; i++)
+                {
+                    std::string key = "_submesh" + std::to_string(i);
+                    if (obj->fields.count(key))
+                        meshes[std::get<int>(obj->fields[key])].rotation = {x, y, z};
+                }
+            }
+            else if (obj->fields.count("_meshId"))
                 meshes[std::get<int>(obj->fields["_meshId"])].rotation = {x, y, z};
         }
         return "";
@@ -740,7 +829,21 @@ public:
             auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
             Value objVal = interp->evaluate(fa->object.get());
             auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
-            if (obj->fields.count("_meshId"))
+            if (obj->fields.count("_submeshCount"))
+            {
+                int count = std::get<int>(obj->fields["_submeshCount"]);
+                for (int i = 0; i < count; i++)
+                {
+                    std::string key = "_submesh" + std::to_string(i);
+                    if (obj->fields.count(key))
+                    {
+                        Mesh &mesh = meshes[std::get<int>(obj->fields[key])];
+                        mesh.scale = {x, y, z};
+                        calcAABB(mesh);
+                    }
+                }
+            }
+            else if (obj->fields.count("_meshId"))
             {
                 Mesh &mesh = meshes[std::get<int>(obj->fields["_meshId"])];
                 mesh.scale = {x, y, z};
@@ -1433,14 +1536,33 @@ public:
                     specular = pow(spec, 32.0f) * mesh.metallic * l.intensity * shadow;
                 }
             }
-            // Get material color
-            SDL_Color matColor = mesh.color;
-            if (!currentMat.empty() && mesh.materialColors.count(currentMat))
+            // Get material color - use white for textured materials to show true texture colors
+            bool hasTexture = (!currentMat.empty() && mesh.materialTextures.count(currentMat)) || mesh.textureId;
+            SDL_Color matColor = {255, 255, 255, 255};
+            if (!hasTexture && !currentMat.empty() && mesh.materialColors.count(currentMat))
             {
                 matColor = mesh.materialColors[currentMat];
             }
+            else if (!hasTexture)
+            {
+                matColor = mesh.color;
+            }
             
-            // Apply material color with lighting (texture will be modulated with this)
+            // Debug: print material info for roads
+            static bool debugPrinted = false;
+            if (!debugPrinted && currentMat.find("20___") != std::string::npos)
+            {
+                std::cout << "[DEBUG] Material: " << currentMat << " hasTexture: " << hasTexture 
+                          << " color: (" << (int)matColor.r << "," << (int)matColor.g << "," << (int)matColor.b << ")" << std::endl;
+                if (mesh.materialColors.count(currentMat))
+                {
+                    auto mc = mesh.materialColors[currentMat];
+                    std::cout << "[DEBUG] materialColors has: (" << (int)mc.r << "," << (int)mc.g << "," << (int)mc.b << ")" << std::endl;
+                }
+                debugPrinted = true;
+            }
+            
+            // Apply material color with lighting
             float r = (matColor.r / 255.0f) * (diffuse + specular);
             float g = (matColor.g / 255.0f) * (diffuse + specular);
             float b = (matColor.b / 255.0f) * (diffuse + specular);
@@ -1449,7 +1571,6 @@ public:
             
             // Apply UV coordinates if available
             int uvBaseIdx = (i / 3) * 3;
-            bool hasTexture = (!currentMat.empty() && mesh.materialTextures.count(currentMat)) || mesh.textureId;
             
             // Get texture options for this material
             TextureOptions texOpts;

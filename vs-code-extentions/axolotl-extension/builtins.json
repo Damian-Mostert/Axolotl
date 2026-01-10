@@ -21,7 +21,6 @@
     {"name": "TorusGeometry", "signature": "TorusGeometry()", "description": "Create torus geometry with radius, tube, and segments", "parent": ""},
     {"name": "CylinderGeometry", "signature": "CylinderGeometry()", "description": "Create cylinder geometry with radii, height, and segments", "parent": ""},
     {"name": "loadOBJ", "signature": "loadOBJ()", "description": "Load 3D mesh from OBJ file", "parent": ""},
-    {"name": "applyMTL", "signature": "mesh,loadOBJ.applyMTL()", "description": "Apply MTL material file to mesh", "parent": "mesh,loadOBJ"},
     {"name": "PerspectiveCamera", "signature": "PerspectiveCamera()", "description": "Create perspective camera with field of view", "parent": ""},
     {"name": "setPosition", "signature": "mesh,camera,light.setPosition()", "description": "Set object position in 3D space", "parent": "mesh,camera,light"},
     {"name": "setRotation", "signature": "mesh.setRotation()", "description": "Set object rotation in radians", "parent": "mesh"},
