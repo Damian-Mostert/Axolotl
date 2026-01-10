@@ -81,6 +81,9 @@ struct Mesh
     float collisionRadius = 1.0f;
     GLuint textureId = 0;
     Vec3 groundNormal{0, 1, 0};
+    bool enableDropShadow = false;
+    float dropShadowOpacity = 0.5f;
+    float dropShadowOffset = 0.1f;
 };
 struct Camera
 {
@@ -112,6 +115,16 @@ struct Scene
     bool enableFog = false;
     float fogDensity = 0.02f;
     SDL_Color fogColor{128, 128, 128, 255};
+    bool enableBlending = true;
+    bool enableAlphaTest = true;
+    float alphaThreshold = 0.1f;
+    bool enableBackfaceCulling = false;
+    bool enableSpecular = true;
+    float specularPower = 32.0f;
+    bool enableAmbientOcclusion = false;
+    float aoIntensity = 0.5f;
+    bool enableHDR = false;
+    float exposure = 1.0f;
 };
 extern std::unordered_map<int, std::shared_ptr<CanvasContext>> canvases;
 static std::unordered_map<int, Mesh> meshes;
@@ -966,18 +979,67 @@ public:
         {
             Camera &cam = cameras[devCameraId];
             const Uint8 *keys = SDL_GetKeyboardState(nullptr);
+            
+            Vec3 forward = {cam.target.x - cam.position.x, cam.target.y - cam.position.y, cam.target.z - cam.position.z};
+            float len = sqrt(forward.x * forward.x + forward.y * forward.y + forward.z * forward.z);
+            if (len > 0.001f)
+            {
+                forward.x /= len;
+                forward.y /= len;
+                forward.z /= len;
+            }
+            
+            Vec3 right = {forward.z, 0, -forward.x};
+            len = sqrt(right.x * right.x + right.z * right.z);
+            if (len > 0.001f)
+            {
+                right.x /= len;
+                right.z /= len;
+            }
+            
+            float speed = 0.2f;
+            if (keys[SDL_SCANCODE_LSHIFT])
+                speed = 1.0f;
+            if (keys[SDL_SCANCODE_LCTRL])
+                speed = 5.0f;
             if (keys[SDL_SCANCODE_W])
-                cam.target.z -= 0.1f;
+            {
+                cam.position.x += forward.x * speed;
+                cam.position.z += forward.z * speed;
+                cam.target.x += forward.x * speed;
+                cam.target.z += forward.z * speed;
+            }
             if (keys[SDL_SCANCODE_S])
-                cam.target.z += 0.1f;
+            {
+                cam.position.x -= forward.x * speed;
+                cam.position.z -= forward.z * speed;
+                cam.target.x -= forward.x * speed;
+                cam.target.z -= forward.z * speed;
+            }
             if (keys[SDL_SCANCODE_A])
-                cam.target.x -= 0.1f;
+            {
+                cam.position.x -= right.x * speed;
+                cam.position.z -= right.z * speed;
+                cam.target.x -= right.x * speed;
+                cam.target.z -= right.z * speed;
+            }
             if (keys[SDL_SCANCODE_D])
-                cam.target.x += 0.1f;
+            {
+                cam.position.x += right.x * speed;
+                cam.position.z += right.z * speed;
+                cam.target.x += right.x * speed;
+                cam.target.z += right.z * speed;
+            }
             if (keys[SDL_SCANCODE_Q])
-                cam.target.y -= 0.1f;
+            {
+                cam.position.y -= speed;
+                cam.target.y -= speed;
+            }
             if (keys[SDL_SCANCODE_E])
-                cam.target.y += 0.1f;
+            {
+                cam.position.y += speed;
+                cam.target.y += speed;
+            }
         }
         SDL_Delay(16);
         interp->lastValue = 1;
@@ -1343,10 +1405,29 @@ public:
         glEnable(GL_COLOR_MATERIAL);
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
         
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER, 0.01f);
+        if (scene.enableBlending)
+        {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
+        else
+            glDisable(GL_BLEND);
+            
+        if (scene.enableAlphaTest)
+        {
+            glEnable(GL_ALPHA_TEST);
+            glAlphaFunc(GL_GREATER, scene.alphaThreshold);
+        }
+        else
+            glDisable(GL_ALPHA_TEST);
+            
+        if (scene.enableBackfaceCulling)
+        {
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+        }
+        else
+            glDisable(GL_CULL_FACE);
         
         GLfloat ambient[] = {scene.ambientLight.x, scene.ambientLight.y, scene.ambientLight.z, 1.0f};
         glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
@@ -1548,24 +1629,12 @@ public:
                 matColor = mesh.color;
             }
             
-            // Debug: print material info for roads
-            static bool debugPrinted = false;
-            if (!debugPrinted && currentMat.find("20___") != std::string::npos)
-            {
-                std::cout << "[DEBUG] Material: " << currentMat << " hasTexture: " << hasTexture 
-                          << " color: (" << (int)matColor.r << "," << (int)matColor.g << "," << (int)matColor.b << ")" << std::endl;
-                if (mesh.materialColors.count(currentMat))
-                {
-                    auto mc = mesh.materialColors[currentMat];
-                    std::cout << "[DEBUG] materialColors has: (" << (int)mc.r << "," << (int)mc.g << "," << (int)mc.b << ")" << std::endl;
-                }
-                debugPrinted = true;
-            }
-            
             // Apply material color with lighting
-            float r = (matColor.r / 255.0f) * (diffuse + specular);
-            float g = (matColor.g / 255.0f) * (diffuse + specular);
-            float b = (matColor.b / 255.0f) * (diffuse + specular);
+            // For non-textured materials, reduce lighting influence to preserve material color
+            float lightFactor = hasTexture ? (diffuse + specular) : (0.5f + (diffuse + specular) * 0.5f);
+            float r = (matColor.r / 255.0f) * lightFactor;
+            float g = (matColor.g / 255.0f) * lightFactor;
+            float b = (matColor.b / 255.0f) * lightFactor;
             glColor4f(r, g, b, matColor.a / 255.0f);
             glNormal3f(n.x, n.y, n.z);
             
@@ -1616,6 +1685,52 @@ public:
         }
         glEnd();
         glDisable(GL_TEXTURE_2D);
+        
+        // Render drop shadows
+        if (scene.enableShadows)
+        {
+            glDisable(GL_LIGHTING);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);
+            
+            for (int meshId : scene.meshIds)
+            {
+                Mesh &mesh = meshes[meshId];
+                if (!mesh.visible || !mesh.enableDropShadow)
+                    continue;
+                    
+                glBegin(GL_TRIANGLES);
+                for (size_t i = 0; i < mesh.indices.size(); i += 3)
+                {
+                    Vec3 worldV[3];
+                    for (int j = 0; j < 3; j++)
+                    {
+                        Vec3 vert = mesh.vertices[mesh.indices[i + j]];
+                        vert.x *= mesh.scale.x;
+                        vert.y *= mesh.scale.y;
+                        vert.z *= mesh.scale.z;
+                        vert = rotateX(vert, mesh.rotation.x);
+                        vert = rotateY(vert, mesh.rotation.y);
+                        vert = rotateZ(vert, mesh.rotation.z);
+                        vert.x += mesh.position.x;
+                        vert.y = mesh.position.y - mesh.dropShadowOffset;
+                        vert.z += mesh.position.z;
+                        worldV[j] = vert;
+                    }
+                    
+                    glColor4f(0.0f, 0.0f, 0.0f, mesh.dropShadowOpacity);
+                    glVertex3f(worldV[0].x, worldV[0].y, worldV[0].z);
+                    glVertex3f(worldV[1].x, worldV[1].y, worldV[1].z);
+                    glVertex3f(worldV[2].x, worldV[2].y, worldV[2].z);
+                }
+                glEnd();
+            }
+            
+            glDepthMask(GL_TRUE);
+            glEnable(GL_LIGHTING);
+        }
+        
         SDL_GL_SwapWindow(ctx->window);
         return "";
     }
@@ -1933,6 +2048,56 @@ public:
                 scene.background.g = std::stoi(color.substr(3, 2), nullptr, 16);
                 scene.background.b = std::stoi(color.substr(5, 2), nullptr, 16);
             }
+        }
+        if (settings->fields.count("blending"))
+        {
+            auto v = settings->fields["blending"];
+            scene.enableBlending = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("alphaTest"))
+        {
+            auto v = settings->fields["alphaTest"];
+            scene.enableAlphaTest = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("alphaThreshold"))
+        {
+            auto v = settings->fields["alphaThreshold"];
+            scene.alphaThreshold = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        if (settings->fields.count("backfaceCulling"))
+        {
+            auto v = settings->fields["backfaceCulling"];
+            scene.enableBackfaceCulling = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("specular"))
+        {
+            auto v = settings->fields["specular"];
+            scene.enableSpecular = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("specularPower"))
+        {
+            auto v = settings->fields["specularPower"];
+            scene.specularPower = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        if (settings->fields.count("ambientOcclusion"))
+        {
+            auto v = settings->fields["ambientOcclusion"];
+            scene.enableAmbientOcclusion = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("aoIntensity"))
+        {
+            auto v = settings->fields["aoIntensity"];
+            scene.aoIntensity = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        if (settings->fields.count("hdr"))
+        {
+            auto v = settings->fields["hdr"];
+            scene.enableHDR = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("exposure"))
+        {
+            auto v = settings->fields["exposure"];
+            scene.exposure = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
         }
         return "";
     }

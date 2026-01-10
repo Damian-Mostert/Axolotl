@@ -1,1 +1,46 @@
-import "src/menu.axo";
+// Wolf in Street Environment
+print("Loading Wolf in Street...");
+
+const canvas: object = createCanvas(1280, 720);
+const scene: object = createScene();
+setGraphics(scene, {
+    backgroundColor: "#00ffffff"
+});
+// Load street environment
+const world: object = loadOBJ("./src/assets/Center City Sci-Fi.obj");
+world.setPosition(0, -10, 0.0);
+scene.add(world);
+
+print("Street loaded");
+
+
+// Camera with dev mode
+const camera: object = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 2.0, 8.0);
+camera.lookAt(0.0, 1.0, 0.0);
+enableDevMode(camera);
+
+// Lighting
+const sun: object = PointLight("#FFFFFF", 5.0);
+sun.setPosition(10.0, 20.0, 10.0);
+scene.add(sun);
+
+const backLight: object = PointLight("#FFFFFF", 3.0);
+backLight.setPosition(-10.0, 15.0, -10.0);
+scene.add(backLight);
+
+const ambient: object = AmbientLight("#FFFFFF", 1.2);
+scene.add(ambient);
+
+print("Scene ready!");
+
+var time: float = 0.0;
+var running: int = 1;
+
+while (running == 1) {
+    running = handleDevInput();
+    updateDevCamera();    
+    canvas.render(scene, camera);
+}
+
+print("Done.");

@@ -1,0 +1,41 @@
+// Animate loaded OBJ model
+
+const canvas = createCanvas(800, 600);
+const scene = createScene();
+const camera = PerspectiveCamera(60);
+camera.setPosition(0, 2, 5);
+camera.lookAt(0, 1, 0);
+
+// Load OBJ model
+const wolf = loadOBJ("env/src/assets/Wolf_obj.obj");
+wolf.setPosition(0, 0, 0);
+wolf.setScale(0.01, 0.01, 0.01);
+
+// Add running animation
+wolf.addAnimation("run", func(state: object) -> void {
+    const t = state.time;
+    wolf.setRotation(0, t * 0.5, 0);
+    const bob = sin(t * 4.0) * 0.05;
+    const pos = wolf.getPosition();
+    wolf.setPosition(pos.x, bob, pos.z);
+});
+
+wolf.playAnimCallback("run");
+
+// Add light
+const light = PointLight("#ffffff", 1.0);
+light.setPosition(3, 5, 3);
+
+scene.add(wolf);
+scene.add(light);
+
+enableDevMode(camera);
+
+// Animation loop
+while (handleDevInput() == 1) {
+    wolf.updateAnimCallback(0.016);
+    updateDevCamera();
+    canvas.render(scene, camera);
+}
+
+print("Done.");

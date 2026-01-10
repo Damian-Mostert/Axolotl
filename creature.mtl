@@ -1,0 +1,8 @@
+newmtl body
+Kd 0.545 0.271 0.075
+
+newmtl head
+Kd 0.627 0.322 0.176
+
+newmtl legs
+Kd 0.396 0.263 0.129
