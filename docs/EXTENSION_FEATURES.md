@@ -65,7 +65,7 @@ The builtin extraction scripts now capture:
 
 Format in C++ source:
 ```cpp
-// @desc Description of the function
+//@desc Description of the function
 // @params param1: type1, param2: type2
 // @return returnType
 std::string getName() const override { return "functionName"; }

@@ -1,7 +1,6 @@
 #include "include/interpreter.h"
 #include <fstream>
 #include <sstream>
-
 // Load .env file and return as object
 std::shared_ptr<ObjectValue> loadEnvFile(const std::string& path = ".env") {
     auto envObj = std::make_shared<ObjectValue>();

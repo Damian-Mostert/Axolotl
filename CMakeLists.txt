@@ -45,6 +45,7 @@ set(SOURCES
     src/builtins/canvas_functions.cpp
     src/builtins/canvas_3d_functions.cpp
     src/builtins/input_functions.cpp
+    src/builtins/mesh_deform.cpp
     src/builtins/env_loader.cpp
 )
 
@@ -110,6 +111,12 @@ find_path(SDL2_INCLUDE_DIR SDL2/SDL.h PATHS /opt/homebrew/include REQUIRED)
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIR})
 
+# Find Assimp
+find_library(ASSIMP_LIBRARY assimp PATHS /opt/homebrew/lib REQUIRED)
+find_path(ASSIMP_INCLUDE_DIR assimp/scene.h PATHS /opt/homebrew/include REQUIRED)
+include_directories(${ASSIMP_INCLUDE_DIR})
+message(STATUS "Found Assimp: ${ASSIMP_LIBRARY}")
+
 if(NOT SDL2_LIBRARY)
     message(FATAL_ERROR "SDL2 not found")
 endif()
@@ -126,7 +133,7 @@ if(HAVE_LLVM)
     llvm_map_components_to_libnames(llvm_libs core native ExecutionEngine MCJIT RuntimeDyld)
     target_link_libraries(compiler ${llvm_libs})
 endif()
-target_link_libraries(compiler ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY} ${OPENGL_LIBRARIES})
+target_link_libraries(compiler ${CURL_LIBRARIES} ${SDL2_LIBRARY} ${SDL2_IMAGE_LIBRARY} ${OPENGL_LIBRARIES} ${ASSIMP_LIBRARY})
 
 # Link optional libraries
 if(HAVE_MYSQL)

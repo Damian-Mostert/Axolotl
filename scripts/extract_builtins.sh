@@ -17,42 +17,56 @@ for cpp_file in $CPP_FILES; do
         
         FUNC_FIRST=1
         DESC=""
-        RETURN_TYPE="void"
-        PARAMS=""
+        PARENT=""
+        IN_CLASS=0
         
         while IFS= read -r line; do
-            # Extract description
-            if [[ $line =~ @desc[[:space:]]+(.*) ]]; then
-                DESC="${BASH_REMATCH[1]}"
-            # Extract return type hint
-            elif [[ $line =~ @return[[:space:]]+(.*) ]]; then
-                RETURN_TYPE="${BASH_REMATCH[1]}"
-            # Extract parameter hint
-            elif [[ $line =~ @params[[:space:]]+(.*) ]]; then
-                PARAMS="${BASH_REMATCH[1]}"
-            # Extract function name
-            elif [[ $line =~ getName.*return[[:space:]]+\"([^\"]+)\" ]]; then
+            # Check for MATH_UNARY macro
+            if [[ $line =~ MATH_UNARY\(([^,]+), ]]; then
                 NAME="${BASH_REMATCH[1]}"
                 [ $FUNC_FIRST -eq 0 ] && echo "," >> "$OUTPUT_FILE"
                 FUNC_FIRST=0
-                
-                # Build signature
-                if [ -n "$PARAMS" ]; then
-                    SIG="$NAME($PARAMS)"
-                else
-                    SIG="$NAME()"
-                fi
-                
-                if [ "$RETURN_TYPE" != "void" ]; then
-                    SIG="$SIG -> $RETURN_TYPE"
-                fi
-                
-                echo -n "    {\"name\": \"$NAME\", \"signature\": \"$SIG\", \"description\": \"$DESC\", \"returnType\": \"$RETURN_TYPE\"}" >> "$OUTPUT_FILE"
-                
-                # Reset for next function
+                echo -n "    {\"name\": \"$NAME\", \"signature\": \"$NAME()\", \"description\": \"Mathematical function\", \"parent\": \"\"}" >> "$OUTPUT_FILE"
+                continue
+            fi
+            
+            # Check if entering a class
+            if [[ $line =~ class.*BuiltinFunction ]]; then
+                IN_CLASS=1
                 DESC=""
-                RETURN_TYPE="void"
-                PARAMS=""
+                PARENT=""
+            fi
+            
+            # Only process if we're in a class
+            if [ $IN_CLASS -eq 1 ]; then
+                # Extract @desc (can be on multiple lines)
+                if [[ $line =~ //@desc[[:space:]]+(.*) ]]; then
+                    if [ -n "$DESC" ]; then
+                        DESC="$DESC ${BASH_REMATCH[1]}"
+                    else
+                        DESC="${BASH_REMATCH[1]}"
+                    fi
+                # Extract @parent
+                elif [[ $line =~ //@parent[[:space:]]+(.*) ]]; then
+                    PARENT="${BASH_REMATCH[1]}"
+                # Extract function name
+                elif [[ $line =~ getName.*return[[:space:]]+\"([^\"]+)\" ]]; then
+                    NAME="${BASH_REMATCH[1]}"
+                    [ $FUNC_FIRST -eq 0 ] && echo "," >> "$OUTPUT_FILE"
+                    FUNC_FIRST=0
+                    
+                    SIG="$NAME()"
+                    if [ -n "$PARENT" ]; then
+                        SIG="$PARENT.$NAME()"
+                    fi
+                    
+                    echo -n "    {\"name\": \"$NAME\", \"signature\": \"$SIG\", \"description\": \"$DESC\", \"parent\": \"$PARENT\"}" >> "$OUTPUT_FILE"
+                    
+                    # Reset for next function
+                    DESC=""
+                    PARENT=""
+                    IN_CLASS=0
+                fi
             fi
         done < "$cpp_file"
         
@@ -64,30 +78,3 @@ done
 echo "}" >> "$OUTPUT_FILE"
 
 echo "Extracted builtins to $OUTPUT_FILE"
-
-# Extract parent types by parsing getParent() methods
-PARENT_FILE="${OUTPUT_FILE%.json}_parents.json"
-echo "{" > "$PARENT_FILE"
-FIRST_PARENT=1
-for cpp_file in $CPP_FILES; do
-    if [ -f "$cpp_file" ]; then
-        FUNC_NAME=""
-        while IFS= read -r line; do
-            if [[ $line =~ getName.*return[[:space:]]+\"([^\"]+)\" ]]; then
-                FUNC_NAME="${BASH_REMATCH[1]}"
-            elif [[ $line =~ getParent.*return[[:space:]]+\"([^\"]+)\" ]]; then
-                PARENT_VAL="${BASH_REMATCH[1]}"
-                if [ -n "$PARENT_VAL" ] && [ -n "$FUNC_NAME" ]; then
-                    [ $FIRST_PARENT -eq 0 ] && echo "," >> "$PARENT_FILE"
-                    FIRST_PARENT=0
-                    echo -n "  \"$FUNC_NAME\": \"$PARENT_VAL\"" >> "$PARENT_FILE"
-                fi
-                FUNC_NAME=""
-            fi
-        done < "$cpp_file"
-    fi
-done
-echo "" >> "$PARENT_FILE"
-echo "}" >> "$PARENT_FILE"
-
-echo "Extracted parent types to $PARENT_FILE"

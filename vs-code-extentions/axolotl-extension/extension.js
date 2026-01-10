@@ -34,17 +34,10 @@ const builtinReturnTypes = {
     applyAttractionToMesh: 'void', deformVertices: 'void', followTarget: 'void',
     setGraphics: 'void', setMetallic: 'void', enableDevMode: 'void', updateDevCamera: 'void',
     handleDevInput: 'int', createBox: 'object', createCamera: 'object', renderMesh: 'void',
-    close: 'void', add: 'void', CreateWindow: 'object'
+    close: 'void', add: 'void', CreateWindow: 'object', applyMTL: 'void', setTexture: 'void'
 };
 
-const builtinParentTypes = {
-    add: 'scene', removeMesh: 'scene', render: 'canvas',
-    setPosition: 'mesh', setRotation: 'mesh', setScale: 'mesh', setColor: 'mesh',
-    lookAt: 'camera', moveBy: 'mesh', getPosition: 'mesh', getGroundNormal: 'mesh',
-    deformVertices: 'mesh', setMetallic: 'mesh', setTexture: 'mesh',
-    applyMTL: 'mesh', createBone: 'mesh', setBonePose: 'mesh',
-    createAnimation: 'mesh', addAnimKey: 'mesh', playAnimation: 'mesh', updateAnimation: 'mesh'
-};
+const builtinParentTypes = {};
 
 function isInCommentOrString(text, position) {
     let inString = false;
@@ -77,8 +70,10 @@ function parseDocument(document) {
     const functions = new Map();
     const customTypes = new Map();
     const properties = new Map();
+    const objectProperties = new Map();
     
     const maxLines = Math.min(document.lineCount, MAX_PARSE_LINES);
+    const fullText = document.getText();
     
     for (let i = 0; i < maxLines; i++) {
         try {
@@ -108,33 +103,74 @@ function parseDocument(document) {
                 continue;
             }
             
-            // Parse variable declarations with explicit type: var/const name: type = ...
-            const varMatch = line.match(/\s*(var|const)\s+(\w+)\s*:\s*([^=]+)(?:=\s*(.+))?/);
-            if (varMatch) {
-                const type = varMatch[3].trim();
-                const initializer = varMatch[4] ? varMatch[4].trim().replace(/;$/, '') : null;
-                variables.set(varMatch[2], { 
-                    type, 
-                    line: i, 
-                    isConst: varMatch[1] === 'const',
-                    initializer,
-                    scope: 'global'
-                });
-            } else {
-                // Parse variable declarations with type inference: var/const name = ...
-                const inferMatch = line.match(/\s*(var|const)\s+(\w+)\s*=\s*(.+);?/);
-                if (inferMatch) {
-                    const initializer = inferMatch[3].trim().replace(/;$/, '');
-                    const inferredType = inferExpressionType(initializer, variables, functions, customTypes, 0);
-                    variables.set(inferMatch[2], { 
-                        type: inferredType, 
-                        line: i, 
-                        isConst: inferMatch[1] === 'const',
+            // Parse variable declarations: var/const name: type = ... or var/const name = ...
+            const varDeclMatch = line.match(/^\s*(var|const)\s+(\w+)\s*(?::\s*([^=]+))?\s*=/);
+            if (varDeclMatch) {
+                const varName = varDeclMatch[2];
+                const declaredType = varDeclMatch[3] ? varDeclMatch[3].trim() : null;
+                
+                // Find the full initializer (may span multiple lines)
+                const startPos = document.offsetAt(new vscode.Position(i, 0));
+                const afterEquals = fullText.substring(startPos).match(/=\s*(.+)/);
+                
+                if (afterEquals) {
+                    let initializer = '';
+                    let braceCount = 0;
+                    let inString = false;
+                    let stringChar = null;
+                    
+                    for (let j = 0; j < afterEquals[1].length && j < 5000; j++) {
+                        const char = afterEquals[1][j];
+                        initializer += char;
+                        
+                        if (!inString) {
+                            if (char === '"' || char === "'") {
+                                inString = true;
+                                stringChar = char;
+                            } else if (char === '{') {
+                                braceCount++;
+                            } else if (char === '}') {
+                                braceCount--;
+                                if (braceCount === 0) break;
+                            } else if (char === ';' && braceCount === 0) {
+                                initializer = initializer.slice(0, -1);
+                                break;
+                            }
+                        } else if (char === stringChar && afterEquals[1][j-1] !== '\\') {
+                            inString = false;
+                        }
+                    }
+                    
+                    initializer = initializer.trim().replace(/;$/, '');
+                    const inferredType = declaredType || inferExpressionType(initializer, variables, functions, customTypes, 0);
+                    
+                    variables.set(varName, {
+                        type: inferredType,
+                        line: i,
+                        isConst: varDeclMatch[1] === 'const',
                         initializer,
-                        inferred: true,
+                        inferred: !declaredType,
                         scope: 'global'
                     });
+                    
+                    // Extract object properties from initializer
+                    if (initializer.includes('{')) {
+                        const props = extractObjectProperties(initializer);
+                        if (props.length > 0) {
+                            objectProperties.set(varName, props);
+                        }
+                    }
+                    
+                    // Also extract from type definition if it's an object type
+                    if (declaredType && declaredType.includes('{')) {
+                        const typeProps = extractObjectProperties(declaredType);
+                        if (typeProps.length > 0) {
+                            const existing = objectProperties.get(varName) || [];
+                            objectProperties.set(varName, [...new Set([...existing, ...typeProps])]);
+                        }
+                    }
                 }
+                continue;
             }
             
             // Track property assignments: obj.prop = value or obj.prop.subprop = value
@@ -153,7 +189,66 @@ function parseDocument(document) {
         }
     }
     
-    return { variables, functions, customTypes, properties };
+    return { variables, functions, customTypes, properties, objectProperties };
+}
+
+function extractObjectProperties(objLiteral) {
+    const props = [];
+    try {
+        // Extract from object literal: { key: value, ... }
+        const literalMatch = objLiteral.match(/\{([^}]+)\}/);
+        if (literalMatch) {
+            const content = literalMatch[1];
+            // Split by comma but respect nested braces and strings
+            let current = '';
+            let depth = 0;
+            let inString = false;
+            let stringChar = null;
+            
+            for (let i = 0; i < content.length; i++) {
+                const char = content[i];
+                
+                if (!inString) {
+                    if (char === '"' || char === "'") {
+                        inString = true;
+                        stringChar = char;
+                    } else if (char === '{') {
+                        depth++;
+                    } else if (char === '}') {
+                        depth--;
+                    } else if (char === ',' && depth === 0) {
+                        const prop = current.trim().match(/^([a-zA-Z_]\w*)\s*:/);
+                        if (prop) props.push(prop[1]);
+                        current = '';
+                        continue;
+                    }
+                } else if (char === stringChar && content[i-1] !== '\\') {
+                    inString = false;
+                }
+                
+                current += char;
+            }
+            
+            // Handle last property
+            if (current.trim()) {
+                const prop = current.trim().match(/^([a-zA-Z_]\w*)\s*:/);
+                if (prop) props.push(prop[1]);
+            }
+        }
+        
+        // Also extract from type definition: {key:type, ...}
+        const typeMatch = objLiteral.match(/^\{([^}]+)\}$/);
+        if (typeMatch && !literalMatch) {
+            const pairs = typeMatch[1].split(',');
+            for (const pair of pairs) {
+                const match = pair.trim().match(/^([a-zA-Z_]\w*)\s*:/);
+                if (match) props.push(match[1]);
+            }
+        }
+    } catch (err) {
+        // Ignore parse errors
+    }
+    return props;
 }
 
 function resolveType(type, customTypes, depth = 0) {
@@ -204,6 +299,8 @@ function inferExpressionType(expr, variables, functions, customTypes, depth = 0)
     const callMatch = expr.match(/^(\w+)\s*\(/);
     if (callMatch) {
         const fnName = callMatch[1];
+        // Check for pseudo-type first
+        if (pseudoTypes.has(fnName)) return pseudoTypes.get(fnName);
         if (builtinReturnTypes[fnName]) return builtinReturnTypes[fnName];
         if (functions.has(fnName)) return functions.get(fnName).returnType;
         return 'any';
@@ -248,6 +345,8 @@ function inferExpressionType(expr, variables, functions, customTypes, depth = 0)
 
 // Load builtins from generated JSON
 let builtins = [];
+const pseudoTypes = new Map(); // Map function names to their pseudo-types
+
 try {
     const builtinsPath = path.join(__dirname, 'builtins.json');
     if (fs.existsSync(builtinsPath)) {
@@ -259,11 +358,30 @@ try {
                     sig: fn.signature,
                     doc: fn.description || `[${category}] ${fn.signature}`,
                     category: category,
-                    returnType: fn.returnType || 'void'
+                    returnType: fn.returnType || 'void',
+                    parent: fn.parent || ''
                 });
                 // Update builtinReturnTypes from JSON
                 if (fn.returnType) {
                     builtinReturnTypes[fn.name] = fn.returnType;
+                }
+                // Update builtinParentTypes from JSON parent field
+                if (fn.parent) {
+                    builtinParentTypes[fn.name] = fn.parent;
+                }
+                // Track pseudo-types: functions that return specific object types
+                if (fn.returnType === 'object' || !fn.returnType) {
+                    if (fn.name === 'createScene') pseudoTypes.set(fn.name, 'scene');
+                    else if (fn.name === 'createCanvas') pseudoTypes.set(fn.name, 'canvas');
+                    else if (fn.name === 'PerspectiveCamera') pseudoTypes.set(fn.name, 'camera');
+                    else if (fn.name === 'BoxGeometry' || fn.name === 'SphereGeometry' || 
+                             fn.name === 'PlaneGeometry' || fn.name === 'TorusGeometry' || 
+                             fn.name === 'CylinderGeometry' || fn.name === 'loadOBJ') {
+                        pseudoTypes.set(fn.name, 'mesh');
+                    }
+                    else if (fn.name === 'PointLight' || fn.name === 'DirectionalLight' || fn.name === 'AmbientLight') {
+                        pseudoTypes.set(fn.name, 'light');
+                    }
                 }
             });
         }
@@ -324,10 +442,13 @@ function activate(context) {
             });
             
             builtins.forEach(fn => {
-                const item = new vscode.CompletionItem(fn.name, vscode.CompletionItemKind.Function);
-                item.detail = fn.sig;
-                item.documentation = fn.doc;
-                items.push(item);
+                // Only show global functions (no parent)
+                if (!fn.parent) {
+                    const item = new vscode.CompletionItem(fn.name, vscode.CompletionItemKind.Function);
+                    item.detail = fn.sig;
+                    item.documentation = fn.doc;
+                    items.push(item);
+                }
             });
             return items;
         }
@@ -625,10 +746,43 @@ function activate(context) {
                 if (funcCallMatch) {
                     funcCallMatch.slice(0, 20).forEach(match => {
                         const fnName = match.replace(/\s*\($/, '');
-                        // Don't flag variables used as arguments (they appear after opening paren)
                         const matchIndex = text.indexOf(match);
                         const beforeMatch = text.substring(0, matchIndex);
-                        const afterMatch = text.substring(matchIndex + match.length);
+                        
+                        // Check if this is a method call (preceded by dot)
+                        if (beforeMatch.trimEnd().endsWith('.')) {
+                            // Validate method exists for the object type
+                            const objMatch = beforeMatch.match(/([a-zA-Z_]\w*)\s*\.\s*$/);
+                            if (objMatch && variables.has(objMatch[1])) {
+                                const varInfo = variables.get(objMatch[1]);
+                                let resolvedType = varInfo.type;
+                                if (varInfo.initializer) {
+                                    const initMatch = varInfo.initializer.match(/^(\w+)\s*\(/);
+                                    if (initMatch && pseudoTypes.has(initMatch[1])) {
+                                        resolvedType = pseudoTypes.get(initMatch[1]);
+                                    }
+                                }
+                                // Check if method exists for this type
+                                const methodExists = builtins.some(fn => {
+                                    if (fn.name !== fnName || !fn.parent) return false;
+                                    const parents = fn.parent.split(',').map(p => p.trim());
+                                    return parents.some(p => {
+                                        if (p === resolvedType || p === varInfo.type) return true;
+                                        if (pseudoTypes.has(p) && pseudoTypes.get(p) === resolvedType) return true;
+                                        return false;
+                                    });
+                                });
+                                if (!methodExists) {
+                                    const diagnostic = new vscode.Diagnostic(
+                                        line.range,
+                                        `Method '${fnName}' does not exist on type '${resolvedType}'`,
+                                        vscode.DiagnosticSeverity.Warning
+                                    );
+                                    diagnostics.push(diagnostic);
+                                }
+                            }
+                            return;
+                        }
                         
                         // Skip if this identifier is inside parentheses (it's an argument)
                         const openParens = (beforeMatch.match(/\(/g) || []).length;
@@ -684,7 +838,113 @@ function activate(context) {
     // Initial diagnostics for open documents
     vscode.workspace.textDocuments.forEach(doc => updateDiagnostics(doc));
     
-    context.subscriptions.push(completionProvider, hoverProvider, formatter, builtinBrowser);
+    // Dot completion provider for methods and properties
+    const dotCompletionProvider = vscode.languages.registerCompletionItemProvider('axolotl', {
+        provideCompletionItems(document, position) {
+            const items = [];
+            const line = document.lineAt(position.line).text;
+            const beforeCursor = line.substring(0, position.character);
+            
+            // Check if we're after a dot: obj.
+            const dotMatch = beforeCursor.match(/([a-zA-Z_]\w*)\.$/);
+            if (!dotMatch) return items;
+            
+            const objName = dotMatch[1];
+            const { variables, objectProperties } = parseDocument(document);
+            
+            // Check if it's a known variable
+            if (variables.has(objName)) {
+                // Add object literal properties
+                if (objectProperties.has(objName)) {
+                    const props = objectProperties.get(objName);
+                    props.forEach(prop => {
+                        const item = new vscode.CompletionItem(prop, vscode.CompletionItemKind.Property);
+                        item.detail = `property of ${objName}`;
+                        items.push(item);
+                    });
+                }
+                const varInfo = variables.get(objName);
+                const varType = varInfo.type;
+                
+                // Resolve pseudo-type if variable was initialized with a builtin constructor
+                let resolvedType = varType;
+                if (varInfo.initializer) {
+                    const initMatch = varInfo.initializer.match(/^(\w+)\s*\(/);
+                    if (initMatch && pseudoTypes.has(initMatch[1])) {
+                        resolvedType = pseudoTypes.get(initMatch[1]);
+                    }
+                }
+                
+                // Add methods that match this object type or pseudo-type
+                const addedMethods = new Set();
+                builtins.forEach(fn => {
+                    if (fn.parent && !addedMethods.has(fn.name)) {
+                        const parents = fn.parent.split(',').map(p => p.trim());
+                        // Check if parent matches resolved type, varType, or if parent is a pseudo-type that resolves to same type
+                        const matchesType = parents.some(p => {
+                            if (p === resolvedType || p === varType) return true;
+                            // Check if parent is a pseudo-type constructor that resolves to our type
+                            if (pseudoTypes.has(p) && pseudoTypes.get(p) === resolvedType) return true;
+                            return false;
+                        });
+                        if (matchesType) {
+                            const item = new vscode.CompletionItem(fn.name, vscode.CompletionItemKind.Method);
+                            item.detail = fn.sig;
+                            item.documentation = fn.doc;
+                            items.push(item);
+                            addedMethods.add(fn.name);
+                        }
+                    }
+                });
+                
+                // Add common object methods only if no specific type matched
+                if ((resolvedType === 'object' || varType === 'object' || varType === 'any') && addedMethods.size === 0) {
+                    ['keys', 'values', 'hasKey', 'clone', 'merge'].forEach(method => {
+                        if (builtinReturnTypes[method]) {
+                            const fn = builtins.find(b => b.name === method);
+                            if (fn) {
+                                const item = new vscode.CompletionItem(method, vscode.CompletionItemKind.Method);
+                                item.detail = fn.sig;
+                                item.documentation = fn.doc;
+                                items.push(item);
+                            }
+                        }
+                    });
+                }
+                
+                // Add array methods
+                if (varType.startsWith('[')) {
+                    ['push', 'pop', 'slice', 'reverse', 'join', 'find', 'includes', 'sort', 'len'].forEach(method => {
+                        const fn = builtins.find(b => b.name === method);
+                        if (fn) {
+                            const item = new vscode.CompletionItem(method, vscode.CompletionItemKind.Method);
+                            item.detail = fn.sig;
+                            item.documentation = fn.doc;
+                            items.push(item);
+                        }
+                    });
+                }
+                
+                // Add string methods
+                if (varType === 'string') {
+                    ['toUpper', 'toLower', 'substr', 'indexOf', 'contains', 'trim', 'replace', 'split', 
+                     'startsWith', 'endsWith', 'repeat', 'charAt', 'charCodeAt', 'len'].forEach(method => {
+                        const fn = builtins.find(b => b.name === method);
+                        if (fn) {
+                            const item = new vscode.CompletionItem(method, vscode.CompletionItemKind.Method);
+                            item.detail = fn.sig;
+                            item.documentation = fn.doc;
+                            items.push(item);
+                        }
+                    });
+                }
+            }
+            
+            return items;
+        }
+    }, '.');
+    
+    context.subscriptions.push(completionProvider, dotCompletionProvider, hoverProvider, formatter, builtinBrowser);
 }
 
 function deactivate() {}

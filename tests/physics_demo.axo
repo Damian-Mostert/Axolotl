@@ -1,0 +1,60 @@
+// Physics World Demo - Bouncing Ball with 3D Visualization
+
+const canvas = createCanvas(800, 600)
+const scene = createScene()
+const camera = PerspectiveCamera(60)
+
+// Create flat world with gravity
+const world = createWorld("flat")
+
+// Create ball entity with sphere mesh
+const ballMesh = SphereGeometry(0.5, 16, 12)
+ballMesh.setColor("#FF4444")
+const ball = world.createEntity(ballMesh)
+ball.setPosition(0, 10, 0)
+ball.setVelocity(2, 0, 1)
+
+// Create ground plane
+const ground = PlaneGeometry(20, 20)
+ground.setPosition(0, 0, 0)
+ground.setRotation(1.57, 0, 0)
+ground.setColor("#44FF44")
+
+// Add light
+const light = PointLight("#FFFFFF", 1.5)
+light.setPosition(5, 10, 5)
+
+// Setup scene
+scene.add(ballMesh)
+scene.add(ground)
+scene.add(light)
+
+// Position camera
+camera.setPosition(0, 8, 15)
+camera.lookAt(0, 2, 0)
+
+// Game loop
+var running = 1
+while (running == 1) {
+    // Physics step
+    world.step(0.016)
+    
+    // Get ball position from physics
+    const pos = ball.position()
+    
+    // Update mesh position to match physics
+    ballMesh.setPosition(pos.x, pos.y, pos.z)
+    
+    // Simple bounce when hitting ground
+    if (pos.y <= 0.5) {
+        ball.setVelocity(pos.x * 0.95, 8, pos.z * 0.95)
+    }
+    
+    // Render
+    canvas.render(scene, camera)
+    
+    // Handle input
+    running = handleDevInput()
+}
+
+print("Physics demo complete!")

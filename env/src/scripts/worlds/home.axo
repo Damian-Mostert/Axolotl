@@ -1,0 +1,10 @@
+const canvas = createCanvas(800, 600);
+const scene = createScene();
+
+use "./scripts/characters/wolf.axo";
+
+
+while(true){
+    pollEvents();
+    canvas.render(scene);
+}

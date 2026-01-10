@@ -14,9 +14,8 @@ var camera: object = PerspectiveCamera(75.0);
 camera.setPosition(0.0, 2.0, 8.0);
 camera.lookAt(0.0, 0.0, 0.0);
 const x = {
-    x:quality: "high",
+    x: "high"
 };
-
 
 // Create geometries
 var box: object = BoxGeometry(2.0, 2.0, 2.0);
@@ -40,6 +39,8 @@ scene.add(sphere);
 scene.add(torus);
 scene.add(plane);
 scene.add(ambientLight);
+
+
 
 // Render
 canvas.render(scene, camera);

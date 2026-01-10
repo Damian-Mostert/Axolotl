@@ -2,7 +2,7 @@
 // Connect to MySQL and perform queries
 
 // Connect to database
-const db: object = mysqlConnect("localhost", "root", "", "mydb");
+const db = mysqlConnect("localhost", "root", "", "mydb");
 
 // Create table
 db.query("CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(255))");

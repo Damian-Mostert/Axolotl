@@ -1,0 +1,121 @@
+// OBJ Model Animation Example
+// This example shows how to load any OBJ file and add bone animations to it
+
+print("OBJ Model with Bone Animation");
+
+// Setup scene
+var canvas: object = createCanvas(1024, 768, "OBJ Animation");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 2.0, 5.0);
+camera.lookAt(0.0, 1.0, 0.0);
+
+// Load your OBJ model
+// Replace with your own OBJ file path
+var model: object = loadOBJ("tests/human.obj");
+model.setPosition(0.0, 0.0, 0.0);
+model.setColor("#66CCFF");
+scene.add(model);
+
+print("Model loaded successfully");
+
+// Create a simple skeleton
+// Adjust bone positions based on your model's structure
+var root: int = model.createBone("root", -1);
+var body: int = model.createBone("body", root);
+var leftPart: int = model.createBone("leftPart", body);
+var rightPart: int = model.createBone("rightPart", body);
+
+print("Created 4-bone skeleton");
+
+// Animation 1: Rotate
+model.addAnimation("rotate", func(state: object) -> void {
+    var t: float = state.time;
+    
+    // Root rotates the entire model
+    model.setBonePose(root, 0.0, 0.0, 0.0, 0.0, t * 0.5, 0.0);
+    
+    // Body stays neutral
+    model.setBonePose(body, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    
+    // Parts move
+    model.setBonePose(leftPart, -0.5, 0.0, 0.0, sin(t * 2.0) * 0.5, 0.0, 0.0);
+    model.setBonePose(rightPart, 0.5, 0.0, 0.0, sin(t * 2.0 + 3.14) * 0.5, 0.0, 0.0);
+});
+
+// Animation 2: Bounce
+model.addAnimation("bounce", func(state: object) -> void {
+    var t: float = state.time;
+    var bounce: float = sin(t * 3.0) * 0.3;
+    
+    model.setBonePose(root, 0.0, bounce, 0.0, 0.0, 0.0, 0.0);
+    model.setBonePose(body, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    model.setBonePose(leftPart, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0);
+    model.setBonePose(rightPart, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0);
+});
+
+// Animation 3: Sway
+model.addAnimation("sway", func(state: object) -> void {
+    var t: float = state.time;
+    var sway: float = sin(t * 1.5) * 0.3;
+    
+    model.setBonePose(root, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    model.setBonePose(body, sway, 0.0, 0.0, 0.0, sway * 0.5, 0.0);
+    model.setBonePose(leftPart, -0.5, 0.0, 0.0, sway * 0.3, 0.0, 0.0);
+    model.setBonePose(rightPart, 0.5, 0.0, 0.0, -sway * 0.3, 0.0, 0.0);
+});
+
+print("Loaded 3 animations: rotate, bounce, sway");
+
+// Lighting
+var light: object = PointLight("#FFFFFF", 1.5);
+light.setPosition(3.0, 5.0, 3.0);
+scene.add(light);
+
+var ambient: object = AmbientLight("#FFFFFF", 0.4);
+scene.add(ambient);
+
+// Animation control
+var animations: [string] = ["rotate", "bounce", "sway"];
+var currentIndex: int = 0;
+var currentAnim: string = animations[currentIndex];
+var timer: float = 0.0;
+var running: int = 1;
+
+// Start first animation
+model.playAnimCallback(currentAnim);
+print("Playing: " + currentAnim);
+
+// Main loop
+while (running == 1) {
+    pollEvents();
+    
+    // Update animation
+    model.updateAnimCallback(0.016);
+    
+    // Switch animations every 4 seconds
+    timer = timer + 0.016;
+    if (timer > 4.0) {
+        timer = 0.0;
+        currentIndex = currentIndex + 1;
+        if (currentIndex >= 3) {
+            currentIndex = 0;
+        }
+        
+        currentAnim = animations[currentIndex];
+        model.playAnimCallback(currentAnim);
+        print("Switched to: " + currentAnim);
+    }
+    
+    // Render
+    canvas.render(scene, camera);
+}
+
+print("Animation demo complete.");
+
+// NOTES:
+// 1. Replace "tests/human.obj" with your OBJ file path
+// 2. Adjust bone positions to match your model's structure
+// 3. Modify animations to suit your model's shape
+// 4. Add more bones for finer control
+// 5. Use setBonePose() to position bones relative to model center

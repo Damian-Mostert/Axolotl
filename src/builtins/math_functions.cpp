@@ -1,21 +1,22 @@
 #include "include/builtins.h"
 #include <cmath>
 #include <random>
-
-#define MATH_UNARY(name, func) \
-class name##Builtin : public BuiltinFunction { \
-public: \
-    std::string getName() const override { return #name; } \
-    std::string execute(Interpreter* interp, FunctionCall* node) override { \
-        if (node->args.size() != 1) throw std::runtime_error(#name "() expects 1 argument"); \
-        Value v = interp->evaluate(node->args[0].get()); \
-        float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v)); \
-        interp->lastValue = func(val); \
-        return "[float]"; \
-    } \
-}; \
-REGISTER_BUILTIN(name##Builtin)
-
+#define MATH_UNARY(name, func)                                                                                        \
+    class name##Builtin : public BuiltinFunction                                                                      \
+    {                                                                                                                 \
+    public:                                                                                                           \
+        std::string getName() const override { return #name; }                                                        \
+        std::string execute(Interpreter *interp, FunctionCall *node) override                                         \
+        {                                                                                                             \
+            if (node->args.size() != 1)                                                                               \
+                throw std::runtime_error(#name "() expects 1 argument");                                              \
+            Value v = interp->evaluate(node->args[0].get());                                                          \
+            float val = std::holds_alternative<float>(v) ? std::get<float>(v) : static_cast<float>(std::get<int>(v)); \
+            interp->lastValue = func(val);                                                                            \
+            return "[float]";                                                                                         \
+        }                                                                                                             \
+    };                                                                                                                \
+    REGISTER_BUILTIN(name##Builtin)
 MATH_UNARY(sin, std::sin)
 MATH_UNARY(cos, std::cos)
 MATH_UNARY(tan, std::tan)
@@ -30,13 +31,16 @@ MATH_UNARY(exp, std::exp)
 MATH_UNARY(asin, std::asin)
 MATH_UNARY(acos, std::acos)
 MATH_UNARY(atan, std::atan)
-
-// @desc Raise base to exponent power
-class PowBuiltin : public BuiltinFunction {
+class PowBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Raise base to exponent power
+    //@parent
     std::string getName() const override { return "pow"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("pow() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("pow() expects 2 arguments");
         Value base = interp->evaluate(node->args[0].get());
         Value exp = interp->evaluate(node->args[1].get());
         float b = std::holds_alternative<float>(base) ? std::get<float>(base) : static_cast<float>(std::get<int>(base));
@@ -45,13 +49,16 @@ public:
         return "[float]";
     }
 };
-
-// @desc Return minimum of two numbers
-class MinBuiltin : public BuiltinFunction {
+class MinBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Return minimum of two numbers
+    //@parent
     std::string getName() const override { return "min"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("min() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("min() expects 2 arguments");
         Value a = interp->evaluate(node->args[0].get());
         Value b = interp->evaluate(node->args[1].get());
         float af = std::holds_alternative<float>(a) ? std::get<float>(a) : static_cast<float>(std::get<int>(a));
@@ -60,13 +67,16 @@ public:
         return "[float]";
     }
 };
-
-// @desc Return maximum of two numbers
-class MaxBuiltin : public BuiltinFunction {
+class MaxBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Return maximum of two numbers
+    //@parent
     std::string getName() const override { return "max"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("max() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("max() expects 2 arguments");
         Value a = interp->evaluate(node->args[0].get());
         Value b = interp->evaluate(node->args[1].get());
         float af = std::holds_alternative<float>(a) ? std::get<float>(a) : static_cast<float>(std::get<int>(a));
@@ -75,13 +85,16 @@ public:
         return "[float]";
     }
 };
-
-// @desc Clamp value between min and max
-class ClampBuiltin : public BuiltinFunction {
+class ClampBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Clamp value between min and max
+    //@parent
     std::string getName() const override { return "clamp"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 3) throw std::runtime_error("clamp() expects 3 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 3)
+            throw std::runtime_error("clamp() expects 3 arguments");
         Value v = interp->evaluate(node->args[0].get());
         Value minV = interp->evaluate(node->args[1].get());
         Value maxV = interp->evaluate(node->args[2].get());
@@ -92,13 +105,16 @@ public:
         return "[float]";
     }
 };
-
-// @desc Linear interpolation between a and b by t
-class LerpBuiltin : public BuiltinFunction {
+class LerpBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Linear interpolation between a and b by t
+    //@parent
     std::string getName() const override { return "lerp"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 3) throw std::runtime_error("lerp() expects 3 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 3)
+            throw std::runtime_error("lerp() expects 3 arguments");
         Value a = interp->evaluate(node->args[0].get());
         Value b = interp->evaluate(node->args[1].get());
         Value t = interp->evaluate(node->args[2].get());
@@ -109,13 +125,16 @@ public:
         return "[float]";
     }
 };
-
-// @desc Calculate arc tangent of y/x in radians
-class Atan2Builtin : public BuiltinFunction {
+class Atan2Builtin : public BuiltinFunction
+{
 public:
+    //@desc Calculate arc tangent of y/x in radians
+    //@parent
     std::string getName() const override { return "atan2"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("atan2() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("atan2() expects 2 arguments");
         Value y = interp->evaluate(node->args[0].get());
         Value x = interp->evaluate(node->args[1].get());
         float yf = std::holds_alternative<float>(y) ? std::get<float>(y) : static_cast<float>(std::get<int>(y));
@@ -124,13 +143,16 @@ public:
         return "[float]";
     }
 };
-
-// @desc Generate random float between 0.0 and 1.0
-class RandomBuiltin : public BuiltinFunction {
+class RandomBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Generate random float between 0.0 and 1.0
+    //@parent
     std::string getName() const override { return "random"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 0) throw std::runtime_error("random() expects no arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 0)
+            throw std::runtime_error("random() expects no arguments");
         static std::random_device rd;
         static std::mt19937 gen(rd());
         static std::uniform_real_distribution<float> dis(0.0f, 1.0f);
@@ -141,7 +163,6 @@ public:
         return oss.str();
     }
 };
-
 REGISTER_BUILTIN(PowBuiltin)
 REGISTER_BUILTIN(MinBuiltin)
 REGISTER_BUILTIN(MaxBuiltin)

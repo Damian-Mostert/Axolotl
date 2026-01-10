@@ -1,57 +1,69 @@
 #include "include/builtins.h"
-
-// @desc Convert string to uppercase
-class ToUpperBuiltin : public BuiltinFunction {
+class ToUpperBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Convert string to uppercase
     std::string getName() const override { return "toUpper"; }
-    
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 1) {
+
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 1)
+        {
             throw std::runtime_error("toUpper() expects 1 argument");
         }
         Value s = interp->evaluate(node->args[0].get());
-        if (!std::holds_alternative<std::string>(s)) {
+        if (!std::holds_alternative<std::string>(s))
+        {
             throw std::runtime_error("toUpper() requires string");
         }
         std::string str = std::get<std::string>(s);
-        for (char &c : str) {
-            if (c >= 'a' && c <= 'z') {
+        for (char &c : str)
+        {
+            if (c >= 'a' && c <= 'z')
+            {
                 c = c - 'a' + 'A';
             }
         }
         return str;
     }
 };
-
-// @desc Convert string to lowercase
-class ToLowerBuiltin : public BuiltinFunction {
+class ToLowerBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Convert string to lowercase
     std::string getName() const override { return "toLower"; }
-    
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 1) {
+
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 1)
+        {
             throw std::runtime_error("toLower() expects 1 argument");
         }
         Value s = interp->evaluate(node->args[0].get());
-        if (!std::holds_alternative<std::string>(s)) {
+        if (!std::holds_alternative<std::string>(s))
+        {
             throw std::runtime_error("toLower() requires string");
         }
         std::string str = std::get<std::string>(s);
-        for (char &c : str) {
-            if (c >= 'A' && c <= 'Z') {
+        for (char &c : str)
+        {
+            if (c >= 'A' && c <= 'Z')
+            {
                 c = c - 'A' + 'a';
             }
         }
         return str;
     }
 };
-
-// @desc Extract substring from start index with given length
-class SubstrBuiltin : public BuiltinFunction {
+class SubstrBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Extract substring from start index with given length
     std::string getName() const override { return "substr"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 3) throw std::runtime_error("substr() expects 3 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 3)
+            throw std::runtime_error("substr() expects 3 arguments");
         Value s = interp->evaluate(node->args[0].get());
         Value start = interp->evaluate(node->args[1].get());
         Value len = interp->evaluate(node->args[2].get());
@@ -60,17 +72,20 @@ public:
         std::string str = std::get<std::string>(s);
         int st = std::get<int>(start);
         int l = std::get<int>(len);
-        if (st < 0 || st >= (int)str.size()) return "";
+        if (st < 0 || st >= (int)str.size())
+            return "";
         return str.substr(st, l);
     }
 };
-
-// @desc Find index of substring, returns -1 if not found
-class IndexOfBuiltin : public BuiltinFunction {
+class IndexOfBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Find index of substring, returns -1 if not found
     std::string getName() const override { return "indexOf"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("indexOf() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("indexOf() expects 2 arguments");
         Value s = interp->evaluate(node->args[0].get());
         Value sub = interp->evaluate(node->args[1].get());
         if (!std::holds_alternative<std::string>(s) || !std::holds_alternative<std::string>(sub))
@@ -81,13 +96,15 @@ public:
         return pos != std::string::npos ? std::to_string(pos) : "-1";
     }
 };
-
-// @desc Check if string contains substring
-class ContainsBuiltin : public BuiltinFunction {
+class ContainsBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Check if string contains substring
     std::string getName() const override { return "contains"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("contains() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("contains() expects 2 arguments");
         Value s = interp->evaluate(node->args[0].get());
         Value sub = interp->evaluate(node->args[1].get());
         if (!std::holds_alternative<std::string>(s) || !std::holds_alternative<std::string>(sub))
@@ -98,18 +115,22 @@ public:
         return "[bool]";
     }
 };
-
-// @desc Remove leading and trailing whitespace
-class TrimBuiltin : public BuiltinFunction {
+class TrimBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Remove leading and trailing whitespace
     std::string getName() const override { return "trim"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 1) throw std::runtime_error("trim() expects 1 argument");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 1)
+            throw std::runtime_error("trim() expects 1 argument");
         Value v = interp->evaluate(node->args[0].get());
-        if (!std::holds_alternative<std::string>(v)) throw std::runtime_error("trim() requires string");
+        if (!std::holds_alternative<std::string>(v))
+            throw std::runtime_error("trim() requires string");
         std::string str = std::get<std::string>(v);
         size_t start = str.find_first_not_of(" \t\n\r");
-        if (start == std::string::npos) {
+        if (start == std::string::npos)
+        {
             interp->lastValue = std::string("");
             return "[string]";
         }
@@ -118,41 +139,49 @@ public:
         return "[string]";
     }
 };
-
-// @desc Replace first occurrence of search string with replacement
-class ReplaceBuiltin : public BuiltinFunction {
+class ReplaceBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Replace first occurrence of search string with replacement
     std::string getName() const override { return "replace"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 3) throw std::runtime_error("replace() expects 3 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 3)
+            throw std::runtime_error("replace() expects 3 arguments");
         Value strVal = interp->evaluate(node->args[0].get());
         Value searchVal = interp->evaluate(node->args[1].get());
         Value replaceVal = interp->evaluate(node->args[2].get());
-        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("replace() requires string");
+        if (!std::holds_alternative<std::string>(strVal))
+            throw std::runtime_error("replace() requires string");
         std::string str = std::get<std::string>(strVal);
         std::string search = std::get<std::string>(searchVal);
         std::string replacement = std::get<std::string>(replaceVal);
         size_t pos = str.find(search);
-        if (pos != std::string::npos) str.replace(pos, search.length(), replacement);
+        if (pos != std::string::npos)
+            str.replace(pos, search.length(), replacement);
         interp->lastValue = str;
         return "[string]";
     }
 };
-
-// @desc Split string into array by delimiter
-class SplitBuiltin : public BuiltinFunction {
+class SplitBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Split string into array by delimiter
     std::string getName() const override { return "split"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("split() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("split() expects 2 arguments");
         Value strVal = interp->evaluate(node->args[0].get());
         Value delimVal = interp->evaluate(node->args[1].get());
-        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("split() requires string");
+        if (!std::holds_alternative<std::string>(strVal))
+            throw std::runtime_error("split() requires string");
         std::string str = std::get<std::string>(strVal);
         std::string delim = std::get<std::string>(delimVal);
         auto result = std::make_shared<ArrayValue>();
         size_t start = 0, end = str.find(delim);
-        while (end != std::string::npos) {
+        while (end != std::string::npos)
+        {
             result->elements.push_back(str.substr(start, end - start));
             start = end + delim.length();
             end = str.find(delim, start);
@@ -162,101 +191,125 @@ public:
         return "[array]";
     }
 };
-
-// @desc Check if string starts with prefix
-class StartsWithBuiltin : public BuiltinFunction {
+class StartsWithBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Check if string starts with prefix
     std::string getName() const override { return "startsWith"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("startsWith() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("startsWith() expects 2 arguments");
         Value strVal = interp->evaluate(node->args[0].get());
         Value prefixVal = interp->evaluate(node->args[1].get());
-        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("startsWith() requires string");
+        if (!std::holds_alternative<std::string>(strVal))
+            throw std::runtime_error("startsWith() requires string");
         std::string str = std::get<std::string>(strVal);
         std::string prefix = std::get<std::string>(prefixVal);
         interp->lastValue = str.rfind(prefix, 0) == 0;
         return "[bool]";
     }
 };
-
-// @desc Check if string ends with suffix
-class EndsWithBuiltin : public BuiltinFunction {
+class EndsWithBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Check if string ends with suffix
     std::string getName() const override { return "endsWith"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("endsWith() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("endsWith() expects 2 arguments");
         Value strVal = interp->evaluate(node->args[0].get());
         Value suffixVal = interp->evaluate(node->args[1].get());
-        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("endsWith() requires string");
+        if (!std::holds_alternative<std::string>(strVal))
+            throw std::runtime_error("endsWith() requires string");
         std::string str = std::get<std::string>(strVal);
         std::string suffix = std::get<std::string>(suffixVal);
-        if (suffix.length() > str.length()) {
+        if (suffix.length() > str.length())
+        {
             interp->lastValue = false;
-        } else {
+        }
+        else
+        {
             interp->lastValue = str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
         }
         return "[bool]";
     }
 };
-
-// @desc Repeat string count times
-class RepeatBuiltin : public BuiltinFunction {
+class RepeatBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Repeat string count times
     std::string getName() const override { return "repeat"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("repeat() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("repeat() expects 2 arguments");
         Value strVal = interp->evaluate(node->args[0].get());
         Value countVal = interp->evaluate(node->args[1].get());
-        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("repeat() requires string");
+        if (!std::holds_alternative<std::string>(strVal))
+            throw std::runtime_error("repeat() requires string");
         std::string str = std::get<std::string>(strVal);
         int count = std::get<int>(countVal);
         std::string result;
-        for (int i = 0; i < count; i++) result += str;
+        for (int i = 0; i < count; i++)
+            result += str;
         interp->lastValue = result;
         return "[string]";
     }
 };
-
-// @desc Get character at index
-class CharAtBuiltin : public BuiltinFunction {
+class CharAtBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Get character at index
     std::string getName() const override { return "charAt"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("charAt() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("charAt() expects 2 arguments");
         Value strVal = interp->evaluate(node->args[0].get());
         Value idxVal = interp->evaluate(node->args[1].get());
-        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("charAt() requires string");
+        if (!std::holds_alternative<std::string>(strVal))
+            throw std::runtime_error("charAt() requires string");
         std::string str = std::get<std::string>(strVal);
         int idx = std::get<int>(idxVal);
-        if (idx < 0 || idx >= (int)str.length()) {
+        if (idx < 0 || idx >= (int)str.length())
+        {
             interp->lastValue = std::string("");
-        } else {
+        }
+        else
+        {
             interp->lastValue = std::string(1, str[idx]);
         }
         return "[string]";
     }
 };
-
-// @desc Get character code at index
-class CharCodeAtBuiltin : public BuiltinFunction {
+class CharCodeAtBuiltin : public BuiltinFunction
+{
 public:
+    //@desc Get character code at index
     std::string getName() const override { return "charCodeAt"; }
-    std::string execute(Interpreter* interp, FunctionCall* node) override {
-        if (node->args.size() != 2) throw std::runtime_error("charCodeAt() expects 2 arguments");
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("charCodeAt() expects 2 arguments");
         Value strVal = interp->evaluate(node->args[0].get());
         Value idxVal = interp->evaluate(node->args[1].get());
-        if (!std::holds_alternative<std::string>(strVal)) throw std::runtime_error("charCodeAt() requires string");
+        if (!std::holds_alternative<std::string>(strVal))
+            throw std::runtime_error("charCodeAt() requires string");
         std::string str = std::get<std::string>(strVal);
         int idx = std::get<int>(idxVal);
-        if (idx < 0 || idx >= (int)str.length()) {
+        if (idx < 0 || idx >= (int)str.length())
+        {
             interp->lastValue = -1;
-        } else {
+        }
+        else
+        {
             interp->lastValue = static_cast<int>(str[idx]);
         }
         return "[int]";
     }
 };
-
 REGISTER_BUILTIN(ToUpperBuiltin)
 REGISTER_BUILTIN(ToLowerBuiltin)
 REGISTER_BUILTIN(SubstrBuiltin)

@@ -1,0 +1,143 @@
+// 3D Solar System Demo
+print("Axolotl 3D - Solar System Simulation");
+
+// Create canvas
+var canvas: object = createCanvas(1024, 768, "Solar System");
+
+// Create scene
+var scene: object = createScene();
+
+// Create camera
+var camera: object = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 15.0, 30.0);
+camera.lookAt(0.0, 0.0, 0.0);
+
+// Create sun (center)
+var sun: object = SphereGeometry(3.0, 32, 24);
+sun.setPosition(0.0, 0.0, 0.0);
+sun.setColor("#FDB813");
+
+// Create Earth
+var earth: object = SphereGeometry(1.0, 24, 18);
+earth.setPosition(10.0, 0.0, 0.0);
+earth.setColor("#2E86AB");
+
+// Create Moon
+var moon: object = SphereGeometry(0.3, 16, 12);
+moon.setPosition(12.0, 0.0, 0.0);
+moon.setColor("#CCCCCC");
+
+// Create Mars
+var mars: object = SphereGeometry(0.8, 20, 16);
+mars.setPosition(15.0, 0.0, 0.0);
+mars.setColor("#CD5C5C");
+
+// Create Jupiter
+var jupiter: object = SphereGeometry(2.5, 32, 24);
+jupiter.setPosition(22.0, 0.0, 0.0);
+jupiter.setColor("#C88B3A");
+
+// Create Saturn with ring
+var saturn: object = SphereGeometry(2.0, 28, 20);
+saturn.setPosition(-18.0, 0.0, 0.0);
+saturn.setColor("#FAD5A5");
+
+var saturnRing: object = TorusGeometry(3.0, 0.2, 16, 32);
+saturnRing.setPosition(-18.0, 0.0, 0.0);
+saturnRing.setRotation(1.57, 0.0, 0.0);
+saturnRing.setColor("#D4AF37");
+
+// Create orbit paths (planes as rings)
+var earthOrbit: object = TorusGeometry(10.0, 0.05, 8, 64);
+earthOrbit.setRotation(1.57, 0.0, 0.0);
+earthOrbit.setColor("#444444");
+
+var marsOrbit: object = TorusGeometry(15.0, 0.05, 8, 64);
+marsOrbit.setRotation(1.57, 0.0, 0.0);
+marsOrbit.setColor("#444444");
+
+var jupiterOrbit: object = TorusGeometry(22.0, 0.05, 8, 64);
+jupiterOrbit.setRotation(1.57, 0.0, 0.0);
+jupiterOrbit.setColor("#444444");
+
+var saturnOrbit: object = TorusGeometry(18.0, 0.05, 8, 64);
+saturnOrbit.setRotation(1.57, 0.0, 0.0);
+saturnOrbit.setColor("#444444");
+
+// Add lights
+var ambientLight: object = AmbientLight("#FFFFFF", 0.3);
+var sunLight: object = PointLight("#FFFFFF", 1.5);
+
+// Add all objects to scene
+scene.add(sun);
+scene.add(earth);
+scene.add(moon);
+scene.add(mars);
+scene.add(jupiter);
+scene.add(saturn);
+scene.add(saturnRing);
+scene.add(earthOrbit);
+scene.add(marsOrbit);
+scene.add(jupiterOrbit);
+scene.add(saturnOrbit);
+scene.add(ambientLight);
+scene.add(sunLight);
+
+// Animation variables
+var time: float = 0.0;
+var running: int = 1;
+
+print("Solar System created!");
+print("Planets: Sun, Earth, Moon, Mars, Jupiter, Saturn");
+print("Close window to exit.");
+
+// Animation loop
+while (running == 1) {
+    pollEvents();
+    
+    // Update time
+    time = time + 0.01;
+    
+    // Rotate planets around sun
+    var earthAngle: float = time * 1.0;
+    var earthX: float = cos(earthAngle) * 10.0;
+    var earthZ: float = sin(earthAngle) * 10.0;
+    earth.setPosition(earthX, 0.0, earthZ);
+    
+    // Moon orbits Earth
+    var moonAngle: float = time * 3.0;
+    var moonX: float = earthX + cos(moonAngle) * 2.0;
+    var moonZ: float = earthZ + sin(moonAngle) * 2.0;
+    moon.setPosition(moonX, 0.0, moonZ);
+    
+    // Mars orbit
+    var marsAngle: float = time * 0.5;
+    var marsX: float = cos(marsAngle) * 15.0;
+    var marsZ: float = sin(marsAngle) * 15.0;
+    mars.setPosition(marsX, 0.0, marsZ);
+    
+    // Jupiter orbit
+    var jupiterAngle: float = time * 0.3;
+    var jupiterX: float = cos(jupiterAngle) * 22.0;
+    var jupiterZ: float = sin(jupiterAngle) * 22.0;
+    jupiter.setPosition(jupiterX, 0.0, jupiterZ);
+    
+    // Saturn orbit
+    var saturnAngle: float = time * 0.2;
+    var saturnX: float = cos(saturnAngle) * 18.0;
+    var saturnZ: float = sin(saturnAngle) * 18.0;
+    saturn.setPosition(saturnX, 0.0, saturnZ);
+    saturnRing.setPosition(saturnX, 0.0, saturnZ);
+    
+    // Rotate planets on their axis
+    sun.setRotation(0.0, time * 0.5, 0.0);
+    earth.setRotation(0.0, time * 2.0, 0.0);
+    mars.setRotation(0.0, time * 1.8, 0.0);
+    jupiter.setRotation(0.0, time * 3.0, 0.0);
+    saturn.setRotation(0.0, time * 2.5, 0.0);
+    
+    // Render scene
+    canvas.render(scene, camera);
+}
+
+print("Solar System simulation ended.");

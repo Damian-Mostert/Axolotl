@@ -3,9 +3,7 @@
 #include <cmath>
 #include <vector>
 #include <unordered_map>
-
 struct Vec3 { float x, y, z; };
-
 struct Mesh {
     std::vector<Vec3> vertices;
     std::vector<int> indices;
@@ -25,11 +23,8 @@ struct Mesh {
     float friction = 0.5f;
     float bounciness = 0.3f;
 };
-
 void calcAABB(Mesh& mesh);
-
 extern std::unordered_map<int, Mesh> meshes;
-
 class DeformVerticesBuiltin : public BuiltinFunction {
 public:
     std::string getName() const override { return "deformVertices"; }
@@ -72,5 +67,4 @@ public:
         return "";
     }
 };
-
 REGISTER_BUILTIN(DeformVerticesBuiltin)

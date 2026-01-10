@@ -2,13 +2,11 @@
 #include <mysql/mysql.h>
 #include <string>
 #include <memory>
-
 static std::unordered_map<int, MYSQL*> connections;
 static int nextConnId = 1;
-
 class MySQLConnectBuiltin : public BuiltinFunction {
 public:
-// @desc Connect to MySQL database
+//@desc Connect to MySQL database
     std::string getName() const override { return "mysqlConnect"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() < 4) throw std::runtime_error("mysqlConnect(host, user, password, database)");
@@ -36,12 +34,11 @@ public:
         return "{object}";
     }
 };
-
 class MySQLQueryBuiltin : public BuiltinFunction {
 public:
-// @desc Execute SQL query on database connection
+//@desc Execute SQL query on database connection
     std::string getName() const override { return "query"; }
-    std::string getParent() const override { return "connection"; }
+//@parent connection
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee || node->args.size() != 1) throw std::runtime_error("conn.query(sql)");
         
@@ -85,12 +82,11 @@ public:
         return "[array]";
     }
 };
-
 class MySQLCloseBuiltin : public BuiltinFunction {
 public:
-// @desc Close canvas window
+//@desc Close canvas window
     std::string getName() const override { return "close"; }
-    std::string getParent() const override { return "connection"; }
+//@parent connection
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (!node->callee) throw std::runtime_error("conn.close()");
         
@@ -106,7 +102,6 @@ public:
         return "";
     }
 };
-
 REGISTER_BUILTIN(MySQLConnectBuiltin)
 REGISTER_BUILTIN(MySQLQueryBuiltin)
 REGISTER_BUILTIN(MySQLCloseBuiltin)

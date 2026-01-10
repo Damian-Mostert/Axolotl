@@ -1,0 +1,52 @@
+// Wolf with MTL Textures
+print("Loading Wolf with MTL...");
+
+const canvas: object = createCanvas(1024, 768);
+const scene: object = createScene();
+
+// Load wolf - MTL will be auto-loaded
+const wolf: object = loadOBJ("./src/assets/Wolf_obj.obj");
+wolf.setPosition(0.0, 0.0, 0.0);
+
+// Apply MTL file (loads textures automatically)
+wolf.applyMTL("./src/assets/Wolf_obj.mtl");
+
+scene.add(wolf);
+
+print("Wolf loaded with MTL textures!");
+
+// Camera
+const camera: object = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 1.5, 5.0);
+camera.lookAt(0.0, 1.0, 0.0);
+
+// Lighting
+const light: object = PointLight("#FFFFFF", 2.0);
+light.setPosition(3.0, 5.0, 3.0);
+scene.add(light);
+
+const ambient: object = AmbientLight("#FFFFFF", 0.6);
+scene.add(ambient);
+
+// Ground
+const ground: object = PlaneGeometry(20.0, 20.0);
+ground.setPosition(0.0, -0.5, 0.0);
+ground.setRotation(1.57, 0.0, 0.0);
+ground.setColor("#556633");
+scene.add(ground);
+
+print("Rendering...");
+
+var time: float = 0.0;
+var running: int = 1;
+
+while (running == 1) {
+    pollEvents();
+    
+    time = time + 0.01;
+    wolf.setRotation(0.0, time * 0.5, 0.0);
+    
+    canvas.render(scene, camera);
+}
+
+print("Done.");

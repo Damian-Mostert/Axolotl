@@ -1,6 +1,6 @@
 # Blender v2.74 (sub 0) OBJ File: 'Wolf_done_No_IK.blend'
 # www.blender.org
-mtllib Wolf_done_obj.mtl
+mtllib Wolf_obj.mtl
 o Wolf_obj_body_Cube.001
 v -0.025846 0.505454 0.394626
 v -0.027454 0.505447 0.392658

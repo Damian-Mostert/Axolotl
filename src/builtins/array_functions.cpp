@@ -1,9 +1,8 @@
 #include "include/builtins.h"
 #include <algorithm>
-
-// @desc Get length of array or string
 class LenBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Get length of array or string
     std::string getName() const override { return "len"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) {
@@ -21,10 +20,9 @@ public:
         throw std::runtime_error("len() requires array or string");
     }
 };
-
-// @desc Extract portion of array from start to end index
 class SliceBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Extract portion of array from start to end index
     std::string getName() const override { return "slice"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 3) throw std::runtime_error("slice() expects 3 arguments");
@@ -43,10 +41,9 @@ public:
         return "[array]";
     }
 };
-
-// @desc Reverse array elements
 class ReverseBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Reverse array elements
     std::string getName() const override { return "reverse"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("reverse() expects 1 argument");
@@ -61,10 +58,9 @@ public:
         return "[array]";
     }
 };
-
-// @desc Join array elements into string with separator
 class JoinBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Join array elements into string with separator
     std::string getName() const override { return "join"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 2) throw std::runtime_error("join() expects 2 arguments");
@@ -82,10 +78,9 @@ public:
         return "[string]";
     }
 };
-
-// @desc Find index of element in array, returns -1 if not found
 class FindBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Find index of element in array, returns -1 if not found
     std::string getName() const override { return "find"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 2) throw std::runtime_error("find() expects 2 arguments");
@@ -103,10 +98,9 @@ public:
         return "[int]";
     }
 };
-
-// @desc Check if array contains element
 class IncludesBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Check if array contains element
     std::string getName() const override { return "includes"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 2) throw std::runtime_error("includes() expects 2 arguments");
@@ -124,10 +118,9 @@ public:
         return "[bool]";
     }
 };
-
-// @desc Add element to array and return new array
 class PushBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Add element to array and return new array
     std::string getName() const override { return "push"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 2) throw std::runtime_error("push() expects 2 arguments");
@@ -142,10 +135,9 @@ public:
         return "[array]";
     }
 };
-
-// @desc Remove and return last element from array
 class PopBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Remove and return last element from array
     std::string getName() const override { return "pop"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("pop() expects 1 argument");
@@ -163,10 +155,9 @@ public:
         return "";
     }
 };
-
-// @desc Sort array elements in-place
 class SortBuiltin : public BuiltinFunction {
-public:
+    public:
+    //@desc Sort array elements in-place
     std::string getName() const override { return "sort"; }
     std::string execute(Interpreter* interp, FunctionCall* node) override {
         if (node->args.size() != 1) throw std::runtime_error("sort() expects 1 argument");
@@ -182,7 +173,6 @@ public:
         return "[array]";
     }
 };
-
 REGISTER_BUILTIN(LenBuiltin)
 REGISTER_BUILTIN(SliceBuiltin)
 REGISTER_BUILTIN(ReverseBuiltin)

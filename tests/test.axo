@@ -1,0 +1,4 @@
+const world = createWorld("flat")
+const player = world.createEntity()
+player.setPosition(0, 5, 0)
+world.step(0.016)

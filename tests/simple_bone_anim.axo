@@ -1,0 +1,52 @@
+// Simple Bone Animation Example
+print("Simple Bone Animation with Callbacks");
+
+var canvas: object = createCanvas(800, 600, "Bone Animation");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 1.5, 4.0);
+camera.lookAt(0.0, 1.0, 0.0);
+
+// Load model
+var model: object = loadOBJ("tests/human.obj");
+model.setPosition(0.0, 0.0, 0.0);
+model.setColor("#FF8844");
+scene.add(model);
+
+// Create bones
+var root: int = model.createBone("root", -1);
+var arm: int = model.createBone("arm", root);
+
+// Add animation with callback
+model.addAnimation("rotate", func(state: object) -> void {
+    var t: float = state.time;
+    
+    // Root stays still
+    model.setBonePose(root, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    
+    // Arm rotates
+    model.setBonePose(arm, 0.5, 0.5, 0.0, sin(t * 2.0) * 1.5, 0.0, 0.0);
+});
+
+// Add light
+var light: object = PointLight("#FFFFFF", 1.2);
+light.setPosition(2.0, 3.0, 2.0);
+scene.add(light);
+
+// Play animation
+model.playAnimCallback("rotate");
+
+print("Playing 'rotate' animation");
+
+// Main loop
+var running: int = 1;
+while (running == 1) {
+    pollEvents();
+    
+    // Update animation (16ms = ~60fps)
+    model.updateAnimCallback(0.016);
+    
+    canvas.render(scene, camera);
+}
+
+print("Done.");

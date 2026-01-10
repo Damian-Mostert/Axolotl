@@ -1,0 +1,64 @@
+// Simple Textured Wolf Rendering
+print("Loading Wolf with Textures");
+
+// Create canvas and scene
+var canvas: object = createCanvas(1024, 768, "Wolf Demo");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 1.5, 5.0);
+camera.lookAt(0.0, 1.0, 0.0);
+
+// Load wolf model
+var wolf: object = loadOBJ("./src/assets/Wolf_obj.obj");
+wolf.setPosition(0.0, 0.0, 0.0);
+wolf.setRotation(0.0, 0.0, 0.0);
+wolf.setScale(1.0, 1.0, 1.0);
+
+// Apply wolf body texture
+wolf.setTexture("./src/assets/textures/Wolf_Body.jpg");
+
+scene.add(wolf);
+
+print("Wolf loaded with texture");
+
+// Add lighting
+var sun: object = PointLight("#FFFFFF", 2.0);
+sun.setPosition(3.0, 5.0, 3.0);
+scene.add(sun);
+
+var ambient: object = AmbientLight("#FFFFFF", 0.5);
+scene.add(ambient);
+
+// Add ground
+var ground: object = PlaneGeometry(20.0, 20.0);
+ground.setPosition(0.0, -0.5, 0.0);
+ground.setRotation(1.57, 0.0, 0.0);
+ground.setColor("#556633");
+scene.add(ground);
+
+// Enable dev mode for camera control
+enableDevMode(camera);
+
+print("Use mouse to rotate camera, scroll to zoom");
+print("WASD to move camera target, Q/E for up/down");
+
+// Animation variables
+var time: float = 0.0;
+var running: int = 1;
+
+// Main loop
+while (running == 1) {
+    if (handleDevInput() == 0) {
+        running = 0;
+    }
+    
+    updateDevCamera();
+    
+    // Rotate wolf slowly
+    time = time + 0.01;
+    wolf.setRotation(0.0, time * 0.5, 0.0);
+    
+    canvas.render(scene, camera);
+}
+
+print("Wolf demo ended.");
