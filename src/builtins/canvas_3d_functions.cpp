@@ -9,6 +9,11 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #endif
+#ifdef HAVE_OPENEXR
+#include <ImfRgbaFile.h>
+#include <ImfArray.h>
+#include <Imath/ImathBox.h>
+#endif
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -41,7 +46,14 @@ struct Bone
     std::string name;
     Vec3 position{0, 0, 0};
     Vec3 rotation{0, 0, 0};
+    Vec3 restPosition{0, 0, 0};
+    Vec3 restRotation{0, 0, 0};
+    Vec3 pivotPosition{0, 0, 0};  // Joint attachment point for child bones
     int parentId = -1;
+    float minX = -1000.0f;
+    float maxX = 1000.0f;
+    float minY = 0.0f;
+    float maxY = 1000.0f;
 };
 struct Animation
 {
@@ -125,6 +137,14 @@ struct Scene
     float aoIntensity = 0.5f;
     bool enableHDR = false;
     float exposure = 1.0f;
+    std::string backgroundImage = "";
+    GLuint backgroundTexture = 0;
+    std::vector<std::string> backgroundFrames;
+    int currentFrame = 0;
+    float frameTime = 0.0f;
+    float fps = 30.0f;
+    bool loopVideo = true;
+    float backgroundRotation = 0.0f;
 };
 extern std::unordered_map<int, std::shared_ptr<CanvasContext>> canvases;
 static std::unordered_map<int, Mesh> meshes;
@@ -1249,6 +1269,121 @@ public:
                 for (int j = 0; j < 3; j++)
                 {
                     Vec3 vert = mesh.vertices[mesh.indices[i + j]];
+                    
+                    // Apply bone transforms if skeleton exists
+                    if (skeletons.count(meshId) && !skeletons[meshId].empty())
+                    {
+                        auto &skeleton = skeletons[meshId];
+                        Vec3 originalVert = vert;
+                        
+                        // Find dominant bone for this vertex
+                        int dominantBone = -1;
+                        float maxWeight = 0.0f;
+                        
+                        for (size_t boneIdx = 0; boneIdx < skeleton.size(); boneIdx++)
+                        {
+                            Bone &bone = skeleton[boneIdx];
+                            
+                            // Check if vertex is within bone boundaries
+                            if (originalVert.x >= bone.minX && originalVert.x <= bone.maxX &&
+                                originalVert.y >= bone.minY && originalVert.y <= bone.maxY)
+                            {
+                                float yCenter = (bone.minY + bone.maxY) * 0.5f;
+                                float yDist = fabs(originalVert.y - yCenter);
+                                float yRange = bone.maxY - bone.minY;
+                                float weight = yRange > 0 ? 1.0f - (yDist / (yRange * 0.5f)) : 1.0f;
+                                
+                                if (weight > maxWeight)
+                                {
+                                    maxWeight = weight;
+                                    dominantBone = boneIdx;
+                                }
+                            }
+                        }
+                        
+                        // If no bone found, find nearest
+                        if (dominantBone < 0)
+                        {
+                            float minDist = 1e10f;
+                            for (size_t boneIdx = 0; boneIdx < skeleton.size(); boneIdx++)
+                            {
+                                Bone &bone = skeleton[boneIdx];
+                                float yCenter = (bone.minY + bone.maxY) * 0.5f;
+                                float xCenter = (bone.minX + bone.maxX) * 0.5f;
+                                float dist = sqrt((originalVert.y - yCenter) * (originalVert.y - yCenter) + 
+                                                (originalVert.x - xCenter) * (originalVert.x - xCenter));
+                                if (dist < minDist)
+                                {
+                                    minDist = dist;
+                                    dominantBone = boneIdx;
+                                }
+                            }
+                        }
+                        
+                        if (dominantBone >= 0)
+                        {
+                            vert = originalVert;
+                            Bone &bone = skeleton[dominantBone];
+                            Vec3 boneRest = {(bone.minX + bone.maxX) * 0.5f, 
+                                           (bone.minY + bone.maxY) * 0.5f, 0.0f};
+                            
+                            // Move vertex to local bone space (relative to bone center)
+                            vert.x -= boneRest.x;
+                            vert.y -= boneRest.y;
+                            vert.z -= boneRest.z;
+                            
+                            // Build hierarchy chain (root to this bone)
+                            std::vector<int> chain;
+                            int idx = dominantBone;
+                            while (idx >= 0 && idx < (int)skeleton.size())
+                            {
+                                chain.push_back(idx);
+                                idx = skeleton[idx].parentId;
+                            }
+                            std::reverse(chain.begin(), chain.end());
+                            
+                            // Get root bone for final positioning
+                            Bone &rootBone = skeleton[chain[0]];
+                            Vec3 rootRest = {(rootBone.minX + rootBone.maxX) * 0.5f, 
+                                            (rootBone.minY + rootBone.maxY) * 0.5f, 0.0f};
+                            
+                            // Apply transforms from root to leaf
+                            for (int c = 0; c < (int)chain.size(); c++)
+                            {
+                                Bone &b = skeleton[chain[c]];
+                                Vec3 bRest = {(b.minX + b.maxX) * 0.5f, (b.minY + b.maxY) * 0.5f, 0.0f};
+                                
+                                // Rotate around pivot
+                                Vec3 pivotLocal = {b.pivotPosition.x - bRest.x, 
+                                                  b.pivotPosition.y - bRest.y, 
+                                                  b.pivotPosition.z - bRest.z};
+                                
+                                // Move vertex to pivot, rotate, move back
+                                vert.x -= pivotLocal.x;
+                                vert.y -= pivotLocal.y;
+                                vert.z -= pivotLocal.z;
+                                
+                                vert = rotateX(vert, b.rotation.x);
+                                vert = rotateY(vert, b.rotation.y);
+                                vert = rotateZ(vert, b.rotation.z);
+                                
+                                vert.x += pivotLocal.x;
+                                vert.y += pivotLocal.y;
+                                vert.z += pivotLocal.z;
+                                
+                                // Apply position offset
+                                vert.x += b.position.x - bRest.x;
+                                vert.y += b.position.y - bRest.y;
+                                vert.z += b.position.z - bRest.z;
+                            }
+                            
+                            // Move back to world space using root bone center
+                            vert.x += rootRest.x;
+                            vert.y += rootRest.y;
+                            vert.z += rootRest.z;
+                        }
+                    }
+                    
                     vert.x *= mesh.scale.x;
                     vert.y *= mesh.scale.y;
                     vert.z *= mesh.scale.z;
@@ -1345,25 +1480,68 @@ public:
                     // Load each material texture into materialTextures map
                     for (const auto &[matName, texOpts] : textures)
                     {
-                        SDL_Surface *surface = IMG_Load(texOpts.path.c_str());
-                        if (surface)
+                        std::string ext = texOpts.path.substr(texOpts.path.find_last_of('.'));
+                        GLuint texId = 0;
+                        
+#ifdef HAVE_OPENEXR
+                        if (ext == ".exr")
                         {
-                            SDL_Surface *converted = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
-                            SDL_FreeSurface(surface);
-                            if (converted)
-                            {
-                                GLuint texId;
+                            try {
+                                Imf::RgbaInputFile file(texOpts.path.c_str());
+                                Imath::Box2i dw = file.dataWindow();
+                                int width = dw.max.x - dw.min.x + 1;
+                                int height = dw.max.y - dw.min.y + 1;
+                                Imf::Array2D<Imf::Rgba> pixels(height, width);
+                                file.setFrameBuffer(&pixels[0][0] - dw.min.x - dw.min.y * width, 1, width);
+                                file.readPixels(dw.min.y, dw.max.y);
+                                
+                                std::vector<float> data(width * height * 4);
+                                for (int y = 0; y < height; y++) {
+                                    for (int x = 0; x < width; x++) {
+                                        int idx = (y * width + x) * 4;
+                                        data[idx + 0] = pixels[y][x].r;
+                                        data[idx + 1] = pixels[y][x].g;
+                                        data[idx + 2] = pixels[y][x].b;
+                                        data[idx + 3] = pixels[y][x].a;
+                                    }
+                                }
+                                
                                 glGenTextures(1, &texId);
                                 glBindTexture(GL_TEXTURE_2D, texId);
-                                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, converted->w, converted->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, converted->pixels);
+                                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, data.data());
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texOpts.clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
                                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texOpts.clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-                                SDL_FreeSurface(converted);
                                 mesh.materialTextures[matName] = texId;
                                 mesh.materialTexOpts[matName] = texOpts;
-                                std::cout << "[Texture] Loaded [" << matName << "] ID: " << texId << std::endl;
+                                std::cout << "[Texture] Loaded EXR [" << matName << "] ID: " << texId << std::endl;
+                            } catch (const std::exception& e) {
+                                std::cerr << "[Texture] Failed to load EXR: " << e.what() << std::endl;
+                            }
+                        }
+                        else
+#endif
+                        {
+                            SDL_Surface *surface = IMG_Load(texOpts.path.c_str());
+                            if (surface)
+                            {
+                                SDL_Surface *converted = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
+                                SDL_FreeSurface(surface);
+                                if (converted)
+                                {
+                                    glGenTextures(1, &texId);
+                                    glBindTexture(GL_TEXTURE_2D, texId);
+                                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, converted->w, converted->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, converted->pixels);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, texOpts.clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+                                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, texOpts.clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+                                    SDL_FreeSurface(converted);
+                                    mesh.materialTextures[matName] = texId;
+                                    mesh.materialTexOpts[matName] = texOpts;
+                                    std::cout << "[Texture] Loaded [" << matName << "] ID: " << texId << std::endl;
+                                }
                             }
                         }
                     }
@@ -1444,6 +1622,167 @@ public:
         
         glClearColor(scene.background.r / 255.0f, scene.background.g / 255.0f, scene.background.b / 255.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        // Update video frame if using frame sequence
+        if (!scene.backgroundFrames.empty())
+        {
+            scene.frameTime += 0.016f; // ~60fps update
+            float frameDuration = 1.0f / scene.fps;
+            
+            if (scene.frameTime >= frameDuration)
+            {
+                scene.frameTime = 0.0f;
+                scene.currentFrame++;
+                
+                if (scene.currentFrame >= (int)scene.backgroundFrames.size())
+                {
+                    if (scene.loopVideo)
+                        scene.currentFrame = 0;
+                    else
+                        scene.currentFrame = scene.backgroundFrames.size() - 1;
+                }
+                
+                // Load new frame
+                if (scene.backgroundTexture)
+                {
+                    glDeleteTextures(1, &scene.backgroundTexture);
+                    scene.backgroundTexture = 0;
+                }
+                
+                SDL_Surface *surface = IMG_Load(scene.backgroundFrames[scene.currentFrame].c_str());
+                if (surface)
+                {
+                    SDL_Surface *converted = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
+                    SDL_FreeSurface(surface);
+                    if (converted)
+                    {
+                        glGenTextures(1, &scene.backgroundTexture);
+                        glBindTexture(GL_TEXTURE_2D, scene.backgroundTexture);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, converted->w, converted->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, converted->pixels);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                        SDL_FreeSurface(converted);
+                    }
+                }
+            }
+        }
+        // Load static background image if set
+        else if (!scene.backgroundImage.empty() && scene.backgroundTexture == 0)
+        {
+            std::string ext = scene.backgroundImage.substr(scene.backgroundImage.find_last_of('.'));
+#ifdef HAVE_OPENEXR
+            if (ext == ".exr")
+            {
+                try {
+                    Imf::RgbaInputFile file(scene.backgroundImage.c_str());
+                    Imath::Box2i dw = file.dataWindow();
+                    int width = dw.max.x - dw.min.x + 1;
+                    int height = dw.max.y - dw.min.y + 1;
+                    Imf::Array2D<Imf::Rgba> pixels(height, width);
+                    file.setFrameBuffer(&pixels[0][0] - dw.min.x - dw.min.y * width, 1, width);
+                    file.readPixels(dw.min.y, dw.max.y);
+                    
+                    std::vector<float> data(width * height * 4);
+                    for (int y = 0; y < height; y++) {
+                        for (int x = 0; x < width; x++) {
+                            int idx = (y * width + x) * 4;
+                            data[idx + 0] = pixels[y][x].r;
+                            data[idx + 1] = pixels[y][x].g;
+                            data[idx + 2] = pixels[y][x].b;
+                            data[idx + 3] = pixels[y][x].a;
+                        }
+                    }
+                    
+                    glGenTextures(1, &scene.backgroundTexture);
+                    glBindTexture(GL_TEXTURE_2D, scene.backgroundTexture);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, data.data());
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                    std::cout << "[Background] Loaded EXR" << std::endl;
+                } catch (const std::exception& e) {
+                    std::cerr << "[Background] Failed to load EXR: " << e.what() << std::endl;
+                }
+            }
+            else
+#endif
+            {
+                SDL_Surface *surface = IMG_Load(scene.backgroundImage.c_str());
+                if (surface)
+                {
+                    SDL_Surface *converted = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32, 0);
+                    SDL_FreeSurface(surface);
+                    if (converted)
+                    {
+                        glGenTextures(1, &scene.backgroundTexture);
+                        glBindTexture(GL_TEXTURE_2D, scene.backgroundTexture);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, converted->w, converted->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, converted->pixels);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                        SDL_FreeSurface(converted);
+                    }
+                }
+            }
+        }
+        
+        if (scene.backgroundTexture)
+        {
+            scene.backgroundRotation += 0.1f;
+            
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_LIGHTING);
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, scene.backgroundTexture);
+            glColor4f(1, 1, 1, 1);
+            
+            // Render inverted sphere at camera position
+            glPushMatrix();
+            glTranslatef(cam.position.x, cam.position.y, cam.position.z);
+            glRotatef(scene.backgroundRotation, 0, 1, 0);
+            
+            int segments = 32;
+            float radius = 500.0f;
+            
+            for (int i = 0; i < segments; i++)
+            {
+                float theta1 = i * M_PI / segments;
+                float theta2 = (i + 1) * M_PI / segments;
+                
+                glBegin(GL_TRIANGLE_STRIP);
+                for (int j = 0; j <= segments; j++)
+                {
+                    float phi = j * 2 * M_PI / segments;
+                    
+                    float x1 = radius * sin(theta1) * cos(phi);
+                    float y1 = radius * cos(theta1);
+                    float z1 = radius * sin(theta1) * sin(phi);
+                    float u1 = (float)j / segments;
+                    float v1 = (float)i / segments;
+                    
+                    float x2 = radius * sin(theta2) * cos(phi);
+                    float y2 = radius * cos(theta2);
+                    float z2 = radius * sin(theta2) * sin(phi);
+                    float u2 = (float)j / segments;
+                    float v2 = (float)(i + 1) / segments;
+                    
+                    glTexCoord2f(u1, v1); glVertex3f(x1, y1, z1);
+                    glTexCoord2f(u2, v2); glVertex3f(x2, y2, z2);
+                }
+                glEnd();
+            }
+            
+            glPopMatrix();
+            glDisable(GL_TEXTURE_2D);
+            
+            if (scene.enableDepthTest)
+                glEnable(GL_DEPTH_TEST);
+            glEnable(GL_LIGHTING);
+        }
 
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -2099,6 +2438,61 @@ public:
             auto v = settings->fields["exposure"];
             scene.exposure = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
         }
+        if (settings->fields.count("backgroundImage"))
+        {
+            scene.backgroundImage = std::get<std::string>(settings->fields["backgroundImage"]);
+            scene.backgroundFrames.clear();
+            if (scene.backgroundTexture)
+            {
+                glDeleteTextures(1, &scene.backgroundTexture);
+                scene.backgroundTexture = 0;
+            }
+        }
+        if (settings->fields.count("backgroundVideo"))
+        {
+            // Format: "path/frame_%04d.png" or array of frame paths
+            auto videoVal = settings->fields["backgroundVideo"];
+            if (std::holds_alternative<std::string>(videoVal))
+            {
+                // Pattern-based: load frames matching pattern
+                std::string pattern = std::get<std::string>(videoVal);
+                scene.backgroundFrames.clear();
+                scene.backgroundImage = "";
+                
+                // Try loading frames 0-9999
+                for (int i = 0; i < 10000; i++)
+                {
+                    char filename[512];
+                    snprintf(filename, sizeof(filename), pattern.c_str(), i);
+                    FILE* f = fopen(filename, "r");
+                    if (!f) break;
+                    fclose(f);
+                    scene.backgroundFrames.push_back(filename);
+                }
+                scene.currentFrame = 0;
+                scene.frameTime = 0.0f;
+            }
+            if (scene.backgroundTexture)
+            {
+                glDeleteTextures(1, &scene.backgroundTexture);
+                scene.backgroundTexture = 0;
+            }
+        }
+        if (settings->fields.count("videoFPS"))
+        {
+            auto v = settings->fields["videoFPS"];
+            scene.fps = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
+        if (settings->fields.count("loopVideo"))
+        {
+            auto v = settings->fields["loopVideo"];
+            scene.loopVideo = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        }
+        if (settings->fields.count("backgroundRotation"))
+        {
+            auto v = settings->fields["backgroundRotation"];
+            scene.backgroundRotation = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
+        }
         return "";
     }
 };
@@ -2229,9 +2623,16 @@ public:
         auto v4 = interp->evaluate(node->args[4].get());
         auto v5 = interp->evaluate(node->args[5].get());
         auto v6 = interp->evaluate(node->args[6].get());
-        bone.position.x = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
-        bone.position.y = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
-        bone.position.z = std::holds_alternative<int>(v3) ? std::get<int>(v3) : std::get<float>(v3);
+        
+        float posX = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        float posY = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        float posZ = std::holds_alternative<int>(v3) ? std::get<int>(v3) : std::get<float>(v3);
+        
+        // Store position as offset from rest position
+        Vec3 boneRest = {(bone.minX + bone.maxX) * 0.5f, (bone.minY + bone.maxY) * 0.5f, 0.0f};
+        bone.position.x = posX;  // These are treated as absolute, but we interpret them as offsets when computing
+        bone.position.y = posY;
+        bone.position.z = posZ;
         bone.rotation.x = std::holds_alternative<int>(v4) ? std::get<int>(v4) : std::get<float>(v4);
         bone.rotation.y = std::holds_alternative<int>(v5) ? std::get<int>(v5) : std::get<float>(v5);
         bone.rotation.z = std::holds_alternative<int>(v6) ? std::get<int>(v6) : std::get<float>(v6);
@@ -2555,6 +2956,105 @@ public:
 };
 REGISTER_BUILTIN(CreateBoneBuiltin)
 REGISTER_BUILTIN(SetBonePoseBuiltin)
+class SetBoneRangeBuiltin : public BuiltinFunction
+{
+public:
+    //@desc Set bone bounding box for vertex selection
+    //@parent mesh
+    std::string getName() const override { return "setBoneRange"; }
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 5)
+            throw std::runtime_error("mesh.setBoneRange(boneIndex, minX, maxX, minY, maxY)");
+        if (!node->callee)
+            throw std::runtime_error("setBoneRange must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa)
+            return "";
+        Value objVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal))
+            return "";
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj || !obj->fields.count("_meshId"))
+            return "";
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        if (!skeletons.count(meshId))
+            return "";
+        auto v0 = interp->evaluate(node->args[0].get());
+        int boneIdx = std::holds_alternative<int>(v0) ? std::get<int>(v0) : (int)std::get<float>(v0);
+        if (boneIdx < 0 || boneIdx >= (int)skeletons[meshId].size())
+            return "";
+        Bone &bone = skeletons[meshId][boneIdx];
+        auto v1 = interp->evaluate(node->args[1].get());
+        auto v2 = interp->evaluate(node->args[2].get());
+        auto v3 = interp->evaluate(node->args[3].get());
+        auto v4 = interp->evaluate(node->args[4].get());
+        bone.minX = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        bone.maxX = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        bone.minY = std::holds_alternative<int>(v3) ? std::get<int>(v3) : std::get<float>(v3);
+        bone.maxY = std::holds_alternative<int>(v4) ? std::get<int>(v4) : std::get<float>(v4);
+        return "";
+    }
+};
+class AssignVertexToBoneBuiltin : public BuiltinFunction
+{
+public:
+    //@desc Assign vertices to bone based on Y and X ranges
+    //@parent mesh
+    std::string getName() const override { return "assignVertexToBone"; }
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 5)
+            throw std::runtime_error("mesh.assignVertexToBone(boneIndex, minY, maxY, minX, maxX)");
+        if (!node->callee)
+            throw std::runtime_error("assignVertexToBone must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa)
+            return "";
+        Value objVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal))
+            return "";
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj || !obj->fields.count("_meshId"))
+            return "";
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        if (!skeletons.count(meshId))
+            return "";
+        auto v0 = interp->evaluate(node->args[0].get());
+        int boneIdx = std::holds_alternative<int>(v0) ? std::get<int>(v0) : (int)std::get<float>(v0);
+        if (boneIdx < 0 || boneIdx >= (int)skeletons[meshId].size())
+            return "";
+        Bone &bone = skeletons[meshId][boneIdx];
+        auto v1 = interp->evaluate(node->args[1].get());
+        auto v2 = interp->evaluate(node->args[2].get());
+        auto v3 = interp->evaluate(node->args[3].get());
+        auto v4 = interp->evaluate(node->args[4].get());
+        bone.minY = std::holds_alternative<int>(v1) ? std::get<int>(v1) : std::get<float>(v1);
+        bone.maxY = std::holds_alternative<int>(v2) ? std::get<int>(v2) : std::get<float>(v2);
+        bone.minX = std::holds_alternative<int>(v3) ? std::get<int>(v3) : std::get<float>(v3);
+        bone.maxX = std::holds_alternative<int>(v4) ? std::get<int>(v4) : std::get<float>(v4);
+        
+        // Store rest position (center of bone)
+        bone.restPosition.x = (bone.minX + bone.maxX) * 0.5f;
+        bone.restPosition.y = (bone.minY + bone.maxY) * 0.5f;
+        bone.restPosition.z = 0.0f;
+        
+        // Set pivot to the top of the bone (where child attaches)
+        bone.pivotPosition.x = bone.restPosition.x;
+        bone.pivotPosition.y = bone.maxY;  // Top of bone
+        bone.pivotPosition.z = 0.0f;
+        
+        // Initialize position to rest position
+        if (bone.position.x == 0.0f && bone.position.y == 0.0f && bone.position.z == 0.0f)
+        {
+            bone.position = bone.restPosition;
+        }
+        
+        return "";
+    }
+};
+REGISTER_BUILTIN(SetBoneRangeBuiltin)
+REGISTER_BUILTIN(AssignVertexToBoneBuiltin)
 REGISTER_BUILTIN(CreateAnimationBuiltin)
 REGISTER_BUILTIN(AddAnimKeyBuiltin)
 REGISTER_BUILTIN(PlayAnimationBuiltin)

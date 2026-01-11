@@ -1,0 +1,285 @@
+// Soccer Player Bone Animation Demo - Properly mapped bones
+print("Soccer Player Animation System");
+
+// Create canvas and scene
+var canvas: object = createCanvas(1024, 768, "Soccer Player Demo");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 10.0, 25.0);
+camera.lookAt(0.0, 10.0, 0.0);
+
+// Enable dev mode for camera controls
+enableDevMode(camera);
+
+// Load soccer player OBJ model
+var player: object = loadOBJ("socker-player.obj");
+player.setPosition(0.0, 0.0, 0.0);
+player.setColor("#FF6633");
+scene.add(player);
+
+// Create skeleton bones with proper hierarchy
+// Model Y range: 0 to 20.7 (standing human)
+var pelvis: int = player.createBone("pelvis", -1);
+var spine: int = player.createBone("spine", pelvis);
+var chest: int = player.createBone("chest", spine);
+var neck: int = player.createBone("neck", chest);
+var head: int = player.createBone("head", neck);
+
+var leftShoulder: int = player.createBone("leftShoulder", chest);
+var leftUpperArm: int = player.createBone("leftUpperArm", leftShoulder);
+var leftForearm: int = player.createBone("leftForearm", leftUpperArm);
+
+var rightShoulder: int = player.createBone("rightShoulder", chest);
+var rightUpperArm: int = player.createBone("rightUpperArm", rightShoulder);
+var rightForearm: int = player.createBone("rightForearm", rightUpperArm);
+
+var leftThigh: int = player.createBone("leftThigh", pelvis);
+var leftShin: int = player.createBone("leftShin", leftThigh);
+var leftFoot: int = player.createBone("leftFoot", leftShin);
+
+var rightThigh: int = player.createBone("rightThigh", pelvis);
+var rightShin: int = player.createBone("rightShin", rightThigh);
+var rightFoot: int = player.createBone("rightFoot", rightShin);
+
+print("Created skeleton with 17 bones");
+
+// Map vertices to bones based on Y coordinates
+// Feet: y < 2.0
+player.assignVertexToBone(leftFoot, 0.0, 2.0, -1.0, -0.1);
+player.assignVertexToBone(rightFoot, 0.0, 2.0, 0.1, 1.0);
+
+// Lower legs: 2.0 <= y < 5.5
+player.assignVertexToBone(leftShin, 2.0, 5.5, -1.0, -0.1);
+player.assignVertexToBone(rightShin, 2.0, 5.5, 0.1, 1.0);
+
+// Upper legs: 5.5 <= y < 9.5
+player.assignVertexToBone(leftThigh, 5.5, 9.5, -1.0, -0.1);
+player.assignVertexToBone(rightThigh, 5.5, 9.5, 0.1, 1.0);
+
+// Pelvis: 9.5 <= y < 10.5
+player.assignVertexToBone(pelvis, 9.5, 10.5, -1.0, 1.0);
+
+// Spine: 10.5 <= y < 11.5
+player.assignVertexToBone(spine, 10.5, 11.5, -1.0, 1.0);
+
+// Chest: 11.5 <= y < 13.5
+player.assignVertexToBone(chest, 11.5, 13.5, -2.0, 2.0);
+
+// Shoulders: 13.5 <= y < 14.5
+player.assignVertexToBone(leftShoulder, 13.5, 14.5, -2.5, -0.8);
+player.assignVertexToBone(rightShoulder, 13.5, 14.5, 0.8, 2.5);
+
+// Upper arms: 11.0 <= y < 13.5
+player.assignVertexToBone(leftUpperArm, 11.0, 13.5, -3.5, -1.5);
+player.assignVertexToBone(rightUpperArm, 11.0, 13.5, 1.5, 3.5);
+
+// Forearms: 8.0 <= y < 11.0
+player.assignVertexToBone(leftForearm, 8.0, 11.0, -3.5, -1.5);
+player.assignVertexToBone(rightForearm, 8.0, 11.0, 1.5, 3.5);
+
+// Neck: 14.5 <= y < 16.5
+player.assignVertexToBone(neck, 14.5, 16.5, -0.8, 0.8);
+
+// Head: y >= 16.5
+player.assignVertexToBone(head, 16.5, 25.0, -1.5, 1.5);
+
+print("Mapped vertices to bones");
+
+// Define "walk" animation
+player.addAnimation("walk", func(state: object) -> void {
+    var t: float = state.time * 2.0;
+    var step: float = sin(t * 3.0);
+    
+    // Spine chain - match mesh Y ranges
+    player.setBonePose(pelvis, 0.0, 10.0, 0.0, 0.0, 0.0, 0.0);       // mesh: 9.5-10.5
+    player.setBonePose(spine, 0.0, 11.0, 0.0, 0.05, 0.0, 0.0);       // mesh: 10.5-11.5
+    player.setBonePose(chest, 0.0, 12.5, 0.0, 0.0, 0.0, 0.0);        // mesh: 11.5-13.5
+    player.setBonePose(neck, 0.0, 15.5, 0.0, -0.05, 0.0, 0.0);       // mesh: 14.5-16.5
+    player.setBonePose(head, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0);         // mesh: 16.5-25.0
+    
+    // Left arm chain
+    player.setBonePose(leftShoulder, -1.6, 14.0, 0.0, step * 0.3, 0.0, 0.0);  // mesh: 13.5-14.5
+    player.setBonePose(leftUpperArm, -2.5, 12.25, 0.0, step * 0.5, 0.0, 0.0); // mesh: 11.0-13.5
+    player.setBonePose(leftForearm, -2.5, 9.5, 0.0, 0.0, 0.0, 0.0);          // mesh: 8.0-11.0
+    
+    // Right arm chain
+    player.setBonePose(rightShoulder, 1.6, 14.0, 0.0, -step * 0.3, 0.0, 0.0);
+    player.setBonePose(rightUpperArm, 2.5, 12.25, 0.0, -step * 0.5, 0.0, 0.0);
+    player.setBonePose(rightForearm, 2.5, 9.5, 0.0, 0.0, 0.0, 0.0);
+    
+    // Left leg chain
+    player.setBonePose(leftThigh, -0.5, 7.5, 0.0, step * 0.4, 0.0, 0.0);   // mesh: 5.5-9.5
+    player.setBonePose(leftShin, -0.5, 3.75, 0.0, 0.0, 0.0, 0.0);          // mesh: 2.0-5.5
+    player.setBonePose(leftFoot, -0.5, 1.0, 0.0, 0.0, 0.0, 0.0);           // mesh: 0.0-2.0
+    
+    // Right leg chain
+    player.setBonePose(rightThigh, 0.5, 7.5, 0.0, -step * 0.4, 0.0, 0.0);
+    player.setBonePose(rightShin, 0.5, 3.75, 0.0, 0.0, 0.0, 0.0);
+    player.setBonePose(rightFoot, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0);
+});
+
+// Define "run" animation
+player.addAnimation("run", func(state: object) -> void {
+    var t: float = state.time * 3.5;
+    var step: float = sin(t * 3.0);
+    
+    // Spine chain - bobbing vertically only
+    player.setBonePose(pelvis, 0.0, 10.0 + step * 0.2, 0.0, 0.08, 0.0, 0.0);
+    player.setBonePose(spine, 0.0, 11.0 + step * 0.2, 0.0, 0.1, 0.0, 0.0);
+    player.setBonePose(chest, 0.0, 12.5 + step * 0.2, 0.0, 0.05, 0.0, 0.0);
+    player.setBonePose(neck, 0.0, 15.5 + step * 0.2, 0.0, -0.08, 0.0, 0.0);
+    player.setBonePose(head, 0.0, 20.0 + step * 0.2, 0.0, 0.0, 0.0, 0.0);
+    
+    // Left arm chain - fixed position, aggressive rotation only
+    player.setBonePose(leftShoulder, -1.6, 14.0 + step * 0.2, 0.0, step * 0.6, 0.0, 0.0);
+    player.setBonePose(leftUpperArm, -2.5, 12.25 + step * 0.2, 0.0, step * 0.8, 0.0, 0.0);
+    player.setBonePose(leftForearm, -2.5, 9.5 + step * 0.2, 0.0, 0.0, 0.0, 0.0);
+    
+    // Right arm chain - fixed position, aggressive rotation only
+    player.setBonePose(rightShoulder, 1.6, 14.0 + step * 0.2, 0.0, -step * 0.6, 0.0, 0.0);
+    player.setBonePose(rightUpperArm, 2.5, 12.25 + step * 0.2, 0.0, -step * 0.8, 0.0, 0.0);
+    player.setBonePose(rightForearm, 2.5, 9.5 + step * 0.2, 0.0, 0.0, 0.0, 0.0);
+    
+    // Left leg chain - fixed position, aggressive rotation
+    player.setBonePose(leftThigh, -0.5, 7.5 + step * 0.2, 0.0, step * 0.8, 0.0, 0.0);
+    player.setBonePose(leftShin, -0.5, 3.75 + step * 0.2, 0.0, -step * 0.4, 0.0, 0.0);
+    player.setBonePose(leftFoot, -0.5, 1.0 + step * 0.2, 0.0, 0.0, 0.0, 0.0);
+    
+    // Right leg chain - fixed position, aggressive rotation
+    player.setBonePose(rightThigh, 0.5, 7.5 + step * 0.2, 0.0, -step * 0.8, 0.0, 0.0);
+    player.setBonePose(rightShin, 0.5, 3.75 + step * 0.2, 0.0, step * 0.4, 0.0, 0.0);
+    player.setBonePose(rightFoot, 0.5, 1.0 + step * 0.2, 0.0, 0.0, 0.0, 0.0);
+});
+
+// Define "kick" animation
+player.addAnimation("kick", func(state: object) -> void {
+    var t: float = state.time;
+    var kickPhase: float = t % 2.0;
+    var kick: float = 0.0;
+    
+    if (kickPhase < 0.5) {
+        kick = kickPhase * 2.0;
+    } else if (kickPhase < 1.0) {
+        kick = 1.0 - (kickPhase - 0.5) * 2.0;
+    }
+    
+    // Spine chain - leans back
+    player.setBonePose(pelvis, 0.0, 10.0, 0.0, -0.15, 0.0, 0.0);
+    player.setBonePose(spine, 0.0, 11.0, 0.0, -0.1, 0.0, 0.0);
+    player.setBonePose(chest, 0.0, 12.5, 0.0, 0.05, 0.0, 0.0);
+    player.setBonePose(neck, 0.0, 15.5, 0.0, 0.0, 0.0, 0.0);
+    player.setBonePose(head, 0.0, 20.0, 0.0, 0.0, 0.0, 0.0);
+    
+    // Left arm - fixed position, raised for balance
+    player.setBonePose(leftShoulder, -1.6, 14.0, 0.0, -0.6, 0.0, 0.0);
+    player.setBonePose(leftUpperArm, -2.5, 12.25, 0.0, -0.8, 0.0, 0.0);
+    player.setBonePose(leftForearm, -2.5, 9.5, 0.0, 0.0, 0.0, 0.0);
+    
+    // Right arm - fixed position, raised for balance
+    player.setBonePose(rightShoulder, 1.6, 14.0, 0.0, 0.6, 0.0, 0.0);
+    player.setBonePose(rightUpperArm, 2.5, 12.25, 0.0, 0.8, 0.0, 0.0);
+    player.setBonePose(rightForearm, 2.5, 9.5, 0.0, 0.0, 0.0, 0.0);
+    
+    // Left leg - standing firm
+    player.setBonePose(leftThigh, -0.5, 7.5, 0.0, 0.0, 0.0, 0.0);
+    player.setBonePose(leftShin, -0.5, 3.75, 0.0, 0.0, 0.0, 0.0);
+    player.setBonePose(leftFoot, -0.5, 1.0, 0.0, 0.0, 0.0, 0.0);
+    
+    // Right leg - extended kick
+    player.setBonePose(rightThigh, 0.5, 7.5 + kick * 0.5, 0.0, kick * 1.2, 0.0, 0.0);
+    player.setBonePose(rightShin, 0.5, 3.75 + kick * 1.0, 0.0, kick * 0.6, 0.0, 0.0);
+    player.setBonePose(rightFoot, 0.5, 1.0 + kick * 1.5, 0.0, 0.0, 0.0, 0.0);
+});
+
+// Define "celebrate" animation
+player.addAnimation("celebrate", func(state: object) -> void {
+    var t: float = state.time * 2.0;
+    var jumpHeight: float = sin(t * 2.0) * 0.5;
+    if (jumpHeight < 0.0) {
+        jumpHeight = 0.0;
+    }
+    
+    // Root bone - jumps up and down
+    player.setBonePose(pelvis, 0.0, 10.0 + jumpHeight, 0.0, 0.0, 0.0, 0.0);
+    
+    // Spine chain - moves up with jump
+    player.setBonePose(spine, 0.0, 11.0 + jumpHeight, 0.0, 0.0, 0.0, 0.0);
+    player.setBonePose(chest, 0.0, 12.5 + jumpHeight, 0.0, 0.0, 0.0, 0.0);
+    player.setBonePose(neck, 0.0, 15.5 + jumpHeight, 0.0, 0.0, 0.0, 0.0);
+    player.setBonePose(head, 0.0, 20.0 + jumpHeight, 0.0, 0.0, 0.0, 0.0);
+    
+    // Left arm - raised and celebrating
+    player.setBonePose(leftShoulder, -1.6, 14.0 + jumpHeight, 0.0, -1.3, 0.0, 0.0);
+    player.setBonePose(leftUpperArm, -2.5, 12.25 + jumpHeight, 0.0, -1.4, 0.0, 0.0);
+    player.setBonePose(leftForearm, -2.5, 9.5 + jumpHeight, 0.0, 0.2, 0.0, 0.0);
+    
+    // Right arm - raised and celebrating
+    player.setBonePose(rightShoulder, 1.6, 14.0 + jumpHeight, 0.0, -1.3, 0.0, 0.0);
+    player.setBonePose(rightUpperArm, 2.5, 12.25 + jumpHeight, 0.0, -1.4, 0.0, 0.0);
+    player.setBonePose(rightForearm, 2.5, 9.5 + jumpHeight, 0.0, 0.2, 0.0, 0.0);
+    
+    // Left leg - bent for jump
+    player.setBonePose(leftThigh, -0.5, 7.5, 0.0, -0.3, 0.0, 0.0);
+    player.setBonePose(leftShin, -0.5, 3.75, 0.0, -0.2, 0.0, 0.0);
+    player.setBonePose(leftFoot, -0.5, 1.0, 0.0, 0.0, 0.0, 0.0);
+    
+    // Right leg - bent for jump
+    player.setBonePose(rightThigh, 0.5, 7.5, 0.0, -0.3, 0.0, 0.0);
+    player.setBonePose(rightShin, 0.5, 3.75, 0.0, -0.2, 0.0, 0.0);
+    player.setBonePose(rightFoot, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0);
+});
+
+// Add lighting
+var light: object = PointLight("#FFFFFF", 2.0);
+light.setPosition(5.0, 15.0, 10.0);
+scene.add(light);
+
+var ambient: object = AmbientLight("#FFFFFF", 0.5);
+scene.add(ambient);
+
+// Animation control
+var currentAnim: string = "walk";
+var animTime: float = 0.0;
+var running: int = 1;
+
+print("Animations: walk, run, kick, celebrate");
+print("Starting with 'walk' animation");
+
+// Start animation
+player.playAnimCallback(currentAnim);
+
+// Animation loop
+while (running == 1) {
+    running = handleDevInput();
+    updateDevCamera();
+    
+    // Update animation
+    player.updateAnimCallback(0.016);
+    
+    // Switch animations every 4 seconds
+    animTime = animTime + 0.016;
+    if (animTime > 4.0) {
+        animTime = 0.0;
+        
+        if (currentAnim == "walk") {
+            currentAnim = "run";
+            print("Switching to: run");
+        } else if (currentAnim == "run") {
+            currentAnim = "kick";
+            print("Switching to: kick");
+        } else if (currentAnim == "kick") {
+            currentAnim = "celebrate";
+            print("Switching to: celebrate");
+        } else {
+            currentAnim = "walk";
+            print("Switching to: walk");
+        }
+        
+        player.playAnimCallback(currentAnim);
+    }
+    
+    // Render
+    canvas.render(scene, camera);
+}
+
+print("Soccer player demo ended.");

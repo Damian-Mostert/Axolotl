@@ -195,7 +195,7 @@ NUM_CORES=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" >/dev/null 2>&1
 progress_bar 2 5
 echo " Compiling source..."
-cmake --build build -j$NUM_CORES >/dev/null 2>&1
+cmake --build build --target compiler -j$NUM_CORES >/dev/null 2>&1
 
 progress_bar 3 5
 echo " Installing binaries..."

@@ -1,0 +1,43 @@
+// Soccer Player with Running Animation
+print("Loading soccer player");
+
+var canvas: object = createCanvas(1024, 768, "Soccer Player");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(60.0);
+camera.setPosition(0.0, 80.0, 200.0);
+camera.lookAt(0.0, 50.0, 0.0);
+
+var player: object = loadOBJ("socker-player.obj");
+player.setPosition(0.0, 0.0, 0.0);
+scene.add(player);
+
+// Create single bone for right arm
+var rightArm: int = player.createBone("rightArm", -1);
+player.setBoneRange(rightArm, 6.0, 7.0, 8.0, 13.0);
+
+// Simple arm wave animation
+player.addAnimation("wave", func(state: object) -> void {
+    var t: float = state.time;
+    player.setBonePose(rightArm, 6.5, 10.0, 137.0, sin(t * 3.0) * 0.8, 0.0, 0.0);
+});
+
+player.playAnimCallback("wave");
+
+var light: object = PointLight("#FFFFFF", 2.0);
+light.setPosition(100.0, 200.0, 100.0);
+scene.add(light);
+
+var ambient: object = AmbientLight("#FFFFFF", 0.6);
+scene.add(ambient);
+
+enableDevMode(camera);
+
+var running: int = 1;
+while (running == 1) {
+    player.updateAnimCallback(0.016);
+    updateDevCamera();
+    canvas.render(scene, camera);
+    running = handleDevInput();
+}
+
+print("Done.");

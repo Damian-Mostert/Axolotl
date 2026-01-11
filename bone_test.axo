@@ -1,40 +1,37 @@
-// Animate loaded OBJ model
+// Character with twisting bone animation
+print("Starting twist animation");
 
-const canvas = createCanvas(800, 600);
-const scene = createScene();
-const camera = PerspectiveCamera(60);
-camera.setPosition(0, 2, 5);
-camera.lookAt(0, 1, 0);
+var canvas: object = createCanvas(800, 600, "Twist Animation");
+var scene: object = createScene();
+var camera: object = PerspectiveCamera(60.0);
+camera.setPosition(2.0, 2.0, 8.0);
+camera.lookAt(0.5, 1.0, 0.25);
 
-// Load OBJ model
-const wolf = loadOBJ("env/src/assets/Wolf_obj.obj");
-wolf.setPosition(0, 0, 0);
-wolf.setScale(0.01, 0.01, 0.01);
+var character: object = loadOBJ("creature/character.obj");
+character.setPosition(0.0, 0.0, 0.0);
+character.setColor("#88AAFF");
+scene.add(character);
 
-// Add running animation
-wolf.addAnimation("run", func(state: object) -> void {
-    const t = state.time;
-    wolf.setRotation(0, t * 0.5, 0);
-    const bob = sin(t * 4.0) * 0.05;
-    const pos = wolf.getPosition();
-    wolf.setPosition(pos.x, bob, pos.z);
+var spine: int = character.createBone("spine", -1);
+
+character.addAnimation("twist", func(state: object) -> void {
+    var t = state.time;
+    character.setBonePose(spine, 0.0, 0.0, 0.0, sin(t * 2.0) * 0.8, cos(t * 2.0) * 0.5, sin(t * 1.5) * 0.3);
 });
 
-wolf.playAnimCallback("run");
+character.playAnimCallback("twist");
 
-// Add light
-const light = PointLight("#ffffff", 1.0);
-light.setPosition(3, 5, 3);
-
-scene.add(wolf);
+var light: object = PointLight("#FFFFFF", 1.5);
+light.setPosition(5.0, 8.0, 5.0);
 scene.add(light);
 
-enableDevMode(camera);
+var ambient: object = AmbientLight("#FFFFFF", 0.5);
+scene.add(ambient);
 
-// Animation loop
-while (handleDevInput() == 1) {
-    wolf.updateAnimCallback(0.016);
-    updateDevCamera();
+var running: int = 1;
+while (running == 1) {
+    pollEvents();
+    character.updateAnimCallback(0.016);
     canvas.render(scene, camera);
 }
 

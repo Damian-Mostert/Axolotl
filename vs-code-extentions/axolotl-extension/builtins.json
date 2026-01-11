@@ -51,7 +51,9 @@
     {"name": "updateAnimation", "signature": "mesh.updateAnimation()", "description": "Update animation with delta time", "parent": "mesh"},
     {"name": "addAnimation", "signature": "mesh.addAnimation()", "description": "Add animation with callback function", "parent": "mesh"},
     {"name": "playAnimCallback", "signature": "mesh.playAnimCallback()", "description": "Play animation by name with callback", "parent": "mesh"},
-    {"name": "updateAnimCallback", "signature": "mesh.updateAnimCallback()", "description": "Update callback-based animation", "parent": "mesh"}
+    {"name": "updateAnimCallback", "signature": "mesh.updateAnimCallback()", "description": "Update callback-based animation", "parent": "mesh"},
+    {"name": "setBoneRange", "signature": "mesh.setBoneRange()", "description": "Set bone bounding box for vertex selection", "parent": "mesh"},
+    {"name": "assignVertexToBone", "signature": "mesh.assignVertexToBone()", "description": "Assign vertices to bone based on Y and X ranges", "parent": "mesh"}
   ]
 ,
   "canvas": [

@@ -4,11 +4,13 @@ print("Loading Wolf in Street...");
 const canvas: object = createCanvas(1280, 720);
 const scene: object = createScene();
 setGraphics(scene, {
-    backgroundColor: "#00ffffff"
+    backgroundColor: "#d69d64",
+    backgroundImage: "src/assets/images/test.exr",  // New ,
+    backgroundRotation: 1
 });
 // Load street environment
 const world: object = loadOBJ("./src/assets/Center City Sci-Fi.obj");
-world.setPosition(0, -10, 0.0);
+world.setPosition(0, -100, 0);
 scene.add(world);
 
 print("Street loaded");
@@ -21,8 +23,8 @@ camera.lookAt(0.0, 1.0, 0.0);
 enableDevMode(camera);
 
 // Lighting
-const sun: object = PointLight("#FFFFFF", 5.0);
-sun.setPosition(10.0, 20.0, 10.0);
+const sun: object = PointLight("#FFFFFF", 10);
+sun.setPosition(100.0, -100.0, 0.0);
 scene.add(sun);
 
 const backLight: object = PointLight("#FFFFFF", 3.0);
@@ -39,7 +41,18 @@ var running: int = 1;
 
 while (running == 1) {
     running = handleDevInput();
-    updateDevCamera();    
+    updateDevCamera();
+    
+    time = time + 1.0;
+    // Position sun to match background - adjust these angles based on where sun appears in your EXR
+    const sunAngle = time * 0.01; // Matches backgroundRotation speed
+    const sunElevation = -0.3; // Adjust based on sun height in EXR
+    sun.setPosition(
+        100.0 * cos(sunAngle), 
+        100.0 * sin(sunElevation), 
+        100.0 * sin(sunAngle)
+    );
+    
     canvas.render(scene, camera);
 }
 
