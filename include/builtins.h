@@ -15,6 +15,7 @@ struct CanvasContext {
     int width, height;
     bool useOpenGL = false;
     bool is2D = false;
+    bool wantsFullscreen = false;
     SDL_Color fillColor{0, 0, 0, 255};
     SDL_Color strokeColor{0, 0, 0, 255};
     float lineWidth = 1.0f;

@@ -187,9 +187,9 @@ bool valueMatchesType(const Value &v, const std::string &typeSpec) {
     // "any" type matches anything
     if (t == "any") return true;
 
-    // Base types
-    if (t == "int") return std::holds_alternative<int>(v);
-    if (t == "float") return std::holds_alternative<float>(v);
+    // Base types (with int/float compatibility)
+    if (t == "int") return std::holds_alternative<int>(v) || std::holds_alternative<float>(v);
+    if (t == "float") return std::holds_alternative<float>(v) || std::holds_alternative<int>(v);
     if (t == "string") return std::holds_alternative<std::string>(v);
     if (t == "bool") return std::holds_alternative<bool>(v);
     if (t == "object") return std::holds_alternative<std::shared_ptr<ObjectValue>>(v);

@@ -1,4 +1,3 @@
-// Wolf in Street Environment
 print("Loading Wolf in Street...");
 
 const canvas: object = createCanvas(1280, 720);
@@ -6,7 +5,11 @@ const scene: object = createScene();
 setGraphics(scene, {
     backgroundColor: "#d69d64",
     backgroundImage: "src/assets/images/test.exr",  // New ,
-    backgroundRotation: 1
+    backgroundRotation: 1,
+    enableShadows: true,
+    enableSpecular:true,
+    enableAmbientOcclusion:true
+
 });
 // Load street environment
 const world: object = loadOBJ("./src/assets/Center City Sci-Fi.obj");

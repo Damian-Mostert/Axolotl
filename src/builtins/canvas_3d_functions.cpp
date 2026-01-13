@@ -50,6 +50,7 @@ struct Bone
     Vec3 restRotation{0, 0, 0};
     Vec3 pivotPosition{0, 0, 0};  // Joint attachment point for child bones
     int parentId = -1;
+    int stopAtParent = -1;  // Stop parent chain traversal at this bone ID
     float minX = -1000.0f;
     float maxX = 1000.0f;
     float minY = 0.0f;
@@ -147,7 +148,7 @@ struct Scene
     float backgroundRotation = 0.0f;
 };
 extern std::unordered_map<int, std::shared_ptr<CanvasContext>> canvases;
-static std::unordered_map<int, Mesh> meshes;
+std::unordered_map<int, Mesh> meshes;
 static std::unordered_map<int, Camera> cameras;
 static std::unordered_map<int, Scene> scenes;
 static std::unordered_map<int, Light> lights;
@@ -1276,9 +1277,8 @@ public:
                         auto &skeleton = skeletons[meshId];
                         Vec3 originalVert = vert;
                         
-                        // Find dominant bone for this vertex
+                        // Find dominant bone for this vertex - FIRST MATCH WINS (exclusive assignment)
                         int dominantBone = -1;
-                        float maxWeight = 0.0f;
                         
                         for (size_t boneIdx = 0; boneIdx < skeleton.size(); boneIdx++)
                         {
@@ -1288,20 +1288,11 @@ public:
                             if (originalVert.x >= bone.minX && originalVert.x <= bone.maxX &&
                                 originalVert.y >= bone.minY && originalVert.y <= bone.maxY)
                             {
-                                float yCenter = (bone.minY + bone.maxY) * 0.5f;
-                                float yDist = fabs(originalVert.y - yCenter);
-                                float yRange = bone.maxY - bone.minY;
-                                float weight = yRange > 0 ? 1.0f - (yDist / (yRange * 0.5f)) : 1.0f;
-                                
-                                if (weight > maxWeight)
-                                {
-                                    maxWeight = weight;
-                                    dominantBone = boneIdx;
-                                }
+                                dominantBone = boneIdx;
+                                break;  // FIRST MATCH - stop searching
                             }
                         }
-                        
-                        // If no bone found, find nearest
+                        // If no bone found, find nearest (fallback only)
                         if (dominantBone < 0)
                         {
                             float minDist = 1e10f;
@@ -1320,19 +1311,12 @@ public:
                             }
                         }
                         
+                        // Use dominant bone WITH full parent chain
                         if (dominantBone >= 0)
                         {
-                            vert = originalVert;
-                            Bone &bone = skeleton[dominantBone];
-                            Vec3 boneRest = {(bone.minX + bone.maxX) * 0.5f, 
-                                           (bone.minY + bone.maxY) * 0.5f, 0.0f};
+                            Vec3 boneVert = originalVert;
                             
-                            // Move vertex to local bone space (relative to bone center)
-                            vert.x -= boneRest.x;
-                            vert.y -= boneRest.y;
-                            vert.z -= boneRest.z;
-                            
-                            // Build hierarchy chain (root to this bone)
+                            // Build parent chain for dominant bone
                             std::vector<int> chain;
                             int idx = dominantBone;
                             while (idx >= 0 && idx < (int)skeleton.size())
@@ -1342,45 +1326,28 @@ public:
                             }
                             std::reverse(chain.begin(), chain.end());
                             
-                            // Get root bone for final positioning
-                            Bone &rootBone = skeleton[chain[0]];
-                            Vec3 rootRest = {(rootBone.minX + rootBone.maxX) * 0.5f, 
-                                            (rootBone.minY + rootBone.maxY) * 0.5f, 0.0f};
-                            
-                            // Apply transforms from root to leaf
+                            // Apply ALL transforms from root to leaf - vertex assignment prevents cross-contamination
                             for (int c = 0; c < (int)chain.size(); c++)
                             {
                                 Bone &b = skeleton[chain[c]];
-                                Vec3 bRest = {(b.minX + b.maxX) * 0.5f, (b.minY + b.maxY) * 0.5f, 0.0f};
                                 
-                                // Rotate around pivot
-                                Vec3 pivotLocal = {b.pivotPosition.x - bRest.x, 
-                                                  b.pivotPosition.y - bRest.y, 
-                                                  b.pivotPosition.z - bRest.z};
+                                // Move to bone's pivot
+                                boneVert.x -= b.pivotPosition.x;
+                                boneVert.y -= b.pivotPosition.y;
+                                boneVert.z -= b.pivotPosition.z;
                                 
-                                // Move vertex to pivot, rotate, move back
-                                vert.x -= pivotLocal.x;
-                                vert.y -= pivotLocal.y;
-                                vert.z -= pivotLocal.z;
+                                // Apply rotation
+                                boneVert = rotateX(boneVert, b.rotation.x - b.restRotation.x);
+                                boneVert = rotateY(boneVert, b.rotation.y - b.restRotation.y);
+                                boneVert = rotateZ(boneVert, b.rotation.z - b.restRotation.z);
                                 
-                                vert = rotateX(vert, b.rotation.x);
-                                vert = rotateY(vert, b.rotation.y);
-                                vert = rotateZ(vert, b.rotation.z);
-                                
-                                vert.x += pivotLocal.x;
-                                vert.y += pivotLocal.y;
-                                vert.z += pivotLocal.z;
-                                
-                                // Apply position offset
-                                vert.x += b.position.x - bRest.x;
-                                vert.y += b.position.y - bRest.y;
-                                vert.z += b.position.z - bRest.z;
+                                // Move back from pivot
+                                boneVert.x += b.pivotPosition.x;
+                                boneVert.y += b.pivotPosition.y;
+                                boneVert.z += b.pivotPosition.z;
                             }
                             
-                            // Move back to world space using root bone center
-                            vert.x += rootRest.x;
-                            vert.y += rootRest.y;
-                            vert.z += rootRest.z;
+                            vert = boneVert;
                         }
                     }
                     
@@ -1446,7 +1413,7 @@ public:
                 SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, scene.msaaSamples);
             }
 
-            ctx->window = SDL_CreateWindow("Axolotl 3D", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, ctx->width, ctx->height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+            ctx->window = SDL_CreateWindow("Axolotl 3D", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, ctx->width, ctx->height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
             if (!ctx->window)
                 return "";
 
@@ -2956,6 +2923,42 @@ public:
 };
 REGISTER_BUILTIN(CreateBoneBuiltin)
 REGISTER_BUILTIN(SetBonePoseBuiltin)
+class SetBoneStopParentBuiltin : public BuiltinFunction
+{
+public:
+    //@desc Set parent chain stop point for bone to prevent cross-limb contamination
+    //@parent mesh
+    std::string getName() const override { return "setBoneStopParent"; }
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 2)
+            throw std::runtime_error("mesh.setBoneStopParent(boneIndex, stopAtBoneIndex)");
+        if (!node->callee)
+            throw std::runtime_error("setBoneStopParent must be called on mesh");
+        auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa)
+            return "";
+        Value objVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(objVal))
+            return "";
+        auto obj = std::get<std::shared_ptr<ObjectValue>>(objVal);
+        if (!obj || !obj->fields.count("_meshId"))
+            return "";
+        int meshId = std::get<int>(obj->fields["_meshId"]);
+        if (!skeletons.count(meshId))
+            return "";
+        auto v0 = interp->evaluate(node->args[0].get());
+        auto v1 = interp->evaluate(node->args[1].get());
+        int boneIdx = std::holds_alternative<int>(v0) ? std::get<int>(v0) : (int)std::get<float>(v0);
+        int stopIdx = std::holds_alternative<int>(v1) ? std::get<int>(v1) : (int)std::get<float>(v1);
+        if (boneIdx >= 0 && boneIdx < (int)skeletons[meshId].size())
+        {
+            skeletons[meshId][boneIdx].stopAtParent = stopIdx;
+        }
+        return "";
+    }
+};
+REGISTER_BUILTIN(SetBoneStopParentBuiltin)
 class SetBoneRangeBuiltin : public BuiltinFunction
 {
 public:
@@ -3039,9 +3042,9 @@ public:
         bone.restPosition.y = (bone.minY + bone.maxY) * 0.5f;
         bone.restPosition.z = 0.0f;
         
-        // Set pivot to the top of the bone (where child attaches)
+        // Set pivot to the center of the bone for rotation
         bone.pivotPosition.x = bone.restPosition.x;
-        bone.pivotPosition.y = bone.maxY;  // Top of bone
+        bone.pivotPosition.y = bone.restPosition.y;
         bone.pivotPosition.z = 0.0f;
         
         // Initialize position to rest position

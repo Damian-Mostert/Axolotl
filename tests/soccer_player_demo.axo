@@ -17,10 +17,10 @@ player.setPosition(0.0, 0.0, 0.0);
 player.setColor("#FF6633");
 scene.add(player);
 
-// Create skeleton bones with proper hierarchy
+// Create skeleton bones with SEPARATE hierarchies for legs and upper body
 // Model Y range: 0 to 20.7 (standing human)
 var pelvis: int = player.createBone("pelvis", -1);
-var spine: int = player.createBone("spine", pelvis);
+var spine: int = player.createBone("spine", -1);  // ROOT - not child of pelvis!
 var chest: int = player.createBone("chest", spine);
 var neck: int = player.createBone("neck", chest);
 var head: int = player.createBone("head", neck);
@@ -41,49 +41,44 @@ var rightThigh: int = player.createBone("rightThigh", pelvis);
 var rightShin: int = player.createBone("rightShin", rightThigh);
 var rightFoot: int = player.createBone("rightFoot", rightShin);
 
-print("Created skeleton with 17 bones");
+print("Created skeleton with 17 bones - SEPARATE leg and upper body hierarchies");
 
-// Map vertices to bones based on Y coordinates
-// Feet: y < 2.0
-player.assignVertexToBone(leftFoot, 0.0, 2.0, -1.0, -0.1);
-player.assignVertexToBone(rightFoot, 0.0, 2.0, 0.1, 1.0);
+// CRITICAL: Assign arms FIRST with strict X boundaries to prevent thigh overlap
+// Forearms: 8.0 <= y < 11.0 (FAR from body)
+player.assignVertexToBone(leftForearm, 8.0, 11.0, -5.0, -1.8);
+player.assignVertexToBone(rightForearm, 8.0, 11.0, 1.8, 5.0);
 
-// Lower legs: 2.0 <= y < 5.5
-player.assignVertexToBone(leftShin, 2.0, 5.5, -1.0, -0.1);
-player.assignVertexToBone(rightShin, 2.0, 5.5, 0.1, 1.0);
-
-// Upper legs: 5.5 <= y < 9.5
-player.assignVertexToBone(leftThigh, 5.5, 9.5, -1.0, -0.1);
-player.assignVertexToBone(rightThigh, 5.5, 9.5, 0.1, 1.0);
-
-// Pelvis: 9.5 <= y < 10.5
-player.assignVertexToBone(pelvis, 9.5, 10.5, -1.0, 1.0);
-
-// Spine: 10.5 <= y < 11.5
-player.assignVertexToBone(spine, 10.5, 11.5, -1.0, 1.0);
-
-// Chest: 11.5 <= y < 13.5
-player.assignVertexToBone(chest, 11.5, 13.5, -2.0, 2.0);
+// Upper arms: 11.0 <= y < 13.5 (FAR from body)
+player.assignVertexToBone(leftUpperArm, 11.0, 13.5, -5.0, -2.0);
+player.assignVertexToBone(rightUpperArm, 11.0, 13.5, 2.0, 5.0);
 
 // Shoulders: 13.5 <= y < 14.5
-player.assignVertexToBone(leftShoulder, 13.5, 14.5, -2.5, -0.8);
-player.assignVertexToBone(rightShoulder, 13.5, 14.5, 0.8, 2.5);
+player.assignVertexToBone(leftShoulder, 13.5, 14.5, -3.0, -0.7);
+player.assignVertexToBone(rightShoulder, 13.5, 14.5, 0.7, 3.0);
 
-// Upper arms: 11.0 <= y < 13.5
-player.assignVertexToBone(leftUpperArm, 11.0, 13.5, -3.5, -1.5);
-player.assignVertexToBone(rightUpperArm, 11.0, 13.5, 1.5, 3.5);
+// NOW assign legs with tighter X boundaries
+// Feet: y < 2.0
+player.assignVertexToBone(leftFoot, 0.0, 2.0, -1.2, -0.05);
+player.assignVertexToBone(rightFoot, 0.0, 2.0, 0.05, 1.2);
 
-// Forearms: 8.0 <= y < 11.0
-player.assignVertexToBone(leftForearm, 8.0, 11.0, -3.5, -1.5);
-player.assignVertexToBone(rightForearm, 8.0, 11.0, 1.5, 3.5);
+// Lower legs: 2.0 <= y < 5.5
+player.assignVertexToBone(leftShin, 2.0, 5.5, -1.3, -0.1);
+player.assignVertexToBone(rightShin, 2.0, 5.5, 0.1, 1.3);
 
-// Neck: 14.5 <= y < 16.5
+// Upper legs: 5.5 <= y < 9.5 (TIGHTER X to exclude torso, STRICT Y to avoid pelvis)
+player.assignVertexToBone(leftThigh, 5.5, 9.0, -1.7, -0.3);
+player.assignVertexToBone(rightThigh, 5.5, 9.0, 0.3, 1.7);
+
+// Torso - STRICT boundaries to avoid leg overlap
+player.assignVertexToBone(pelvis, 9.0, 10.5, -0.8, 0.8);
+player.assignVertexToBone(spine, 10.5, 11.5, -0.8, 0.8);
+player.assignVertexToBone(chest, 11.5, 13.5, -0.7, 0.7);
+
+// Head
 player.assignVertexToBone(neck, 14.5, 16.5, -0.8, 0.8);
+player.assignVertexToBone(head, 16.5, 23.5, -1.5, 1.5);
 
-// Head: y >= 16.5
-player.assignVertexToBone(head, 16.5, 25.0, -1.5, 1.5);
-
-print("Mapped vertices to bones");
+print("Mapped vertices to bones - arms assigned first to prevent thigh overlap");
 
 // Define "walk" animation
 player.addAnimation("walk", func(state: object) -> void {
@@ -208,15 +203,15 @@ player.addAnimation("celebrate", func(state: object) -> void {
     player.setBonePose(neck, 0.0, 15.5 + jumpHeight, 0.0, 0.0, 0.0, 0.0);
     player.setBonePose(head, 0.0, 20.0 + jumpHeight, 0.0, 0.0, 0.0, 0.0);
     
-    // Left arm - raised and celebrating
-    player.setBonePose(leftShoulder, -1.6, 14.0 + jumpHeight, 0.0, -1.3, 0.0, 0.0);
-    player.setBonePose(leftUpperArm, -2.5, 12.25 + jumpHeight, 0.0, -1.4, 0.0, 0.0);
-    player.setBonePose(leftForearm, -2.5, 9.5 + jumpHeight, 0.0, 0.2, 0.0, 0.0);
+    // Left arm - raised and celebrating (NO jumpHeight on arms)
+    player.setBonePose(leftShoulder, -1.6, 14.0, 0.0, -1.3, 0.0, 0.0);
+    player.setBonePose(leftUpperArm, -2.5, 12.25, 0.0, -1.4, 0.0, 0.0);
+    player.setBonePose(leftForearm, -2.5, 9.5, 0.0, 0.2, 0.0, 0.0);
     
-    // Right arm - raised and celebrating
-    player.setBonePose(rightShoulder, 1.6, 14.0 + jumpHeight, 0.0, -1.3, 0.0, 0.0);
-    player.setBonePose(rightUpperArm, 2.5, 12.25 + jumpHeight, 0.0, -1.4, 0.0, 0.0);
-    player.setBonePose(rightForearm, 2.5, 9.5 + jumpHeight, 0.0, 0.2, 0.0, 0.0);
+    // Right arm - raised and celebrating (NO jumpHeight on arms)
+    player.setBonePose(rightShoulder, 1.6, 14.0, 0.0, -1.3, 0.0, 0.0);
+    player.setBonePose(rightUpperArm, 2.5, 12.25, 0.0, -1.4, 0.0, 0.0);
+    player.setBonePose(rightForearm, 2.5, 9.5, 0.0, 0.2, 0.0, 0.0);
     
     // Left leg - bent for jump
     player.setBonePose(leftThigh, -0.5, 7.5, 0.0, -0.3, 0.0, 0.0);

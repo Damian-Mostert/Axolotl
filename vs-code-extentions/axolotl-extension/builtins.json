@@ -52,6 +52,7 @@
     {"name": "addAnimation", "signature": "mesh.addAnimation()", "description": "Add animation with callback function", "parent": "mesh"},
     {"name": "playAnimCallback", "signature": "mesh.playAnimCallback()", "description": "Play animation by name with callback", "parent": "mesh"},
     {"name": "updateAnimCallback", "signature": "mesh.updateAnimCallback()", "description": "Update callback-based animation", "parent": "mesh"},
+    {"name": "setBoneStopParent", "signature": "mesh.setBoneStopParent()", "description": "Set parent chain stop point for bone to prevent cross-limb contamination", "parent": "mesh"},
     {"name": "setBoneRange", "signature": "mesh.setBoneRange()", "description": "Set bone bounding box for vertex selection", "parent": "mesh"},
     {"name": "assignVertexToBone", "signature": "mesh.assignVertexToBone()", "description": "Assign vertices to bone based on Y and X ranges", "parent": "mesh"}
   ]
@@ -69,7 +70,10 @@
     {"name": "loadImage", "signature": "loadImage()", "description": "Load image from file path", "parent": ""},
     {"name": "drawImage", "signature": "drawImage()", "description": "Draw image on canvas at position", "parent": ""},
     {"name": "drawLine", "signature": "drawLine()", "description": "Draw line between two points", "parent": ""},
-    {"name": "close", "signature": "close()", "description": "Close canvas window", "parent": ""}
+    {"name": "close", "signature": "close()", "description": "Close canvas window", "parent": ""},
+    {"name": "resize", "signature": "canvas.resize()", "description": "Resize canvas window", "parent": "canvas"},
+    {"name": "setFullscreen", "signature": "canvas.setFullscreen()", "description": "Toggle fullscreen mode", "parent": "canvas"},
+    {"name": "setTitle", "signature": "canvas.setTitle()", "description": "Set canvas window title", "parent": "canvas"}
   ]
 ,
   "conversion": [
@@ -147,6 +151,20 @@
     {"name": "mysqlConnect", "signature": "mysqlConnect()", "description": "Connect to MySQL database", "parent": ""},
     {"name": "query", "signature": "query()", "description": "Execute SQL query on database connection", "parent": ""},
     {"name": "close", "signature": "close()", "description": "Close canvas window", "parent": ""}
+  ]
+,
+  "physics": [
+    {"name": "createPhysicsContext", "signature": "createPhysicsContext()", "description": "", "parent": ""},
+    {"name": "attachPhysics", "signature": "attachPhysics()", "description": "", "parent": ""},
+    {"name": "physicsStep", "signature": "physicsStep()", "description": "", "parent": ""},
+    {"name": "createCharacterController", "signature": "createCharacterController()", "description": "", "parent": ""},
+    {"name": "move", "signature": "move()", "description": "", "parent": ""},
+    {"name": "rotate", "signature": "rotate()", "description": "", "parent": ""},
+    {"name": "jump", "signature": "jump()", "description": "", "parent": ""},
+    {"name": "update", "signature": "update()", "description": "", "parent": ""},
+    {"name": "getPosition", "signature": "getPosition()", "description": "", "parent": ""},
+    {"name": "getRotation", "signature": "getRotation()", "description": "", "parent": ""},
+    {"name": "isGrounded", "signature": "isGrounded()", "description": "", "parent": ""}
   ]
 ,
   "registry": [
