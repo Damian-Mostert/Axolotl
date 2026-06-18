@@ -158,6 +158,8 @@ static std::unordered_map<int, std::pair<int, float>> animationStates;
 static std::unordered_map<int, std::vector<std::pair<std::string, TextureOptions>>> pendingTextures;
 static int nextMeshId = 1, nextCameraId = 1, nextSceneId = 1, nextLightId = 1;
 static bool devMode = false;
+static bool devShowBones = false;
+static bool devShowVertices = false;
 static int devCameraId = -1;
 static int lastMouseX = 0, lastMouseY = 0;
 static bool mouseDown = false;
@@ -934,6 +936,34 @@ public:
         cam.distance = sqrt(cam.position.x * cam.position.x + cam.position.y * cam.position.y + cam.position.z * cam.position.z);
         cam.yaw = atan2(cam.position.x, cam.position.z);
         cam.pitch = atan2(cam.position.y, sqrt(cam.position.x * cam.position.x + cam.position.z * cam.position.z));
+        return "";
+    }
+};
+class ShowBonesBuiltin : public BuiltinFunction
+{
+public:
+    //@desc Toggle bone visualization in dev mode
+    std::string getName() const override { return "showBones"; }
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 1)
+            throw std::runtime_error("showBones(enabled)");
+        auto v = interp->evaluate(node->args[0].get());
+        devShowBones = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
+        return "";
+    }
+};
+class ShowVerticesBuiltin : public BuiltinFunction
+{
+public:
+    //@desc Toggle vertex visualization in dev mode
+    std::string getName() const override { return "showVertices"; }
+    std::string execute(Interpreter *interp, FunctionCall *node) override
+    {
+        if (node->args.size() != 1)
+            throw std::runtime_error("showVertices(enabled)");
+        auto v = interp->evaluate(node->args[0].get());
+        devShowVertices = std::holds_alternative<int>(v) ? std::get<int>(v) != 0 : std::get<float>(v) != 0.0f;
         return "";
     }
 };
@@ -1992,6 +2022,166 @@ public:
         glEnd();
         glDisable(GL_TEXTURE_2D);
         
+        // Dev mode: Render bone visualization
+        if (devMode && devShowBones)
+        {
+            glDisable(GL_LIGHTING);
+            glDisable(GL_DEPTH_TEST);
+            glLineWidth(3.0f);
+            
+            for (int meshId : scene.meshIds)
+            {
+                if (!skeletons.count(meshId) || skeletons[meshId].empty())
+                    continue;
+                    
+                Mesh &mesh = meshes[meshId];
+                auto &skeleton = skeletons[meshId];
+                
+                // Draw bones as lines with joints
+                glBegin(GL_LINES);
+                for (size_t i = 0; i < skeleton.size(); i++)
+                {
+                    Bone &bone = skeleton[i];
+                    
+                    // Transform bone position to world space
+                    Vec3 bonePos = bone.position;
+                    bonePos.x *= mesh.scale.x;
+                    bonePos.y *= mesh.scale.y;
+                    bonePos.z *= mesh.scale.z;
+                    bonePos = rotateX(bonePos, mesh.rotation.x);
+                    bonePos = rotateY(bonePos, mesh.rotation.y);
+                    bonePos = rotateZ(bonePos, mesh.rotation.z);
+                    bonePos.x += mesh.position.x;
+                    bonePos.y += mesh.position.y;
+                    bonePos.z += mesh.position.z;
+                    
+                    // Draw line to parent
+                    if (bone.parentId >= 0 && bone.parentId < (int)skeleton.size())
+                    {
+                        Bone &parent = skeleton[bone.parentId];
+                        Vec3 parentPos = parent.position;
+                        parentPos.x *= mesh.scale.x;
+                        parentPos.y *= mesh.scale.y;
+                        parentPos.z *= mesh.scale.z;
+                        parentPos = rotateX(parentPos, mesh.rotation.x);
+                        parentPos = rotateY(parentPos, mesh.rotation.y);
+                        parentPos = rotateZ(parentPos, mesh.rotation.z);
+                        parentPos.x += mesh.position.x;
+                        parentPos.y += mesh.position.y;
+                        parentPos.z += mesh.position.z;
+                        
+                        glColor4f(0.0f, 1.0f, 0.0f, 1.0f); // Green for bone connections
+                        glVertex3f(bonePos.x, bonePos.y, bonePos.z);
+                        glVertex3f(parentPos.x, parentPos.y, parentPos.z);
+                    }
+                }
+                glEnd();
+                
+                // Draw bone joints as points
+                glPointSize(8.0f);
+                glBegin(GL_POINTS);
+                for (size_t i = 0; i < skeleton.size(); i++)
+                {
+                    Bone &bone = skeleton[i];
+                    Vec3 bonePos = bone.position;
+                    bonePos.x *= mesh.scale.x;
+                    bonePos.y *= mesh.scale.y;
+                    bonePos.z *= mesh.scale.z;
+                    bonePos = rotateX(bonePos, mesh.rotation.x);
+                    bonePos = rotateY(bonePos, mesh.rotation.y);
+                    bonePos = rotateZ(bonePos, mesh.rotation.z);
+                    bonePos.x += mesh.position.x;
+                    bonePos.y += mesh.position.y;
+                    bonePos.z += mesh.position.z;
+                    
+                    glColor4f(1.0f, 0.0f, 0.0f, 1.0f); // Red for joints
+                    glVertex3f(bonePos.x, bonePos.y, bonePos.z);
+                }
+                glEnd();
+            }
+            
+            glLineWidth(1.0f);
+            glPointSize(1.0f);
+            if (scene.enableDepthTest)
+                glEnable(GL_DEPTH_TEST);
+            glEnable(GL_LIGHTING);
+        }
+        
+        // Dev mode: Render vertex visualization
+        if (devMode && devShowVertices)
+        {
+            glDisable(GL_LIGHTING);
+            glPointSize(3.0f);
+            
+            for (int meshId : scene.meshIds)
+            {
+                Mesh &mesh = meshes[meshId];
+                if (!mesh.visible)
+                    continue;
+                    
+                glBegin(GL_POINTS);
+                for (const auto &vert : mesh.vertices)
+                {
+                    Vec3 worldV = vert;
+                    worldV.x *= mesh.scale.x;
+                    worldV.y *= mesh.scale.y;
+                    worldV.z *= mesh.scale.z;
+                    worldV = rotateX(worldV, mesh.rotation.x);
+                    worldV = rotateY(worldV, mesh.rotation.y);
+                    worldV = rotateZ(worldV, mesh.rotation.z);
+                    worldV.x += mesh.position.x;
+                    worldV.y += mesh.position.y;
+                    worldV.z += mesh.position.z;
+                    
+                    // Color vertices based on bone assignment if skeleton exists
+                    if (skeletons.count(meshId) && !skeletons[meshId].empty())
+                    {
+                        auto &skeleton = skeletons[meshId];
+                        int dominantBone = -1;
+                        
+                        for (size_t boneIdx = 0; boneIdx < skeleton.size(); boneIdx++)
+                        {
+                            Bone &bone = skeleton[boneIdx];
+                            if (vert.x >= bone.minX && vert.x <= bone.maxX &&
+                                vert.y >= bone.minY && vert.y <= bone.maxY)
+                            {
+                                dominantBone = boneIdx;
+                                break;
+                            }
+                        }
+                        
+                        // Color by bone index
+                        if (dominantBone >= 0)
+                        {
+                            float hue = (dominantBone * 137.5f) / 360.0f; // Golden angle for distinct colors
+                            hue = hue - floor(hue);
+                            float r = fabs(hue * 6.0f - 3.0f) - 1.0f;
+                            float g = 2.0f - fabs(hue * 6.0f - 2.0f);
+                            float b = 2.0f - fabs(hue * 6.0f - 4.0f);
+                            r = fmax(0.0f, fmin(1.0f, r));
+                            g = fmax(0.0f, fmin(1.0f, g));
+                            b = fmax(0.0f, fmin(1.0f, b));
+                            glColor4f(r, g, b, 1.0f);
+                        }
+                        else
+                        {
+                            glColor4f(0.5f, 0.5f, 0.5f, 1.0f); // Gray for unassigned
+                        }
+                    }
+                    else
+                    {
+                        glColor4f(1.0f, 1.0f, 0.0f, 1.0f); // Yellow for meshes without bones
+                    }
+                    
+                    glVertex3f(worldV.x, worldV.y, worldV.z);
+                }
+                glEnd();
+            }
+            
+            glPointSize(1.0f);
+            glEnable(GL_LIGHTING);
+        }
+        
         // Render drop shadows
         if (scene.enableShadows)
         {
@@ -2139,6 +2329,8 @@ REGISTER_BUILTIN(PointLightBuiltin)
 REGISTER_BUILTIN(AmbientLightBuiltin)
 REGISTER_BUILTIN(DirectionalLightBuiltin)
 REGISTER_BUILTIN(EnableDevModeBuiltin)
+REGISTER_BUILTIN(ShowBonesBuiltin)
+REGISTER_BUILTIN(ShowVerticesBuiltin)
 REGISTER_BUILTIN(UpdateDevCameraBuiltin)
 REGISTER_BUILTIN(HandleDevInputBuiltin)
 REGISTER_BUILTIN(RenderSceneBuiltin)

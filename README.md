@@ -15,7 +15,8 @@ Axolotl is a small, statically-typed language and compiler implemented in modern
 - **Types**: `int`, `float`, `string`, `bool`, `void`, `object`, array types (`[type]`)
 - **Control flow**: `if/else`, `while`, `for` (use `var` in `for` initializers)
 - **Functions**: named and inline `func` values with typed parameters/returns
-- **3D Graphics**: OBJ loading, skeletal bone animation with callback system
+- **3D Graphics**: OBJ loading, skeletal bone animation with callback system, dev mode visualization
+- **Dev Tools**: Bone and vertex visualization for debugging skeletal animations
 - **VS Code integration**: syntax highlighting, grammar, and an icon theme
 - **Pretty errors**: parse errors include file, line, column and a caret pointer to the offending token
 
@@ -188,9 +189,17 @@ Try the bone animation demo:
 ./build/compiler tests/bone_animation_demo.axo
 ```
 
+Try the bone visualization demo:
+
+```bash
+./build/compiler tests/bone_visualization_demo.axo
+```
+
 Open `examples/test.axo` and `examples/showcase.axo` to see language features.
 
 See `docs/BONE_ANIMATION.md` for the complete bone animation API.
+
+See `docs/BONE_VISUALIZATION.md` for bone and vertex visualization in dev mode.
 
 ## **Development Notes**
 

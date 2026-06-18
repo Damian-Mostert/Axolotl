@@ -1,3 +1,0 @@
-var x: float = 2.0;
-var y: float = x * 0.5;
-print(y);

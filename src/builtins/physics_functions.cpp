@@ -657,12 +657,20 @@ public:
             throw std::runtime_error("controller.move(forward, right, run, dt)");
         
         auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa) throw std::runtime_error("move must be called on controller object");
+        
         Value ctrlVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(ctrlVal))
+            throw std::runtime_error("Expected controller object");
+        
         auto ctrlObj = std::get<std::shared_ptr<ObjectValue>>(ctrlVal);
+        
+        if (ctrlObj->fields.find("_ctrlId") == ctrlObj->fields.end())
+            throw std::runtime_error("Controller object missing _ctrlId field");
         
         int ctrlId = std::get<int>(ctrlObj->fields["_ctrlId"]);
         if (controllers.find(ctrlId) == controllers.end())
-            throw std::runtime_error("Controller not found");
+            throw std::runtime_error("Controller not found with ID: " + std::to_string(ctrlId));
         
         character::Controller* ctrl = controllers[ctrlId].get();
         
@@ -695,7 +703,8 @@ public:
         };
         
         character::move(ctrl, dir, speed);
-        return "";
+        interp->lastValue = ctrlObj;
+        return "{object}";
     }
 };
 
@@ -707,12 +716,20 @@ public:
             throw std::runtime_error("controller.rotate(direction, dt)");
         
         auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa) throw std::runtime_error("rotate must be called on controller object");
+        
         Value ctrlVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(ctrlVal))
+            throw std::runtime_error("Expected controller object");
+        
         auto ctrlObj = std::get<std::shared_ptr<ObjectValue>>(ctrlVal);
+        
+        if (ctrlObj->fields.find("_ctrlId") == ctrlObj->fields.end())
+            throw std::runtime_error("Controller object missing _ctrlId field in rotate");
         
         int ctrlId = std::get<int>(ctrlObj->fields["_ctrlId"]);
         if (controllers.find(ctrlId) == controllers.end())
-            throw std::runtime_error("Controller not found");
+            throw std::runtime_error("Controller not found in rotate with ID: " + std::to_string(ctrlId));
         
         character::Controller* ctrl = controllers[ctrlId].get();
         
@@ -727,7 +744,8 @@ public:
         while (ctrl->handle->mesh->rotation.y > 3.14159f) ctrl->handle->mesh->rotation.y -= 6.28318f;
         while (ctrl->handle->mesh->rotation.y < -3.14159f) ctrl->handle->mesh->rotation.y += 6.28318f;
         
-        return "";
+        interp->lastValue = ctrlObj;
+        return "{object}";
     }
 };
 
@@ -739,16 +757,25 @@ public:
             throw std::runtime_error("jump must be called on controller");
         
         auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa) throw std::runtime_error("jump: not a field access");
+        
         Value ctrlVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(ctrlVal))
+            throw std::runtime_error("Expected controller object in jump");
+        
         auto ctrlObj = std::get<std::shared_ptr<ObjectValue>>(ctrlVal);
+        
+        if (ctrlObj->fields.find("_ctrlId") == ctrlObj->fields.end())
+            throw std::runtime_error("Controller object missing _ctrlId field in jump");
         
         int ctrlId = std::get<int>(ctrlObj->fields["_ctrlId"]);
         if (controllers.find(ctrlId) == controllers.end())
-            throw std::runtime_error("Controller not found");
+            throw std::runtime_error("Controller not found in jump with ID: " + std::to_string(ctrlId));
         
         character::Controller* ctrl = controllers[ctrlId].get();
         character::jump(ctrl, 10.0f);
-        return "";
+        interp->lastValue = ctrlObj;
+        return "{object}";
     }
 };
 
@@ -759,13 +786,24 @@ public:
         if (node->args.size() != 1 || !node->callee)
             throw std::runtime_error("controller.update(dt)");
         
+        auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa) throw std::runtime_error("update must be called on controller object");
+        
+        Value ctrlVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(ctrlVal))
+            throw std::runtime_error("Expected controller object in update");
+        
+        auto ctrlObj = std::get<std::shared_ptr<ObjectValue>>(ctrlVal);
+        
         auto v = interp->evaluate(node->args[0].get());
         float dt = std::holds_alternative<int>(v) ? std::get<int>(v) : std::get<float>(v);
         
         for (auto& [id, ctx] : physicsContexts) {
             if (ctx) ctx->step(dt);
         }
-        return "";
+        
+        interp->lastValue = ctrlObj;
+        return "{object}";
     }
 };
 
@@ -777,12 +815,20 @@ public:
             throw std::runtime_error("getPosition must be called on controller");
         
         auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa) throw std::runtime_error("getPosition: not a field access");
+        
         Value ctrlVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(ctrlVal))
+            throw std::runtime_error("Expected controller object in getPosition");
+        
         auto ctrlObj = std::get<std::shared_ptr<ObjectValue>>(ctrlVal);
+        
+        if (ctrlObj->fields.find("_ctrlId") == ctrlObj->fields.end())
+            throw std::runtime_error("Controller object missing _ctrlId field in getPosition");
         
         int ctrlId = std::get<int>(ctrlObj->fields["_ctrlId"]);
         if (controllers.find(ctrlId) == controllers.end())
-            throw std::runtime_error("Controller not found");
+            throw std::runtime_error("Controller not found in getPosition with ID: " + std::to_string(ctrlId));
         
         character::Controller* ctrl = controllers[ctrlId].get();
         
@@ -803,12 +849,20 @@ public:
             throw std::runtime_error("getRotation must be called on controller");
         
         auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa) throw std::runtime_error("getRotation: not a field access");
+        
         Value ctrlVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(ctrlVal))
+            throw std::runtime_error("Expected controller object in getRotation");
+        
         auto ctrlObj = std::get<std::shared_ptr<ObjectValue>>(ctrlVal);
+        
+        if (ctrlObj->fields.find("_ctrlId") == ctrlObj->fields.end())
+            throw std::runtime_error("Controller object missing _ctrlId field in getRotation");
         
         int ctrlId = std::get<int>(ctrlObj->fields["_ctrlId"]);
         if (controllers.find(ctrlId) == controllers.end())
-            throw std::runtime_error("Controller not found");
+            throw std::runtime_error("Controller not found in getRotation with ID: " + std::to_string(ctrlId));
         
         character::Controller* ctrl = controllers[ctrlId].get();
         interp->lastValue = ctrl->handle->mesh->rotation.y;
@@ -824,12 +878,20 @@ public:
             throw std::runtime_error("isGrounded must be called on controller");
         
         auto fa = dynamic_cast<FieldAccess *>(node->callee.get());
+        if (!fa) throw std::runtime_error("isGrounded: not a field access");
+        
         Value ctrlVal = interp->evaluate(fa->object.get());
+        if (!std::holds_alternative<std::shared_ptr<ObjectValue>>(ctrlVal))
+            throw std::runtime_error("Expected controller object in isGrounded");
+        
         auto ctrlObj = std::get<std::shared_ptr<ObjectValue>>(ctrlVal);
+        
+        if (ctrlObj->fields.find("_ctrlId") == ctrlObj->fields.end())
+            throw std::runtime_error("Controller object missing _ctrlId field in isGrounded");
         
         int ctrlId = std::get<int>(ctrlObj->fields["_ctrlId"]);
         if (controllers.find(ctrlId) == controllers.end())
-            throw std::runtime_error("Controller not found");
+            throw std::runtime_error("Controller not found in isGrounded with ID: " + std::to_string(ctrlId));
         
         character::Controller* ctrl = controllers[ctrlId].get();
         int grounded = ctrl->handle->isGrounded ? 1 : 0;

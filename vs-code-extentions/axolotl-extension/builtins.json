@@ -27,6 +27,8 @@
     {"name": "setScale", "signature": "mesh.setScale()", "description": "Set object scale factors", "parent": "mesh"},
     {"name": "lookAt", "signature": "camera.lookAt()", "description": "Point camera at target coordinates", "parent": "camera"},
     {"name": "enableDevMode", "signature": "enableDevMode()", "description": "Enable development camera controls", "parent": ""},
+    {"name": "showBones", "signature": "showBones()", "description": "Toggle bone visualization in dev mode", "parent": ""},
+    {"name": "showVertices", "signature": "showVertices()", "description": "Toggle vertex visualization in dev mode", "parent": ""},
     {"name": "updateDevCamera", "signature": "updateDevCamera()", "description": "Update development camera position", "parent": ""},
     {"name": "handleDevInput", "signature": "handleDevInput()", "description": "Process development mode input events", "parent": ""},
     {"name": "PointLight", "signature": "PointLight()", "description": "Create point light with color and intensity", "parent": ""},
