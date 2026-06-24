@@ -2,6 +2,7 @@ print("Loading Wolf in Street...");
 
 const canvas: object = createCanvas(1280, 720);
 const scene: object = createScene();
+
 setGraphics(scene, {
     backgroundColor: "#d69d64",
     backgroundImage: "src/assets/images/test.exr",  // New ,
